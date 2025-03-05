@@ -9,6 +9,9 @@ net = Mininet(controller=Controller, switch=OVSSwitch)
 #to add ryo controller at a second date
 #net.addController("c0", ip="127.0.0.1", port=6653)
 
+
+c0 = net.addController("c0", controller=Controller)
+
 # OVSSWTICH
 s1 = net.addSwitch("s1", protocols="OpenFlow13")
 s2 = net.addSwitch("s2", protocols="OpenFlow13")
