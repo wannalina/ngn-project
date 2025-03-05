@@ -37,6 +37,12 @@ net.addLink(h5, s4)
 net.addLink(h6, s4)
 net.addLink(h7, s5)
 
+net.addLink(s1,s2)
+net.addLink(s2,s3)
+net.addLink(s3,s4)
+net.addLink(s4,s5)
+net.addLink(s5,s1)
+
 
 net.start()
 
