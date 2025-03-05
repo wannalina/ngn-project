@@ -1,7 +1,7 @@
 from mininet.net import Mininet
 from mininet.node import Controller, OVSSwitch
 from mininet.cli import CLI
-# from mininet.link import TCLink
+from mininet.link import TCLink
 
 #create network
 net = Mininet(controller=Controller, switch=OVSSwitch)
@@ -11,10 +11,10 @@ net = Mininet(controller=Controller, switch=OVSSwitch)
 
 # OVSSWTICH
 s1 = net.addSwitch("s1", protocols="OpenFlow13")
-s2 = net.addSwitch("s1", protocols="OpenFlow13")
-s3 = net.addSwitch("s1", protocols="OpenFlow13")
-s4 = net.addSwitch("s1", protocols="OpenFlow13")
-s5 = net.addSwitch("s1", protocols="OpenFlow13")
+s2 = net.addSwitch("s2", protocols="OpenFlow13")
+s3 = net.addSwitch("s3", protocols="OpenFlow13")
+s4 = net.addSwitch("s4", protocols="OpenFlow13")
+s5 = net.addSwitch("s5", protocols="OpenFlow13")
 
 #hosts 
 #to later change to docker host
@@ -44,4 +44,4 @@ net.pingAll()
 
 CLI(net)
 
-#net.stop()
+net.stop()
