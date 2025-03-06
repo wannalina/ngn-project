@@ -1,7 +1,9 @@
 from mininet.topo import Topo
 from mininet.net import Mininet
-from mininet.node import Controller
+from mininet.node import Controller,RemoteController
 from mininet.cli import CLI
+
+c1=RemoteController('c1', ip='127.0.0.1', port = 6633)
 
 class SimpleTopo(Topo):
     def build(self):
@@ -34,15 +36,15 @@ class SimpleTopo(Topo):
         self.addLink(switch2, switch3)
         self.addLink(switch3, switch4)
         self.addLink(switch4, switch5)
-
+        
 # creation of the netwwork
 if __name__ == '__main__':
     topo = SimpleTopo()
-    net = Mininet(topo=topo, controller=Controller)
+    net = Mininet( topo=topo, build=False )
+    net.addController(c1)
+    net.build()
     net.start()
-    
 
     CLI(net)
-    
     # stop once exit from cli
     net.stop()
