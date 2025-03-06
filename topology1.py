@@ -5,6 +5,14 @@ from mininet.cli import CLI
 
 c1=RemoteController('c1', ip='127.0.0.1', port = 6633)
 
+def stop_containers(host):
+    host.cmd('docker stop $(docker ps -q)')
+#Ferma tutti i container???
+def clean_containers(host):
+    host.cmd('docker rm -f $(docker ps -a -q)')  
+# Rimuove tutti i container
+
+
 class SimpleTopo(Topo):
     def build(self):
         # hosts
@@ -36,6 +44,7 @@ class SimpleTopo(Topo):
         self.addLink(switch2, switch3)
         self.addLink(switch3, switch4)
         self.addLink(switch4, switch5)
+        self.addLink(switch5, switch2)
         
 # creation of the netwwork
 if __name__ == '__main__':
@@ -45,6 +54,10 @@ if __name__ == '__main__':
     net.build()
     net.start()
 
+    host1 = net.get('h1')
+    host1.cmd('docker run -d --name container1_h1 --net=host ubuntu bash -c "while true; do echo Ciao da h1-container1; sleep 2; done"')
+
     CLI(net)
     # stop once exit from cli
+    clean_containers(host1)
     net.stop()
