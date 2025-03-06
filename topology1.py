@@ -1,56 +1,48 @@
+from mininet.topo import Topo
 from mininet.net import Mininet
-from mininet.node import Controller, OVSSwitch
+from mininet.node import Controller
 from mininet.cli import CLI
-from mininet.link import TCLink
 
-#create network
-net = Mininet(controller=Controller, switch=OVSSwitch)
+class SimpleTopo(Topo):
+    def build(self):
+        # hosts
+        host1 = self.addHost('h1')
+        host2 = self.addHost('h2')
+        host3 = self.addHost('h3')
+        host4 = self.addHost('h4')
+        host5 = self.addHost('h5')
+        host6 = self.addHost('h6')
+        host7 = self.addHost('h7')
+        # switches
+        switch1 = self.addSwitch('s1')
+        switch2 = self.addSwitch('s2')
+        switch3 = self.addSwitch('s3')
+        switch4 = self.addSwitch('s4')
+        switch5 = self.addSwitch('s5')
 
-#to add ryo controller at a second date
-#net.addController("c0", ip="127.0.0.1", port=6653)
+        # links between hosts
+        self.addLink(host1, switch1)
+        self.addLink(host2, switch2)
+        self.addLink(host3, switch2)
+        self.addLink(host4, switch3)
+        self.addLink(host5, switch4)
+        self.addLink(host6, switch4)
+        self.addLink(host7, switch5)
+       
+        # links between switches
+        self.addLink(switch1, switch2)
+        self.addLink(switch2, switch3)
+        self.addLink(switch3, switch4)
+        self.addLink(switch4, switch5)
 
+# creation of the netwwork
+if __name__ == '__main__':
+    topo = SimpleTopo()
+    net = Mininet(topo=topo, controller=Controller)
+    net.start()
+    
 
-c0 = net.addController("c0", controller=Controller)
-
-# OVSSWTICH
-s1 = net.addSwitch("s1", stp=True)
-s2 = net.addSwitch("s2", stp=True)
-s3 = net.addSwitch("s3", stp=True)
-s4 = net.addSwitch("s4", stp=True)
-s5 = net.addSwitch("s5", stp=True)
-
-#hosts 
-#to later change to docker host
-#h1 = net.addHost("h1",cls=DockerHost,ip="10.0.0.1")
-h1 = net.addHost("h1", ip="10.0.0.1")
-h2 = net.addHost("h2", ip="10.0.0.2")
-h3 = net.addHost("h3", ip="10.0.0.3")
-h4 = net.addHost("h4", ip="10.0.0.4")
-h5 = net.addHost("h5", ip="10.0.0.5")
-h6 = net.addHost("h6", ip="10.0.0.6")
-h7 = net.addHost("h7", ip="10.0.0.7")
-
-
-#LINKS
-net.addLink(h1, s1)
-net.addLink(h2, s2)
-net.addLink(h3,s2)
-net.addLink(h4, s3)
-net.addLink(h5, s4)
-net.addLink(h6, s4)
-net.addLink(h7, s5)
-
-net.addLink(s1,s2)
-net.addLink(s2,s3)
-net.addLink(s3,s4)
-net.addLink(s4,s5)
-net.addLink(s5,s2)
-
-
-net.start()
-
-net.pingAll()
-
-CLI(net)
-
-net.stop()
+    CLI(net)
+    
+    # stop once exit from cli
+    net.stop()
