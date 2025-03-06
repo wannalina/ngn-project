@@ -13,11 +13,11 @@ net = Mininet(controller=Controller, switch=OVSSwitch)
 c0 = net.addController("c0", controller=Controller)
 
 # OVSSWTICH
-s1 = net.addSwitch("s1", protocols="OpenFlow13")
-s2 = net.addSwitch("s2", protocols="OpenFlow13")
-s3 = net.addSwitch("s3", protocols="OpenFlow13")
-s4 = net.addSwitch("s4", protocols="OpenFlow13")
-s5 = net.addSwitch("s5", protocols="OpenFlow13")
+s1 = net.addSwitch("s1", stp=True)
+s2 = net.addSwitch("s2", stp=True)
+s3 = net.addSwitch("s3", stp=True)
+s4 = net.addSwitch("s4", stp=True)
+s5 = net.addSwitch("s5", stp=True)
 
 #hosts 
 #to later change to docker host
@@ -44,7 +44,7 @@ net.addLink(s1,s2)
 net.addLink(s2,s3)
 net.addLink(s3,s4)
 net.addLink(s4,s5)
-net.addLink(s5,s1)
+net.addLink(s5,s2)
 
 
 net.start()
