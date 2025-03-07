@@ -5,7 +5,7 @@ import time
 client = docker.from_env()
 
 # function to start postgresql container
-def start_container():
+def create_container():
     try:
         print("Database container is starting.")
         container = client.containers.run(
@@ -95,7 +95,7 @@ def stop_container(container):
 # main function
 if __name__ == "__main__":
     
-    container = start_container()
+    container = create_container()
     
     if container:
         add_mock_data(container)
@@ -104,5 +104,5 @@ if __name__ == "__main__":
         time.sleep(10) # timer before stopping container (for testing only)
 
     # stop and remove container after some time
-    if container:
-        stop_container(container)
+    #if container:
+    #    stop_container(container)
