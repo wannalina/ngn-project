@@ -6,5 +6,5 @@ while True:
     time.sleep(2)
 
 #docker build -t random-logger .
-#docker save random-logger -o random_logger.tar
+#docker save random_logger -o random_logger.tar
 #docker load -i random_logger.tard
