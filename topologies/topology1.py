@@ -66,7 +66,10 @@ if __name__ == '__main__':
                 image_id = image.id
                 print(f"image id: {image.id}")
     docker_command = f"docker run -d --name mockDB --net=host {image_id}"
-    host1.cmd(docker_command)
+    print(f"Running command: {docker_command}")
+    
+    result = host1.cmd(docker_command)
+    print("result: ", result)
 
     CLI(net)
     # stop once exit from cli
