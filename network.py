@@ -66,7 +66,6 @@ class NetworkManager:
         # CORRERE CORSA
         host.cmd(f'docker run -d --name {container_name}_{host_name} --net=host {container_name}')
         
-    
     def stop_container(self, host_name, container_name="random_logger"):
         container_key = f"{host_name}_{container_name}" #key is combination of host + image name
         host = self.get_host(host_name)
@@ -81,16 +80,20 @@ if __name__ == '__main__':
     hosts,switches=handler.create_network(4, 8, 0.5) #CHANGE PARAMETERS HERE!
     handler.start_network()
     
-    handler.start_container('h1')    
+    #handler.start_container('h1')    
 
     while True:
-        cmd = input("[cli] Open Mininet | [stop] Stop The Network: ").strip().lower()
+        cmd = input("[cli] Open Mininet | [stop] Stop The Network| [1] boot whale | [2] kill whale | : ").strip().lower()
         
         if cmd == "cli":
             handler.open_cli()
         elif cmd == "stop":
-            handler.stop_container('h1')
+            #handler.stop_container('h1')
             handler.stop_network()
             break
+        elif cmd == "1":
+            handler.start_container('h1')
+        elif cmd == "2":
+            handler.stop_container('h1')
         else:
             print("Please use 'cli' or 'stop'")
