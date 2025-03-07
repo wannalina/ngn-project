@@ -65,7 +65,7 @@ if __name__ == '__main__':
         if image.tags[0] == 'postgres:latest':
                 image_id = image.id
                 print(f"image id: {image.id}")
-    docker_command = f"docker run -d --name mockDB --net-host {image_id}"
+    docker_command = f"docker run -d --name mockDB --net=host {image_id}"
     host1.cmd(docker_command)
 
     CLI(net)
