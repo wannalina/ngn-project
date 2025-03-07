@@ -86,13 +86,8 @@ if __name__ == "__main__":
     # establis connection
     connection, cursor = establish_connection()
     
-    # create database if not yet existing
-    database = create_db(cursor)
-    
-    
-    if database:
-        add_mock_data(database)
-        print_mock_table(database)
+    add_mock_data(connection, cursor)
+    print_mock_table(connection, cursor)
     
     # close connection
     cursor.close() 
