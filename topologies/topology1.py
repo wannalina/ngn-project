@@ -1,6 +1,6 @@
 from mininet.topo import Topo
 from mininet.net import Mininet
-from mininet.node import Controller,RemoteController
+from mininet.node import RemoteController
 from mininet.cli import CLI
 
 c1=RemoteController('c1', ip='127.0.0.1', port = 6633)
@@ -55,7 +55,8 @@ if __name__ == '__main__':
     net.start()
 
     host1 = net.get('h1')
-    host1.cmd('docker run -d --name container1_h1 --net=host ubuntu bash -c "while true; do echo Ciao da h1-container1; sleep 2; done"')
+    host1.cmd('docker run --rm -v /var/run/docker.sock:/var/run/docker.sock postgres')
+    #host1.cmd('docker run -d --name container1_h1 --net=host ubuntu bash -c "while true; do echo Ciao da h1-container1; sleep 2; done"')
 
     CLI(net)
     # stop once exit from cli
