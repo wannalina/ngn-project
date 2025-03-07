@@ -2,17 +2,17 @@ import psycopg2
 
 # params for database connection
 DB_NAME = "cities"
-DB_USER = "user"
-DB_PASSWORD = "pass123"
+DB_USER = "postgres"
+DB_PASSWORD = "newpassword"
 PORT = "5432"
 HOST_IP = "localhost"
 
-TABLE_VALUES = table_values = [('Trento', 'Italy'), ('Helsinki', 'Finland'), ('Riga', 'Latvia'), ('Milan', 'Italy'), ('Kuopio', 'Finland')]
+TABLE_VALUES = [('Trento', 'Italy'), ('Helsinki', 'Finland'), ('Riga', 'Latvia'), ('Milan', 'Italy'), ('Kuopio', 'Finland')]
 
 # function to establish db connection
 def establish_connection():
     connection = psycopg2.connect(
-        dbname = "postgres",
+        dbname = DB_NAME,
         user = DB_USER,
         password = DB_PASSWORD,
         host = HOST_IP,
