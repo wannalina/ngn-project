@@ -23,10 +23,13 @@ class NetworkManager:
             self.controller_process.wait()
 
     def create_network(self, num_switches=5, num_hosts=10, links_prob=0.4):
-        self.topo = RandomTopo(num_switches, num_hosts, links_prob)
+        #self.topo = RandomTopo(num_switches, num_hosts, links_prob)
+        self.topo=RandomTopo()
+        hosts, switches = self.topo.build(num_switches, num_hosts, links_prob)
         self.net = Mininet(topo=self.topo, build=False)
         self.net.addController(self.controller)
         self.net.build()
+        return hosts,switches
 
     def start_network(self):
         self.start_controller()
@@ -41,19 +44,52 @@ class NetworkManager:
         self.net.stop()
         self.stop_controller()
         subprocess.run(["mn","-c"])
+    
+    def get_host(self, host_name):
+        return self.net.get(host_name)
+        
+#    example of dockers from topology1
+#    host2 = net.get('h2')
+#    host2.cmd('docker load -i /fake_apps/random_logger.tar')
+#    host2.cmd('docker run -d --name random_logger_h2 --net=host random-logger')
+
+    #container functions
+    def start_container(self, host_name, container_name="random_logger", image_path="/fake_apps/random_logger.tar"):
+
+        host = self.get_host(host_name)
+        if not host:
+            return False
+        
+        # Load Image
+        host.cmd(f'docker load -i {image_path}')
+        
+        # CORRERE CORSA
+        host.cmd(f'docker run -d --name {container_name}_{host_name} --net=host {container_name}')
+        
+    
+    def stop_container(self, host_name, container_name="random_logger"):
+        container_key = f"{host_name}_{container_name}" #key is combination of host + image name
+        host = self.get_host(host_name)
+        if host:
+            host.cmd(f'docker rm -f {container_name}_{host_name}') #flag -f needed to stop exectuion before remotion
+            return True
+        return False
 
 # TEST NETWORK
 if __name__ == '__main__':
     handler = NetworkManager()
-    handler.create_network(4, 8, 0.5) #CHANGE PARAMETERS HERE!
+    hosts,switches=handler.create_network(4, 8, 0.5) #CHANGE PARAMETERS HERE!
     handler.start_network()
     
+    handler.start_container('h1')    
+
     while True:
         cmd = input("[cli] Open Mininet | [stop] Stop The Network: ").strip().lower()
         
         if cmd == "cli":
             handler.open_cli()
         elif cmd == "stop":
+            handler.stop_container('h1')
             handler.stop_network()
             break
         else:
