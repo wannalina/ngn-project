@@ -30,7 +30,7 @@ def establish_connection():
             port = PORT
         )
         create_db(connection, cursor)
-	connection.autocommit = True
+        connection.autocommit = True
         cursor = connection.cursor()
     finally:
         return connection, cursor
