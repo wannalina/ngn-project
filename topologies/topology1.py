@@ -2,8 +2,10 @@ from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.node import Controller,RemoteController
 from mininet.cli import CLI
+import docker
 
 c1=RemoteController('c1', ip='127.0.0.1', port = 6633)
+client = docker.from_env()
 
 def stop_containers(host):
     host.cmd('docker stop $(docker ps -q)')
@@ -44,7 +46,7 @@ class SimpleTopo(Topo):
         self.addLink(switch2, switch3)
         self.addLink(switch3, switch4)
         self.addLink(switch4, switch5)
-        self.addLink(switch5, switch2)
+#        self.addLink(switch5, switch2)
         
 # creation of the netwwork
 if __name__ == '__main__':
@@ -55,7 +57,16 @@ if __name__ == '__main__':
     net.start()
 
     host1 = net.get('h1')
-    host1.cmd('docker run -d --name container1_h1 --net=host ubuntu bash -c "while true; do echo Ciao da h1-container1; sleep 2; done"')
+#    host1.cmd('docker run -d --name container1_h1 --net=host ubuntu bash -c "while true; do echo Ciao da h1-container1; sleep 2; done"')
+
+    docker_images = client.images.list()
+    image_id = ''
+    for image in docker_images:
+        if image.tags[0] == 'postgres:latest':
+                image_id = image.id
+                print(f"image id: {image.id}")
+    docker_command = f"docker run -d --name mockDB --net-host {image_id}"
+    host1.cmd(docker_command)
 
     CLI(net)
     # stop once exit from cli
