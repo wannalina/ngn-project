@@ -54,10 +54,11 @@ if __name__ == '__main__':
     net.build()
     net.start()
 
-    host1 = net.get('h1')
-    host1.cmd('docker run -d --name container1_h1 --net=host ubuntu bash -c "while true; do echo Ciao da h1-container1; sleep 2; done"')
+    host2 = net.get('h2')
+    host2.cmd('docker load -i /fake_apps/random_logger.tar')
+    host2.cmd('docker run -d --name random_logger_h2 --net=host random-logger')
 
     CLI(net)
     # stop once exit from cli
-    clean_containers(host1)
+    clean_containers(host2)
     net.stop()
