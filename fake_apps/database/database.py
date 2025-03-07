@@ -21,6 +21,7 @@ def establish_connection():
         )
         connection.autocommit = True
         cursor = connection.cursor()
+        return connection, cursor
     except Exception as e:
         connection = psycopg2.connect(
             dbname = 'postgres',
@@ -32,7 +33,6 @@ def establish_connection():
         create_db(connection, cursor)
         connection.autocommit = True
         cursor = connection.cursor()
-    finally:
         return connection, cursor
 
 # function to create postgresql database and table
