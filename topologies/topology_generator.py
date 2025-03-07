@@ -5,7 +5,7 @@ from mininet.cli import CLI
 import random
 
 class RandomTopo(Topo):
-    def build(self, num_switches, num_hosts, links_prob):
+    def build(self, num_switches=0, num_hosts=0, links_prob=0.5):
         
         # Add switches
         switches = []
