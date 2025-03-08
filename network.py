@@ -73,6 +73,13 @@ class NetworkManager:
             host.cmd(f'docker rm -f {container_name}_{host_name}') #flag -f needed to stop exectuion before remotion
             return True
         return False
+    
+    def stop_all_containers(self):
+        for host_name in self.net.hosts:
+            host = self.get_host(host_name.name)
+            if host:
+                host.cmd('docker rm -f $(docker ps -a -q)')
+        return True
 
 # TEST NETWORK
 if __name__ == '__main__':
@@ -83,12 +90,12 @@ if __name__ == '__main__':
     #handler.start_container('h1')    
 
     while True:
-        cmd = input("[cli] Open Mininet | [stop] Stop The Network| [1] boot whale | [2] kill whale | : ").strip().lower()
+        cmd = input("[cli] Open Mininet | [stop] Stop The Network | [1] boot whale | [2] kill whale | : ").strip().lower()
         
         if cmd == "cli":
             handler.open_cli()
         elif cmd == "stop":
-            #handler.stop_container('h1')
+            handler.stop_all_containers()
             handler.stop_network()
             break
         elif cmd == "1":
@@ -96,4 +103,4 @@ if __name__ == '__main__':
         elif cmd == "2":
             handler.stop_container('h1')
         else:
-            print("Please use 'cli' or 'stop'")
+            print("Use 'cli' or 'stop'")
