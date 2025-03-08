@@ -40,6 +40,8 @@ def establish_connection():
 
         if not exists:
             connection, cursor = create_db(connection_generic, cursor_generic)
+            cursor_generic.close() 
+            connection_generic.close()
             return connection, cursor
         else:
             connection, cursor = establish_connection_mock()
@@ -55,6 +57,9 @@ def create_db(connection_generic, cursor_generic):
 
         cursor_generic.execute(f"CREATE DATABASE {DB_NAME};")
         connection_generic.commit()
+        cursor_generic.close() 
+        connection_generic.close()
+
         connection, cursor = establish_connection_mock()
         
         # create table in db
