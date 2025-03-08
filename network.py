@@ -101,8 +101,10 @@ if __name__ == '__main__':
         elif cmd == "1":
             handler.start_container('h1',"database","/fake_apps/database/database.tar")
             handler.start_container('h2',"random_logger","/fake_apps/random_logger/random_logger.tar")
+            handler.start_container('h2', "mock_server", "/fake_apps/server/mock_server.tar")
         elif cmd == "2":
             handler.stop_container('h1', 'database')
             handler.stop_container('h2')
+            handler.stop_container('h2', 'mock_server')
         else:
             print("Please use 'cli' or 'stop'")
