@@ -27,8 +27,14 @@ def establish_connection():
     )
     return connection
 
-# route to fetch data from db table
 @app.route('/', methods=['GET'])
+def test():
+    while True:
+        print("test", flush=True)
+    return
+
+# route to fetch data from db table
+@app.route('/cities', methods=['GET'])
 def get_cities():
     try:
         connection = establish_connection()
