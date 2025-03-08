@@ -54,7 +54,7 @@ class NetworkManager:
 #    host2.cmd('docker run -d --name random_logger_h2 --net=host random-logger')
 
     #container functions
-    def start_container(self, host_name, container_name="random_logger", image_path="/fake_apps/random_logger.tar"):
+    def start_container(self, host_name, container_name="database", image_path="/fake_apps/database.tar"):
 
         host = self.get_host(host_name)
         if not host:
