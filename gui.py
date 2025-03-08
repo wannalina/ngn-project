@@ -1,13 +1,22 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QSpinBox, QGridLayout, QLabel, QPushButton,QHBoxLayout
 from PyQt5.QtCore import Qt
+from network import NetworkManager
 
+nm=NetworkManager()
 
 def run_clicked():
     print("RUN")
+    nm.build_network()
+    nm.start_network()
 
 def stop_clicked():
     print("STOP")
+    nm.stop_network()
+
+def generate_clicked():
+    print("GENERATE")
+    nm.generate_topology()
 
 app = QApplication(sys.argv)
 
@@ -53,7 +62,7 @@ generate.setFixedSize(150,50)
 
 run.clicked.connect(run_clicked)
 stop.clicked.connect(stop_clicked)
-
+generate.clicked.connect(generate_clicked)
 
 window.setLayout(gridLayout)
 
