@@ -42,7 +42,7 @@ def get_cities():
         cities = [{"id": row[0], "city": row[1], "country": row[2]} for row in rows]
         connection_close(connection, cursor)
 
-	print(f"cities: {jsonify(cities)}", flush=True)
+        print(f"cities: {jsonify(cities)}", flush=True)
 
         # return response as json
         return jsonify(cities)
