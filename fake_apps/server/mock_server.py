@@ -28,9 +28,9 @@ def establish_connection():
     return connection
 
 # route to fetch data from db table
-@app.route('/cities', methods=['GET'])
+@app.route('/', methods=['GET'])
 def get_cities():
-    try: 
+    try:
         connection = establish_connection()
         cursor = connection.cursor()
         
@@ -42,10 +42,12 @@ def get_cities():
         cities = [{"id": row[0], "city": row[1], "country": row[2]} for row in rows]
         connection_close(connection, cursor)
 
+	print(f"cities: {jsonify(cities)}", flush=True)
+
         # return response as json
         return jsonify(cities)
     except Exception as e: 
-        print(f"An error occurred: {e}")
+        return "An error occurred"
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
