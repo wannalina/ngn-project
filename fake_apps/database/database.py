@@ -9,35 +9,39 @@ HOST_IP = "localhost"
 
 TABLE_VALUES = [('Trento', 'Italy'), ('Helsinki', 'Finland'), ('Riga', 'Latvia'), ('Milan', 'Italy'), ('Kuopio', 'Finland')]
 
+def establish_connection_mock():
+    connection = psycopg2.connect(
+            dbname = DB_NAME,
+            user = DB_USER,
+            password = DB_PASSWORD,
+            host = HOST_IP,
+            port = PORT
+        )
+    connection.autocommit = True
+    cursor = connection.cursor()
+    return connection, cursor
+
 # function to establish db connection
 def establish_connection():
     try:
-        connection = psycopg2.connect(
+        connection_generic = psycopg2.connect(
             dbname = 'postgres',
             user = DB_USER,
             password = DB_PASSWORD,
             host = HOST_IP,
             port = PORT
         )
-        connection.autocommit = True
-        cursor = connection.cursor()
+        connection_generic.autocommit = True
+        cursor_generic = connection_generic.cursor()
     
         # check if the database already exists
-        cursor.execute(f"SELECT 1 FROM pg_database WHERE datname = '{DB_NAME}';")
-        exists = cursor.fetchone()
+        cursor_generic.execute(f"SELECT 1 FROM pg_database WHERE datname = '{DB_NAME}';")
+        exists = cursor_generic.fetchone()
 
         if not exists:
-            create_db(connection, cursor)
+            connection, cursor = create_db(connection_generic, cursor_generic)
         else:
-            connection = psycopg2.connect(
-                dbname = DB_NAME,
-                user = DB_USER,
-                password = DB_PASSWORD,
-                host = HOST_IP,
-                port = PORT
-            )
-            connection.autocommit = True
-            cursor = connection.cursor()
+            connection, cursor = establish_connection_mock()
         return connection, cursor
 
     except Exception as e:
@@ -58,10 +62,11 @@ def create_db(connection, cursor):
                 country VARCHAR(50));
         """)
         connection.commit()
-        print("????????")
+        connection, cursor = establish_connection_mock()
         add_mock_data(connection, cursor)
 
         print(f"Database {DB_NAME} created.")
+        return connection, cursor
 
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -82,15 +87,14 @@ def add_mock_data(connection, cursor):
 # function to verify correctness of table
 def print_mock_table(connection, cursor):
     try:
-        print("here??")
         query = "SELECT * FROM mock_cities_data;"
         
         cursor.execute(query)
         rows = cursor.fetchall()
+        print("rows:", rows)
         
         for row in rows:
             print(row)
-        print("yeah no")
 
     except Exception as e:
         print(f"An error occurred: {e}")
