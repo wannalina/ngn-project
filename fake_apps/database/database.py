@@ -98,7 +98,7 @@ if __name__ == "__main__":
     # establish connection
     connection, cursor = establish_connection()
 
-    add_mock_data(connection, cursor)
+ #   add_mock_data(connection, cursor)
     print_mock_table(connection, cursor)
 
     # close connection
