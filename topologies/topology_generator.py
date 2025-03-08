@@ -5,7 +5,7 @@ from mininet.cli import CLI
 import random
 
 class RandomTopo(Topo):
-    def build(self, num_switches=5, num_hosts=7, links_prob=0.4):
+    def build(self, num_switches=0, num_hosts=0, links_prob=0.5):
         
         # Add switches
         switches = []
@@ -34,15 +34,3 @@ class RandomTopo(Topo):
         
         return hosts, switches
 
-# creation of the netwwork
-if __name__ == '__main__':
-    topo = RandomTopo(5,10,0.4)
-    c1=RemoteController('c1', ip='127.0.0.1', port = 6633)
-    net = Mininet( topo=topo, build=False )
-    net.addController(c1)
-    net.build()
-    net.start()
-    
-    CLI(net)
-    # stop once exit from cli
-    net.stop()
