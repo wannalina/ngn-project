@@ -12,8 +12,9 @@ TABLE_VALUES = [('Trento', 'Italy'), ('Helsinki', 'Finland'), ('Riga', 'Latvia')
 # function to establish db connection
 def establish_connection():
     try:
-        print("debug??")
-        
+        connection = {}
+        cursor = {}
+
         # check if the database already exists
         cursor.execute(f"SELECT 1 FROM pg_database WHERE datname = '{DB_NAME}';")
         exists = cursor.fetchone()
@@ -89,7 +90,7 @@ def print_mock_table(connection, cursor):
 # main function
 if __name__ == "__main__":
 
-    # establis connection
+    # establish connection
     connection, cursor = establish_connection()
 
     add_mock_data(connection, cursor)
