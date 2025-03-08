@@ -12,7 +12,6 @@ TABLE_VALUES = [('Trento', 'Italy'), ('Helsinki', 'Finland'), ('Riga', 'Latvia')
 # function to establish db connection
 def establish_connection():
     try:
-        print("should create new db")
         connection = psycopg2.connect(
             dbname = 'postgres',
             user = DB_USER,
@@ -26,8 +25,6 @@ def establish_connection():
         # check if the database already exists
         cursor.execute(f"SELECT 1 FROM pg_database WHERE datname = '{DB_NAME}';")
         exists = cursor.fetchone()
-        
-        print("exists??", exists)
 
         if not exists:
             create_db(connection, cursor)
@@ -52,7 +49,6 @@ def create_db(connection, cursor):
         print("Database container is being created.")
 
         cursor.execute(f"CREATE DATABASE {DB_NAME};")
-        print(f"Database {DB_NAME} created.")
 
         # create table in db
         cursor.execute("""
@@ -62,6 +58,9 @@ def create_db(connection, cursor):
                 country VARCHAR(50));
         """)
         connection.commit()
+        add_mock_data(connection, cursor)
+
+        print(f"Database {DB_NAME} created.")
 
     except Exception as e:
         print(f"An error occurred: {e}")
