@@ -13,36 +13,7 @@ TABLE_VALUES = [('Trento', 'Italy'), ('Helsinki', 'Finland'), ('Riga', 'Latvia')
 def establish_connection():
     try:
         print("debug??")
-        connection = psycopg2.connect(
-            dbname = DB_NAME,
-            user = DB_USER,
-            password = DB_PASSWORD,
-            host = HOST_IP,
-            port = PORT
-        )
-        connection.autocommit = True
-        cursor = connection.cursor()
-        return connection, cursor
-
-    except Exception as e:
-        print("should create new db")
-        connection = psycopg2.connect(
-            dbname = 'postgres',
-            user = DB_USER,
-            password = DB_PASSWORD,
-            host = HOST_IP,
-            port = PORT
-        )
-        connection.autocommit = True
-        cursor = connection.cursor()
-        create_db(connection, cursor)
-        return connection, cursor
-
-# function to create postgresql database and table
-def create_db(connection, cursor):
-    try:
-        print("Database container is being created.")
-
+        
         # check if the database already exists
         cursor.execute(f"SELECT 1 FROM pg_database WHERE datname = '{DB_NAME}';")
         exists = cursor.fetchone()
@@ -50,14 +21,44 @@ def create_db(connection, cursor):
         print("exists??", exists)
 
         if not exists:
-            cursor.execute(f"CREATE DATABASE {DB_NAME}.")
-            print(f"Database {DB_NAME} created.")
-
-            # create table in db
-            cursor.execute(f"CREATE TABLE IF NOT EXISTS mock_cities_data (id SERIAL PRIMARY KEY, city VARCHAR(50), country VARCHAR(50));")
-            connection.commit()
+            print("should create new db")
+            connection = psycopg2.connect(
+                dbname = 'postgres',
+                user = DB_USER,
+                password = DB_PASSWORD,
+                host = HOST_IP,
+                port = PORT
+            )
+            connection.autocommit = True
+            cursor = connection.cursor()
+            create_db(connection, cursor)
         else:
-            print(f"Database '{DB_NAME}' already exists. No action taken.")
+            connection = psycopg2.connect(
+                dbname = DB_NAME,
+                user = DB_USER,
+                password = DB_PASSWORD,
+                host = HOST_IP,
+                port = PORT
+            )
+            connection.autocommit = True
+            cursor = connection.cursor()
+
+        return connection, cursor
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+# function to create postgresql database and table
+def create_db(connection, cursor):
+    try:
+        print("Database container is being created.")
+
+        cursor.execute(f"CREATE DATABASE {DB_NAME}.")
+        print(f"Database {DB_NAME} created.")
+
+        # create table in db
+        cursor.execute(f"CREATE TABLE IF NOT EXISTS mock_cities_data (id SERIAL PRIMARY KEY, city VARCHAR(50), country VARCHAR(50));")
+        connection.commit()
 
     except Exception as e:
         print(f"An error occurred: {e}")
