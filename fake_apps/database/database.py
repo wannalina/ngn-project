@@ -51,7 +51,7 @@ def create_db(connection, cursor):
     try:
         print("Database container is being created.")
 
-        cursor.execute(f"CREATE DATABASE {DB_NAME}.")
+        cursor.execute(f"CREATE DATABASE {DB_NAME};")
         print(f"Database {DB_NAME} created.")
 
         # create table in db
