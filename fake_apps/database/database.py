@@ -64,7 +64,7 @@ def create_db(connection_generic, cursor_generic):
         connection_generic.commit()
 
         # close generic connection
-        close_connection(GENERIC_DB_NAME)
+        close_connection(connection_generic, cursor_generic)
 
         # establish connection to new db
         connection, cursor = establish_connection(DB_NAME)
