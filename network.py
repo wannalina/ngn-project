@@ -13,34 +13,38 @@ class NetworkManager:
         self.controller = RemoteController('c1', ip='127.0.0.1', port=6633)
 
     def start_controller(self):
-        print("Starting Ryu controller...")
+        print("Starting Ryu controller")
         self.controller_process = subprocess.Popen(["ryu-manager", "simple_switch_stp_13.py"],stdout=open("ryu.log", "w"),stderr=subprocess.STDOUT)
 
     def stop_controller(self):
         if self.controller_process:
-            print("Stopping Ryu controller...")
+            print("Stopping Ryu controller")
             self.controller_process.terminate()
             self.controller_process.wait()
 
-    def create_network(self, num_switches=5, num_hosts=10, links_prob=0.4):
+    def generate_topology(self, num_switches=5, num_hosts=10, links_prob=0.4):
         #self.topo = RandomTopo(num_switches, num_hosts, links_prob)
         self.topo=RandomTopo()
         hosts, switches = self.topo.build(num_switches, num_hosts, links_prob)
+        return hosts,switches
+        
+    
+    def build_network(self):
         self.net = Mininet(topo=self.topo, build=False)
         self.net.addController(self.controller)
         self.net.build()
-        return hosts,switches
+       
 
     def start_network(self):
         self.start_controller()
-        print("Starting Network...")
+        print("Starting Network")
         self.net.start()
 
     def open_cli(self):
         CLI(self.net)
 
     def stop_network(self):
-        print("Shutting down...")
+        print("Shutting down")
         self.net.stop()
         self.stop_controller()
         subprocess.run(["mn","-c"])
@@ -84,7 +88,8 @@ class NetworkManager:
 # TEST NETWORK
 if __name__ == '__main__':
     handler = NetworkManager()
-    hosts,switches=handler.create_network(4, 8, 0.5) #CHANGE PARAMETERS HERE!
+    hosts,switches=handler.generate_topology(4, 8, 0.5) #CHANGE PARAMETERS HERE!
+    handler.build_network()
     handler.start_network()
     
     #handler.start_container('h1')    
