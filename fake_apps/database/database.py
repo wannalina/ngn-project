@@ -58,6 +58,7 @@ def create_db(connection, cursor):
                 country VARCHAR(50));
         """)
         connection.commit()
+        print("????????")
         add_mock_data(connection, cursor)
 
         print(f"Database {DB_NAME} created.")
@@ -68,9 +69,12 @@ def create_db(connection, cursor):
 # function to add mock data into database
 def add_mock_data(connection, cursor):
     try:
+        print("working 1")
         # insert values in db table
         cursor.executemany("INSERT INTO mock_cities_data (city, country) VALUES (%s, %s);", TABLE_VALUES)
         connection.commit()
+        
+        print("working 2")
 
     except Exception as e:
         print(f"An error occurred: {e}")
