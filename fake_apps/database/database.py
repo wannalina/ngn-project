@@ -33,6 +33,7 @@ def establish_connection():
             connection.autocommit = True
             cursor = connection.cursor()
             create_db(connection, cursor)
+            return connection, cursor
         else:
             connection = psycopg2.connect(
                 dbname = DB_NAME,
@@ -43,8 +44,7 @@ def establish_connection():
             )
             connection.autocommit = True
             cursor = connection.cursor()
-
-        return connection, cursor
+            return connection, cursor
 
     except Exception as e:
         print(f"An error occurred: {e}")
