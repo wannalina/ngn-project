@@ -82,9 +82,11 @@ def add_mock_data(connection, cursor):
 # function to verify correctness of table
 def print_mock_table(connection, cursor):
     try:
+        print("here??")
         query = "SELECT * FROM mock_cities_data;"
         args = ','.join(cursor.mogrify("(%s, %s)", row).decode() for row in TABLE_VALUES)
         
+        print("args??")
         cursor.execute(query % args)
         connection.commit()
 
