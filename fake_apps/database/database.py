@@ -43,18 +43,20 @@ def establish_connection():
             return connection, cursor
         else:
             connection, cursor = establish_connection_mock()
-        §   return connection, cursor
+            return connection, cursor
 
     except Exception as e:
         print(f"An error occurred: {e}")
 
 # function to create postgresql database and table
-def create_db(connection, cursor):
+def create_db(connection_generic, cursor_generic):
     try:
         print("Database container is being created.")
 
-        cursor.execute(f"CREATE DATABASE {DB_NAME};")
-
+        cursor_generic.execute(f"CREATE DATABASE {DB_NAME};")
+        connection_generic.commit()
+        connection, cursor = establish_connection_mock()
+        
         # create table in db
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS mock_cities_data 
@@ -63,7 +65,7 @@ def create_db(connection, cursor):
                 country VARCHAR(50));
         """)
         connection.commit()
-        connection, cursor = establish_connection_mock()
+
         add_mock_data(connection, cursor)
 
         print(f"Database {DB_NAME} created.")
