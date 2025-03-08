@@ -1,4 +1,5 @@
 import psycopg2
+import time
 
 # params for database connection
 GENERIC_DB_NAME = "postgres"
@@ -105,7 +106,7 @@ def print_mock_table(cursor):
 
         # print each table row
         for row in rows:
-            print(row)
+            print(row, flush=True)
 
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -117,7 +118,10 @@ if __name__ == "__main__":
     # establish db connection
     connection, cursor = connect_db()
 
-    # verify db table correctness
-    print_mock_table(cursor)
+    while True:
+        # verify db table correctness
+        print_mock_table(cursor)
+        #print("ciao",flush=True)
+        #time.sleep(3)
 
     close_connection(connection, cursor)
