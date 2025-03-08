@@ -84,11 +84,12 @@ def print_mock_table(connection, cursor):
     try:
         print("here??")
         query = "SELECT * FROM mock_cities_data;"
-        args = ','.join(cursor.mogrify("(%s, %s)", row).decode() for row in TABLE_VALUES)
         
-        print("args??")
-        cursor.execute(query % args)
-        connection.commit()
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        
+        for row in rows:
+            print(row)
         print("yeah no")
 
     except Exception as e:
