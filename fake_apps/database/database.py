@@ -89,6 +89,7 @@ def print_mock_table(connection, cursor):
         print("args??")
         cursor.execute(query % args)
         connection.commit()
+        print("yeah no")
 
     except Exception as e:
         print(f"An error occurred: {e}")
