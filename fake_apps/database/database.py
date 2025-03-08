@@ -40,9 +40,10 @@ def establish_connection():
 
         if not exists:
             connection, cursor = create_db(connection_generic, cursor_generic)
+            return connection, cursor
         else:
             connection, cursor = establish_connection_mock()
-        return connection, cursor
+        §   return connection, cursor
 
     except Exception as e:
         print(f"An error occurred: {e}")
