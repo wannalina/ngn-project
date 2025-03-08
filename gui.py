@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QSpinBox, QGridLayout, QLabel, QPushButton, QHBoxLayout
+from PyQt5.QtWidgets import QApplication, QWidget, QSpinBox, QGridLayout, QLabel, QPushButton, QHBoxLayout, QDoubleSpinBox
 from PyQt5.QtCore import Qt, QObject
 from network import NetworkManager
 
@@ -25,32 +25,45 @@ class MainWindow(QWidget):
         
         # Switches box
         switchesLayout = QHBoxLayout()
-        self.switches = QSpinBox()
+        self.switchesBox = QSpinBox()
+        self.switchesBox.setRange(2,10)
         switchesLayout.addWidget(QLabel("Switches: "))
-        switchesLayout.addWidget(self.switches)
+        switchesLayout.addWidget(self.switchesBox)
         switchesLayout.setContentsMargins(5, 0, 5, 0)
         
         # Hosts box
         hostsLayout = QHBoxLayout()
-        self.hosts = QSpinBox()
+        self.hostsBox = QSpinBox()
+        self.hostsBox.setRange(3,30)
         hostsLayout.addWidget(QLabel("Hosts: "))
-        hostsLayout.addWidget(self.hosts)
+        hostsLayout.addWidget(self.hostsBox)
         hostsLayout.setContentsMargins(5, 0, 5, 0)
+        
+        # Link probability box
+        linkProbLayout = QHBoxLayout()
+        self.linkProbBox = QDoubleSpinBox()
+        self.linkProbBox.setRange(0.1, 1.0)
+        self.linkProbBox.setSingleStep(0.1)
+        self.linkProbBox.setValue(0.5)
+        linkProbLayout.addWidget(QLabel("Link prob: "))
+        linkProbLayout.addWidget(self.linkProbBox)
+        linkProbLayout.setContentsMargins(5, 0, 5, 0)
         
         #HBoxLayouts on grid
         gridLayout.addLayout(switchesLayout, 0, 0)
         gridLayout.addLayout(hostsLayout, 0, 1)
+        gridLayout.addLayout(linkProbLayout, 0, 2)
         
         self.generate = QPushButton("Generate Topology")
-        gridLayout.addWidget(self.generate, 1, 0, 1, 2, Qt.AlignHCenter)
+        gridLayout.addWidget(self.generate, 1, 0, 1, 3, Qt.AlignHCenter)
         
         self.run = QPushButton("RUN")
         self.stop = QPushButton("STOP")
-        gridLayout.addWidget(self.run, 2, 0, 1, 1, Qt.AlignHCenter)
-        gridLayout.addWidget(self.stop, 2, 1, 1, 1, Qt.AlignHCenter)
+        gridLayout.addWidget(self.run, 2, 0, 1, 1, Qt.AlignRight)
+        gridLayout.addWidget(self.stop, 2, 2, 1, 1, Qt.AlignLeft)
         
         #self.open_cli = QPushButton("Open Mininet CLI")
-        #gridLayout.addWidget(self.open_cli, 3, 0, 1, 2, Qt.AlignHCenter)
+        #gridLayout.addWidget(self.open_cli, 3, 0, 1, 3, Qt.AlignHCenter)
         
         self.run.setFixedSize(100, 35)
         self.stop.setFixedSize(100, 35)
@@ -88,9 +101,10 @@ class MainWindow(QWidget):
     def generate_clicked(self):
         global topology_generated
         print("GENERATE")
-        desired_switches = self.switches.value()
-        desired_hosts = self.hosts.value()  
-        hosts,switches=nm.generate_topology(desired_switches,desired_hosts,0.5)
+        desired_switches = self.switchesBox.value()
+        desired_hosts = self.hostsBox.value()
+        link_probability = self.linkProbBox.value()
+        hosts,switches=nm.generate_topology(desired_switches,desired_hosts,link_probability)
         topology_generated = True
         self.run.setEnabled(True)
         self.stop.setEnabled(False)
