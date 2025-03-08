@@ -39,7 +39,7 @@ def connect_db():
 
         # establish generic db connection
         connection_first, cursor_first = establish_connection(GENERIC_DB_NAME)
-    
+
         # check if mock db exists
         cursor_first.execute(f"SELECT 1 FROM pg_database WHERE datname = '{DB_NAME}';")
         exists = cursor_first.fetchone()
@@ -58,7 +58,7 @@ def connect_db():
 def create_db(connection_generic, cursor_generic):
     try:
         print("Database container is being created.")
-        
+
         # create mock db
         cursor_generic.execute(f"CREATE DATABASE {DB_NAME};")
         connection_generic.commit()
@@ -97,12 +97,12 @@ def add_mock_data(connection, cursor):
         print(f"An error occurred: {e}")
 
 # function to fetch db table rows
-def print_mock_table(connection, cursor):
+def print_mock_table(cursor):
     try:
         query = "SELECT * FROM mock_cities_data;"
         cursor.execute(query)
         rows = cursor.fetchall()     
-        
+
         # print each table row
         for row in rows:
             print(row)
@@ -118,6 +118,6 @@ if __name__ == "__main__":
     connection, cursor = connect_db()
 
     # verify db table correctness
-    print_mock_table(connection, cursor)
+    print_mock_table(cursor)
 
     close_connection(connection, cursor)
