@@ -1,5 +1,4 @@
 import psycopg2
-import time
 
 # params for database connection
 GENERIC_DB_NAME = "postgres"

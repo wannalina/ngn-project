@@ -1,3 +1,4 @@
 docker
 postgresql
 flask
+PyQt5
