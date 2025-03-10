@@ -6,15 +6,14 @@ import random
 
 class RandomTopo(Topo):
     def build(self, num_switches=0, num_hosts=0, links_prob=0.5):
-        
-        # Add switches
         switches = []
+        hosts = []
+        # Add switches
         for s in range(1, num_switches + 1):
             switch = self.addSwitch(f's{s}')
             switches.append(switch)
         
         # Add hosts and connect to switches
-        hosts = []
         for h in range(1, num_hosts + 1):
             host = self.addHost(f'h{h}')
             hosts.append(host)
@@ -31,6 +30,3 @@ class RandomTopo(Topo):
             for j in range(i + 2, len(switches)):  # skip close switches
                 if random.random() < links_prob:
                     self.addLink(switches[i], switches[j])
-        
-        return hosts, switches
-
