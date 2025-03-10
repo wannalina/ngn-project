@@ -19,7 +19,8 @@ class MainWindow(QWidget):
         
     def initUI(self):
         self.setWindowTitle("CONTAINER DEPLOYMENT")
-        self.setGeometry(100, 100, 600, 650)
+        self.setGeometry(100, 100, 550, 650)
+        self.setFixedSize(550,650)
         
         mainLayout=QVBoxLayout();
         #TOPOLOGY AREA
@@ -208,6 +209,8 @@ class MainWindow(QWidget):
 
     def stopAllContainers(self):
         nm.stop_all_containers()   
+        self.cleanMonitor()
+        self.runningContainers={}
     
     def updateMonitor(self):
         self.cleanMonitor()
@@ -215,6 +218,7 @@ class MainWindow(QWidget):
               container_frame = QFrame()
               container_frame.setFrameShape(QFrame.StyledPanel)
               container_layout = QHBoxLayout()
+              container_frame.setFixedSize(478,60)
               #container_frame.setFrameRect(QRect(10,10,300,300))
               label = QLabel(f"Host: {data['host']} | Container: {data['container']}")
               stop_button = QPushButton("KILL")
