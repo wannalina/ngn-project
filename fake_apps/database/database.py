@@ -1,4 +1,5 @@
 import psycopg2
+import time
 
 # params for database connection
 GENERIC_DB_NAME = "postgres"
@@ -33,26 +34,28 @@ def close_connection(connection, cursor):
 
 # function to establish db connection
 def connect_db():
-    try:
-        connection = ''
-        cursor = ''
+    for _ in range (3):
+        try:
+            connection = ''
+            cursor = ''
 
-        # establish generic db connection
-        connection_first, cursor_first = establish_connection(GENERIC_DB_NAME)
+            # establish generic db connection
+            connection_first, cursor_first = establish_connection(GENERIC_DB_NAME)
 
-        # check if mock db exists
-        cursor_first.execute(f"SELECT 1 FROM pg_database WHERE datname = '{DB_NAME}';")
-        exists = cursor_first.fetchone()
+            # check if mock db exists
+            cursor_first.execute(f"SELECT 1 FROM pg_database WHERE datname = '{DB_NAME}';")
+            exists = cursor_first.fetchone()
 
-        if not exists:
-            connection, cursor = create_db(connection_first, cursor_first)
-        else:
-            connection, cursor = establish_connection(DB_NAME)
-        close_connection(connection_first, cursor_first)
-        return connection, cursor
+            if not exists:
+                connection, cursor = create_db(connection_first, cursor_first)
+            else:
+                connection, cursor = establish_connection(DB_NAME)
+            close_connection(connection_first, cursor_first)
+            return connection, cursor
 
-    except Exception as e:
-        print(f"An error occurred: {e}")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            time.sleep(60)
 
 # function to create postgres database and table
 def create_db(connection_generic, cursor_generic):
@@ -118,9 +121,7 @@ if __name__ == "__main__":
     connection, cursor = connect_db()
 
     while True:
-        # verify db table correctness
+        # verify db correctness
         print_mock_table(cursor)
-        #print("ciao",flush=True)
-        #time.sleep(3)
 
     close_connection(connection, cursor)

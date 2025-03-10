@@ -1,36 +1,32 @@
-''' 
 FROM python:3.9-slim
 
-WORKDIR /app
-
-RUN pip install psycopg2-binary
-
-COPY database.py /app/database.py
-
-CMD ["python","database.py"] 
-'''
-
-
-FROM python:3.9-slim
-
-# install PostgreSQL
+# install postgres
 RUN apt-get update && apt-get install -y postgresql
 
-# set env variables for postgres
+# set postgres env variables
 ENV POSTGRES_USER=postgres
 ENV POSTGRES_PASSWORD=newpassword
 ENV POSTGRES_DB=cities
 
-# create dir for postgres data
-RUN mkdir -p ./postgres/cities
-VOLUME ./postgres/cities
+# check data dir exists
+RUN mkdir -p /var/lib/postgresql/data && chown -R postgres:postgres /var/lib/postgresql
 
-# Copy your Python script into the container
-WORKDIR /app
-COPY . /app
+# switch to postgres user to initialize db
+USER postgres
+RUN /usr/lib/postgresql/15/bin/initdb -D /var/lib/postgresql/data
+
+# start postgres and set password
+USER root
+RUN service postgresql start && sleep 5 && \
+    su - postgres -c "psql -c \"ALTER USER postgres WITH PASSWORD 'newpassword';\""
 
 # install dependencies
 RUN pip install psycopg2-binary
 
-# start postgres and run script
-CMD service postgresql start && sleep 5 && sudo python3 database.py
+# copy app files
+WORKDIR /app
+COPY . /app
+
+# start postgres and the db app
+CMD service postgresql start && sleep 5 && python3 database.py
+
