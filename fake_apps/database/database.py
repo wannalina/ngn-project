@@ -31,8 +31,8 @@ def handle_sigterm(signum, frame, connection, cursor):
 # function to create db
 def connect_db():
     try:
-        connection = ''
-        cursor = ''
+        connection = None
+        cursor = None
 
         # establish generic db connection
         connection_first, cursor_first = establish_connection(os.getenv('GENERIC_DB_NAME'))
@@ -42,10 +42,8 @@ def connect_db():
         exists = cursor_first.fetchone()
 
         if not exists:
-           print("not exists") 
-           connection, cursor = create_db(connection_first, cursor_first)
+            connection, cursor = create_db(connection_first, cursor_first)
         else:
-            print("exists")
             connection, cursor = establish_connection(os.getenv('DB_NAME'))
         close_connection(connection_first, cursor_first)
         return connection, cursor
@@ -116,8 +114,6 @@ if __name__ == "__main__":
     
     # register sigterm handler for connection shutdown if container terminated
     signal.signal(signal.SIGTERM, lambda signum, frame: handle_sigterm(signum, frame, connection, cursor))
-
-    print("Hello??")
 
     # verify db correctness
     print_mock_table(cursor)
