@@ -1,17 +1,21 @@
 import sys,os
-from PyQt5.QtWidgets import QApplication, QWidget, QSpinBox, QGridLayout, QLabel, QPushButton, QHBoxLayout, QDoubleSpinBox,QGroupBox,QVBoxLayout,QComboBox,QScrollArea
+from PyQt5.QtWidgets import QApplication, QWidget, QSpinBox, QGridLayout, QLabel, QPushButton, QHBoxLayout, QDoubleSpinBox,QGroupBox,QVBoxLayout,QComboBox,QScrollArea,QFrame
 from PyQt5.QtCore import Qt, QObject
 from network import NetworkManager
 
 network_running = False
 topology_generated = False
 nm = NetworkManager()
-availableContainers={}
+
 
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.initUI()
+
+        self.availableContainers={} #container_id + host + container type 
+        self.runningContainers={} #name + directory
+
         
     def initUI(self):
         self.setWindowTitle("CONTAINER DEPLOYMENT")
@@ -102,7 +106,7 @@ class MainWindow(QWidget):
         containerLayout.addWidget(scrollArea,1,0,1,3)
         
         self.stopAllButton = QPushButton("Shut down ALL containers")
-        containerLayout.addWidget(self.stopAllButton, 2,1,1,1, Qt.AlignHCenter)
+        containerLayout.addWidget(self.stopAllButton, 2,0,1,3, Qt.AlignHCenter)
     
         self.containerGroupBox.setLayout(containerLayout)
         mainLayout.addWidget(self.containerGroupBox)
@@ -142,12 +146,13 @@ class MainWindow(QWidget):
         
         self.containerDropdown.clear()
         self.findContainers()
-        for key in availableContainers.keys():
+        for key in self.availableContainers.keys():
             self.containerDropdown.addItem(key)
 
     def stop_clicked(self):
         global network_running
         print("STOP")
+        self.stopAllContainers()
         nm.stop_network()
         network_running = False
         self.updateEnables()
@@ -177,7 +182,7 @@ class MainWindow(QWidget):
 
     def updateEnables(self):
         self.containerGroupBox.setEnabled(network_running and topology_generated)
-        self.run.setEnabled(topology_generated)
+        self.run.setEnabled(topology_generated and not network_running)
         self.stop.setEnabled(network_running and topology_generated)
         self.generate.setEnabled(not network_running)
     
@@ -189,15 +194,42 @@ class MainWindow(QWidget):
             if os.path.isdir(folder_path):
                 tar_files = [f for f in os.listdir(folder_path) if f.endswith(".tar")]
                 if tar_files:
-                    availableContainers[folder] = os.path.relpath(os.path.join(folder_path, tar_files[0]), current_dir)
+                    self.availableContainers[folder] = os.path.relpath(os.path.join(folder_path, tar_files[0]), current_dir)
                 else:
-                    availableContainers[folder] = None
+                    self.availableContainers[folder] = None
     
     def startContainer(self):
-        nm.start_container(self.hostDropdown.currentText(),self.containerDropdown.currentText(),availableContainers[self.containerDropdown.currentText()])
+        host=self.hostDropdown.currentText()
+        container=self.containerDropdown.currentText()
+        nm.start_container(host,container,self.availableContainers[container])
+        container_id=f"{container}_{host}"
+        self.runningContainers[container_id]={"host":host,"container":container}
+        self.updateMonitor()
 
     def stopAllContainers(self):
         nm.stop_all_containers()   
+    
+    def updateMonitor(self):
+        self.cleanMonitor()
+        for container_id, data in self.runningContainers.items():
+              container_frame = QFrame()
+              container_frame.setFrameShape(QFrame.StyledPanel)
+              container_layout = QHBoxLayout()
+              #container_frame.setFrameRect(QRect(10,10,300,300))
+              label = QLabel(f"Host: {data['host']} | Container: {data['container']}")
+              stop_button = QPushButton("KILL")
+              stop_button.setFixedSize(70, 25)
+
+              container_layout.addWidget(label)
+              container_layout.addWidget(stop_button)
+              container_frame.setLayout(container_layout)
+              self.activeContainerLayout.addWidget(container_frame)
+    def cleanMonitor(self):
+        while self.activeContainerLayout.count():
+            item=self.activeContainerLayout.takeAt(0)
+            widget=item.widget()
+            widget.deleteLater()
+
 
 def main():
     app = QApplication(sys.argv)
