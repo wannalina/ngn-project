@@ -1,4 +1,4 @@
-import sys
+import sys,os
 from PyQt5.QtWidgets import QApplication, QWidget, QSpinBox, QGridLayout, QLabel, QPushButton, QHBoxLayout, QDoubleSpinBox,QGroupBox,QVBoxLayout,QComboBox,QScrollArea
 from PyQt5.QtCore import Qt, QObject
 from network import NetworkManager
@@ -6,6 +6,7 @@ from network import NetworkManager
 network_running = False
 topology_generated = False
 nm = NetworkManager()
+availableContainers={}
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -83,7 +84,6 @@ class MainWindow(QWidget):
         dockerContainersLayout=QHBoxLayout()
         dockerContainersLayout.addWidget(QLabel("Containers: "))
         self.containerDropdown = QComboBox()
-        self.containerDropdown.addItems(["need to make", "container dictonary", "and connnect it somehow"])
         dockerContainersLayout.addWidget(self.containerDropdown)
 
         self.launchButton = QPushButton("Start container")
@@ -137,6 +137,11 @@ class MainWindow(QWidget):
         self.hostDropdown.clear()
         for host in nm.net.hosts:
             self.hostDropdown.addItem(host.name)
+        
+        self.containerDropdown.clear()
+        self.findContainers()
+        for key in availableContainers.keys():
+            self.containerDropdown.addItem(key)
 
     def stop_clicked(self):
         global network_running
@@ -172,6 +177,18 @@ class MainWindow(QWidget):
         self.run.setEnabled(topology_generated)
         self.stop.setEnabled(network_running and topology_generated)
         self.generate.setEnabled(not network_running)
+    
+    def findContainers(self):
+        current_dir = os.path.dirname(os.path.abspath(__file__)) #this is where current file is located
+        fake_apps_dir = os.path.join(current_dir, "fake_apps") #path to fake_apps
+        for folder in os.listdir(fake_apps_dir):
+            folder_path = os.path.join(fake_apps_dir, folder)
+            if os.path.isdir(folder_path):
+                tar_files = [f for f in os.listdir(folder_path) if f.endswith(".tar")]
+                if tar_files:
+                    availableContainers[folder] = os.path.join(folder_path, tar_files[0])  
+                else:
+                    availableContainers[folder] = None
 
 def main():
     app = QApplication(sys.argv)
