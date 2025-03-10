@@ -4,9 +4,12 @@ FROM python:3.9-slim
 RUN apt-get update && apt-get install -y postgresql
 
 # set postgres env variables
-ENV POSTGRES_USER=postgres
-ENV POSTGRES_PASSWORD=newpassword
-ENV POSTGRES_DB=cities
+ENV DB_USER=postgres
+ENV DB_PASSWORD=newpassword
+ENV GENERIC_DB_NAME=postgres
+ENV DB_NAME=cities
+ENV HOST_IP=localhost
+ENV PORT=5432
 
 # check data dir exists
 RUN mkdir -p /var/lib/postgresql/data && chown -R postgres:postgres /var/lib/postgresql

@@ -1,5 +1,4 @@
 import psycopg2
-from dotenv import load_dotenv
 import os
 
 TABLE_VALUES = [('Trento', 'Italy'), ('Helsinki', 'Finland'), ('Riga', 'Latvia'), ('Milan', 'Italy'), ('Kuopio', 'Finland')]
