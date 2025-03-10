@@ -106,12 +106,12 @@ if __name__ == '__main__':
             handler.stop_network()
             break
         elif cmd == "1":
-            handler.start_container('h1',"database","/fake_apps/database/database.tar")
+            handler.start_container('h1',"database_cities","/fake_apps/database_cities/database_cities.tar")
             handler.start_container('h2',"random_logger","/fake_apps/random_logger/random_logger.tar")
-            handler.start_container('h2', "mock_server", "/fake_apps/server/mock_server.tar")
+            handler.start_container('h2', "server_cities", "/fake_apps/server_cities/server_cities.tar")
         elif cmd == "2":
-            handler.stop_container('h1', 'database')
+            handler.stop_container('h1', 'database_cities')
             handler.stop_container('h2')
-            handler.stop_container('h2', 'mock_server')
+            handler.stop_container('h2', 'server_cities')
         else:
             print("Please use 'cli' or 'stop'")
