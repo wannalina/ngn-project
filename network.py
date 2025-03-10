@@ -108,7 +108,7 @@ if __name__ == '__main__':
             handler.start_container('h2',"random_logger","/fake_apps/random_logger/random_logger.tar")
             handler.start_container('h2', "cities_server", "/fake_apps/servers/cities_server/cities_server.tar")
         elif cmd == "2":
-            handler.stop_container('h1', 'cities_database')
+            handler.stop_container('h1', 'database_cities')
             handler.stop_container('h2')
             handler.stop_container('h2', 'cities_server')
         else:
