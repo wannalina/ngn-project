@@ -1,12 +1,6 @@
 import psycopg2
 from flask import Flask, jsonify
-
-# database params
-DB_NAME = "cities"
-DB_USER = "postgres"
-DB_PASSWORD = "newpassword"
-DB_HOST = "localhost"
-DB_PORT = "5432"
+import os
 
 # initialize flask app
 app = Flask(__name__)
@@ -19,11 +13,11 @@ def connection_close(connection, cursor):
 # function to connect to db
 def establish_connection():
     connection = psycopg2.connect(
-        dbname=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        host=DB_HOST,
-        port=DB_PORT
+        dbname=os.getenv('DB_NAME'),
+        user=os.getenv('DB_USER'),
+        password=os.getenv('DB_PASSWORD'),
+        host=os.getenv('DB_HOST'),
+        port=os.getenv('DB_PORT')
     )
     return connection
 
