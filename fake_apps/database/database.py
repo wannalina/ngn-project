@@ -2,6 +2,8 @@ import psycopg2
 import os
 import signal
 
+TABLE_VALUES = [('Trento', 'Italy'), ('Helsinki', 'Finland'), ('Bolzano', 'Italy'), ('Washington DC', 'USA'), ('Barcelona', 'Spain')]
+
 # function to establish db connection
 def establish_connection(db_name):
     try:
@@ -40,8 +42,10 @@ def connect_db():
         exists = cursor_first.fetchone()
 
         if not exists:
-            connection, cursor = create_db(connection_first, cursor_first)
+           print("not exists") 
+           connection, cursor = create_db(connection_first, cursor_first)
         else:
+            print("exists")
             connection, cursor = establish_connection(os.getenv('DB_NAME'))
         close_connection(connection_first, cursor_first)
         return connection, cursor
@@ -85,7 +89,7 @@ def create_db(connection_generic, cursor_generic):
 def add_mock_data(connection, cursor):
     try:
         # insert values in table
-        cursor.executemany("INSERT INTO mock_cities_data (city, country) VALUES (%s, %s);", os.getenv('TABLE_VALUES'))
+        cursor.executemany("INSERT INTO mock_cities_data (city, country) VALUES (%s, %s);", TABLE_VALUES)
         connection.commit()
 
     except Exception as e:
@@ -112,6 +116,8 @@ if __name__ == "__main__":
     
     # register sigterm handler for connection shutdown if container terminated
     signal.signal(signal.SIGTERM, lambda signum, frame: handle_sigterm(signum, frame, connection, cursor))
+
+    print("Hello??")
 
     # verify db correctness
     print_mock_table(cursor)

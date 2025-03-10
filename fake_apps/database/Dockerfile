@@ -10,7 +10,6 @@ ENV GENERIC_DB_NAME=postgres
 ENV DB_NAME=cities
 ENV HOST_IP=localhost
 ENV PORT=5432
-ENV TABLE_VALUES = [('Trento', 'Italy'), ('Helsinki', 'Finland'), ('Riga', 'Latvia'), ('Milan', 'Italy'), ('Kuopio', 'Finland')]
 
 # check data dir exists
 RUN mkdir -p /var/lib/postgresql/data && chown -R postgres:postgres /var/lib/postgresql
