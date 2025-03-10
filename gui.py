@@ -101,7 +101,7 @@ class MainWindow(QWidget):
         scrollArea.setWidget(activeContainersBox)
         containerLayout.addWidget(scrollArea,1,0,1,3)
         
-        self.stopAllButton = QPushButton("Ferma Tutti i Container")
+        self.stopAllButton = QPushButton("Shut down ALL containers")
         containerLayout.addWidget(self.stopAllButton, 2,1,1,1, Qt.AlignHCenter)
     
         self.containerGroupBox.setLayout(containerLayout)
@@ -162,7 +162,6 @@ class MainWindow(QWidget):
     #    nm.open_cli()
     
     def closeEvent(self, event):
-        """Handle window close event"""
         global network_running
         if network_running:
             print("Window closing: Stopping network first")
