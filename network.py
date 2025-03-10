@@ -25,16 +25,15 @@ class NetworkManager:
     def generate_topology(self, num_switches=5, num_hosts=10, links_prob=0.4):
         #self.topo = RandomTopo(num_switches, num_hosts, links_prob)
         self.topo=RandomTopo()
-        hosts, switches = self.topo.build(num_switches, num_hosts, links_prob)
-        return hosts,switches
-        
+        self.topo.build(num_switches, num_hosts, links_prob)
     
     def build_network(self):
         self.net = Mininet(topo=self.topo, build=False)
         self.net.addController(self.controller)
         self.net.build()
+        #self.hosts=self.net.hosts
+        #self.switches=self.net.switches
        
-
     def start_network(self):
         self.start_controller()
         print("Starting Network")
@@ -50,7 +49,10 @@ class NetworkManager:
         subprocess.run(["mn","-c"])
     
     def get_host(self, host_name):
-        return self.net.get(host_name)
+        for host in self.net.hosts:
+           if host.name == host_name:
+            return host
+        return None
         
 #    example of dockers from topology1
 #    host2 = net.get('h2')
@@ -88,7 +90,7 @@ class NetworkManager:
 # TEST NETWORK
 if __name__ == '__main__':
     handler = NetworkManager()
-    hosts,switches=handler.generate_topology(4, 8, 0.5) #CHANGE PARAMETERS HERE!
+    handler.generate_topology(4, 8, 0.5) #CHANGE PARAMETERS HERE!
     handler.build_network()
     handler.start_network()
     
