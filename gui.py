@@ -123,6 +123,7 @@ class MainWindow(QWidget):
         self.stop.clicked.connect(self.stop_clicked)
         self.generate.clicked.connect(self.generate_clicked)
         #self.open_cli.clicked.connect(self.open_cli_clicked)
+        self.launchButton.clicked.connect(self.startContainer)
 
         self.setLayout(mainLayout)
     
@@ -186,9 +187,13 @@ class MainWindow(QWidget):
             if os.path.isdir(folder_path):
                 tar_files = [f for f in os.listdir(folder_path) if f.endswith(".tar")]
                 if tar_files:
-                    availableContainers[folder] = os.path.join(folder_path, tar_files[0])  
+                    availableContainers[folder] = os.path.relpath(os.path.join(folder_path, tar_files[0]), current_dir)
                 else:
                     availableContainers[folder] = None
+    
+    def startContainer(self):
+        nm.start_container(self.hostDropdown.currentText(),self.containerDropdown.currentText(),availableContainers[self.containerDropdown.currentText()])
+        
 
 def main():
     app = QApplication(sys.argv)
