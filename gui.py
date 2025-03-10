@@ -124,6 +124,7 @@ class MainWindow(QWidget):
         self.generate.clicked.connect(self.generate_clicked)
         #self.open_cli.clicked.connect(self.open_cli_clicked)
         self.launchButton.clicked.connect(self.startContainer)
+        self.stopAllButton.clicked.connect(self.stopAllContainers)
 
         self.setLayout(mainLayout)
     
@@ -169,6 +170,7 @@ class MainWindow(QWidget):
         global network_running
         if network_running:
             print("Window closing: Stopping network first")
+            self.stopAllContainers()
             nm.stop_network()
             network_running = False
         event.accept()
@@ -193,7 +195,9 @@ class MainWindow(QWidget):
     
     def startContainer(self):
         nm.start_container(self.hostDropdown.currentText(),self.containerDropdown.currentText(),availableContainers[self.containerDropdown.currentText()])
-        
+
+    def stopAllContainers(self):
+        nm.stop_all_containers()   
 
 def main():
     app = QApplication(sys.argv)
