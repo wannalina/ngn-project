@@ -71,7 +71,7 @@ class MainWindow(QWidget):
 
         #DOCKER AREA
         self.containerGroupBox = QGroupBox("DOCKERS")
-        self.containerGroupBox.setEnabled(False)
+        #self.containerGroupBox.setEnabled(False)
         containerLayout = QGridLayout()
         
         dockerHostsLayout=QHBoxLayout()
@@ -106,6 +106,8 @@ class MainWindow(QWidget):
     
         self.containerGroupBox.setLayout(containerLayout)
         mainLayout.addWidget(self.containerGroupBox)
+
+        self.updateEnables()
         
         #self.open_cli = QPushButton("Open Mininet CLI")
         #topoLayout.addWidget(self.open_cli, 3, 0, 1, 3, Qt.AlignHCenter)
@@ -115,9 +117,6 @@ class MainWindow(QWidget):
         self.generate.setFixedSize(130, 45)
         self.launchButton.setFixedSize(130, 30)
         self.stopAllButton.setFixedSize(200, 45)
-        
-        self.run.setEnabled(False)
-        self.stop.setEnabled(False)
         
         # Connect signals
         self.run.clicked.connect(self.run_clicked)
@@ -133,10 +132,8 @@ class MainWindow(QWidget):
         nm.build_network()
         nm.start_network()
         network_running = True
-        self.run.setEnabled(False)
-        self.stop.setEnabled(True)
-        self.containerGroupBox.setEnabled(True)
-
+        self.updateEnables()
+    
         self.hostDropdown.clear()
         for host in nm.net.hosts:
             self.hostDropdown.addItem(host.name)
@@ -146,10 +143,7 @@ class MainWindow(QWidget):
         print("STOP")
         nm.stop_network()
         network_running = False
-        self.stop.setEnabled(False)
-        self.run.setEnabled(True)
-        self.generate.setEnabled(True)
-        self.containerGroupBox.setEnabled(False)
+        self.updateEnables()
     
     def generate_clicked(self):
         global topology_generated
@@ -159,9 +153,7 @@ class MainWindow(QWidget):
         link_probability = self.linkProbBox.value()
         nm.generate_topology(desired_switches,desired_hosts,link_probability)
         topology_generated = True
-        self.run.setEnabled(True)
-        self.stop.setEnabled(False)
-        self.generate.setEnabled(False) 
+        self.updateEnables()
         
     #def open_cli_clicked(self):
     #    print("Opening Mininet CLI")
@@ -174,6 +166,12 @@ class MainWindow(QWidget):
             nm.stop_network()
             network_running = False
         event.accept()
+
+    def updateEnables(self):
+        self.containerGroupBox.setEnabled(network_running and topology_generated)
+        self.run.setEnabled(topology_generated)
+        self.stop.setEnabled(network_running and topology_generated)
+        self.generate.setEnabled(not network_running)
 
 def main():
     app = QApplication(sys.argv)
