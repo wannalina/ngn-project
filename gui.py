@@ -6,8 +6,6 @@ from network import NetworkManager
 network_running = False
 topology_generated = False
 nm = NetworkManager()
-hosts={}
-switches={}
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -73,10 +71,12 @@ class MainWindow(QWidget):
 
         #DOCKER AREA
         self.containerGroupBox = QGroupBox("DOCKERS")
+        self.containerGroupBox.setEnabled(False)
         containerLayout = QGridLayout()
         
         dockerHostsLayout=QHBoxLayout()
         dockerHostsLayout.addWidget(QLabel("Hosts: "))
+        
         self.hostDropdown = QComboBox()
         dockerHostsLayout.addWidget(self.hostDropdown)
 
@@ -135,7 +135,12 @@ class MainWindow(QWidget):
         network_running = True
         self.run.setEnabled(False)
         self.stop.setEnabled(True)
-    
+        self.containerGroupBox.setEnabled(True)
+
+        self.hostDropdown.clear()
+        for host in nm.net.hosts:
+            self.hostDropdown.addItem(host.name)
+
     def stop_clicked(self):
         global network_running
         print("STOP")
@@ -144,6 +149,7 @@ class MainWindow(QWidget):
         self.stop.setEnabled(False)
         self.run.setEnabled(True)
         self.generate.setEnabled(True)
+        self.containerGroupBox.setEnabled(False)
     
     def generate_clicked(self):
         global topology_generated
@@ -151,12 +157,12 @@ class MainWindow(QWidget):
         desired_switches = self.switchesBox.value()
         desired_hosts = self.hostsBox.value()
         link_probability = self.linkProbBox.value()
-        hosts,switches=nm.generate_topology(desired_switches,desired_hosts,link_probability)
+        nm.generate_topology(desired_switches,desired_hosts,link_probability)
         topology_generated = True
         self.run.setEnabled(True)
         self.stop.setEnabled(False)
         self.generate.setEnabled(False) 
-
+        
     #def open_cli_clicked(self):
     #    print("Opening Mininet CLI")
     #    nm.open_cli()
