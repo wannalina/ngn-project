@@ -22,6 +22,9 @@ def establish_connection(db_name):
 def close_connection(connection, cursor):
     connection.close()
     cursor.close()
+    
+def handle_sigterm(signum, frame, connection, cursor):
+    close_connection(connection, cursor)
 
 # function to create db
 def connect_db():
@@ -108,7 +111,7 @@ if __name__ == "__main__":
     connection, cursor = connect_db()
     
     # register sigterm handler for connection shutdown if container terminated
-    signal.signal(signal.SIGTERM, close_connection(connection, cursor))
+    signal.signal(signal.SIGTERM, lambda signum, frame: handle_sigterm(signum, frame, connection, cursor))
 
     # verify db correctness
     print_mock_table(cursor)
