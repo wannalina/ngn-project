@@ -1,25 +1,18 @@
 import psycopg2
-import time
+import os
+import signal
 
-# params for database connection
-GENERIC_DB_NAME = "postgres"
-DB_NAME = "cities"
-DB_USER = "postgres"
-DB_PASSWORD = "newpassword"
-PORT = "5432"
-HOST_IP = "localhost"
-
-TABLE_VALUES = [('Trento', 'Italy'), ('Helsinki', 'Finland'), ('Riga', 'Latvia'), ('Milan', 'Italy'), ('Kuopio', 'Finland')]
+TABLE_VALUES = [('Trento', 'Italy'), ('Helsinki', 'Finland'), ('Bolzano', 'Italy'), ('Washington DC', 'USA'), ('Barcelona', 'Spain')]
 
 # function to establish db connection
 def establish_connection(db_name):
     try:
         connection = psycopg2.connect(
             dbname = db_name,
-            user = DB_USER,
-            password = DB_PASSWORD,
-            host = HOST_IP,
-            port = PORT
+            user = os.getenv('DB_USER'),
+            password = os.getenv('DB_PASSWORD'),
+            host = os.getenv('HOST_IP'),
+            port = os.getenv('PORT')
         )
         connection.autocommit = True
         cursor = connection.cursor()
@@ -31,24 +24,27 @@ def establish_connection(db_name):
 def close_connection(connection, cursor):
     connection.close()
     cursor.close()
+    
+def handle_sigterm(signum, frame, connection, cursor):
+    close_connection(connection, cursor)
 
-# function to establish db connection
+# function to create db
 def connect_db():
     try:
-        connection = ''
-        cursor = ''
+        connection = None
+        cursor = None
 
         # establish generic db connection
-        connection_first, cursor_first = establish_connection(GENERIC_DB_NAME)
+        connection_first, cursor_first = establish_connection(os.getenv('GENERIC_DB_NAME'))
 
         # check if mock db exists
-        cursor_first.execute(f"SELECT 1 FROM pg_database WHERE datname = '{DB_NAME}';")
+        cursor_first.execute(f"SELECT 1 FROM pg_database WHERE datname = '{os.getenv('DB_NAME')}';")
         exists = cursor_first.fetchone()
 
         if not exists:
             connection, cursor = create_db(connection_first, cursor_first)
         else:
-            connection, cursor = establish_connection(DB_NAME)
+            connection, cursor = establish_connection(os.getenv('DB_NAME'))
         close_connection(connection_first, cursor_first)
         return connection, cursor
 
@@ -61,14 +57,14 @@ def create_db(connection_generic, cursor_generic):
         print("Database container is being created.")
 
         # create mock db
-        cursor_generic.execute(f"CREATE DATABASE {DB_NAME};")
+        cursor_generic.execute(f"CREATE DATABASE {os.getenv('DB_NAME')};")
         connection_generic.commit()
 
         # close generic connection
         close_connection(connection_generic, cursor_generic)
 
         # establish connection to new db
-        connection, cursor = establish_connection(DB_NAME)
+        connection, cursor = establish_connection(os.getenv('DB_NAME'))
         
         # create table in db
         cursor.execute("""
@@ -81,7 +77,7 @@ def create_db(connection_generic, cursor_generic):
 
         add_mock_data(connection, cursor)
 
-        print(f"Database {DB_NAME} created.")
+        print(f"Database {os.getenv('DB_NAME')} created.")
         return connection, cursor
 
     except Exception as e:
@@ -110,18 +106,25 @@ def print_mock_table(cursor):
 
     except Exception as e:
         print(f"An error occurred: {e}")
-        return
 
 # main function
 if __name__ == "__main__":
-
     # establish db connection
     connection, cursor = connect_db()
+    
+    # register sigterm handler for connection shutdown if container terminated
+    signal.signal(signal.SIGTERM, lambda signum, frame: handle_sigterm(signum, frame, connection, cursor))
 
-    while True:
-        # verify db table correctness
-        print_mock_table(cursor)
-        #print("ciao",flush=True)
-        #time.sleep(3)
+    # verify db correctness
+    print_mock_table(cursor)
 
-    close_connection(connection, cursor)
+    try:        
+        # keep db connection open until container terminated
+        while True: 
+            pass
+    except Exception as e:
+        close_connection(connection, cursor)
+    
+#docker build -t random_logger .
+#docker save random_logger -o random_logger.tar
+#docker load -i random_logger.tar
