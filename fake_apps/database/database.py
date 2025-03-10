@@ -1,7 +1,6 @@
 import psycopg2
 import os
-
-TABLE_VALUES = [('Trento', 'Italy'), ('Helsinki', 'Finland'), ('Riga', 'Latvia'), ('Milan', 'Italy'), ('Kuopio', 'Finland')]
+import signal
 
 # function to establish db connection
 def establish_connection(db_name):
@@ -26,27 +25,26 @@ def close_connection(connection, cursor):
 
 # function to create db
 def connect_db():
-    for _ in range (3):
-        try:
-            connection = ''
-            cursor = ''
+    try:
+        connection = ''
+        cursor = ''
 
-            # establish generic db connection
-            connection_first, cursor_first = establish_connection(os.getenv('GENERIC_DB_NAME'))
+        # establish generic db connection
+        connection_first, cursor_first = establish_connection(os.getenv('GENERIC_DB_NAME'))
 
-            # check if mock db exists
-            cursor_first.execute(f"SELECT 1 FROM pg_database WHERE datname = '{os.getenv('DB_NAME')}';")
-            exists = cursor_first.fetchone()
+        # check if mock db exists
+        cursor_first.execute(f"SELECT 1 FROM pg_database WHERE datname = '{os.getenv('DB_NAME')}';")
+        exists = cursor_first.fetchone()
 
-            if not exists:
-                connection, cursor = create_db(connection_first, cursor_first)
-            else:
-                connection, cursor = establish_connection(os.getenv('DB_NAME'))
-            close_connection(connection_first, cursor_first)
-            return connection, cursor
+        if not exists:
+            connection, cursor = create_db(connection_first, cursor_first)
+        else:
+            connection, cursor = establish_connection(os.getenv('DB_NAME'))
+        close_connection(connection_first, cursor_first)
+        return connection, cursor
 
-        except Exception as e:
-            print(f"An error occurred: {e}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 # function to create postgres database and table
 def create_db(connection_generic, cursor_generic):
@@ -84,7 +82,7 @@ def create_db(connection_generic, cursor_generic):
 def add_mock_data(connection, cursor):
     try:
         # insert values in table
-        cursor.executemany("INSERT INTO mock_cities_data (city, country) VALUES (%s, %s);", TABLE_VALUES)
+        cursor.executemany("INSERT INTO mock_cities_data (city, country) VALUES (%s, %s);", os.getenv('TABLE_VALUES'))
         connection.commit()
 
     except Exception as e:
@@ -106,14 +104,21 @@ def print_mock_table(cursor):
 
 # main function
 if __name__ == "__main__":
-
     # establish db connection
     connection, cursor = connect_db()
+    
+    # register sigterm handler for connection shutdown if container terminated
+    signal.signal(signal.SIGTERM, close_connection(connection, cursor))
 
     # verify db correctness
     print_mock_table(cursor)
 
-    close_connection(connection, cursor)
+    try:        
+        # keep db connection open until container terminated
+        while True: 
+            pass
+    except Exception as e:
+        close_connection(connection, cursor)
     
 #docker build -t random_logger .
 #docker save random_logger -o random_logger.tar
