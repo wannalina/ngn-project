@@ -223,6 +223,7 @@ class MainWindow(QWidget):
               label = QLabel(f"Host: {data['host']} | Container: {data['container']}")
               stop_button = QPushButton("KILL")
               stop_button.setFixedSize(70, 25)
+              stop_button.clicked.connect(lambda _, host=data['host'], container=data['container']: self.stop_container(host, container))
 
               container_layout.addWidget(label)
               container_layout.addWidget(stop_button)
@@ -233,6 +234,14 @@ class MainWindow(QWidget):
             item=self.activeContainerLayout.takeAt(0)
             widget=item.widget()
             widget.deleteLater()
+
+    def stop_container(self, host, container):
+        print(f"Stopping container {container} on host {host}")
+        nm.stop_container(host, container)
+        container_id = f"{container}_{host}"
+        if container_id in self.runningContainers:
+            del self.runningContainers[container_id]
+            self.updateMonitor()
 
 
 def main():
