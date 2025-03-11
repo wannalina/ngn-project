@@ -14,7 +14,7 @@ class MainWindow(QWidget):
         self.initUI()
         self.availableContainers={} #container_id + host + container type 
         self.runningContainers={} #name + directory
-
+        self.removedContainers = set()  # Track containers that are removed from dropdown
         
     def initUI(self):
         self.setWindowTitle("CONTAINER DEPLOYMENT")
@@ -147,8 +147,7 @@ class MainWindow(QWidget):
         
         self.containerDropdown.clear()
         self.findContainers()
-        for key in self.availableContainers.keys():
-            self.containerDropdown.addItem(key)
+        self.updateContainerDropdown()
 
     def stop_clicked(self):
         global network_running
@@ -192,13 +191,14 @@ class MainWindow(QWidget):
     
     def updateLaunchButton(self):
         if self.containerGroupBox.isEnabled():
-            container=self.containerDropdown.currentText()
-            if any(entry["container"] == container for entry in self.runningContainers.values()):
+            container = self.containerDropdown.currentText()
+            if container and any(entry["container"] == container for entry in self.runningContainers.values()):
                 self.launchButton.setEnabled(False)
             else: 
                 self.launchButton.setEnabled(True)
 
     def findContainers(self):
+        self.availableContainers = {}
         current_dir = os.path.dirname(os.path.abspath(__file__)) #this is where current file is located
         apps_dir = os.path.join(current_dir, "apps") #path to apps
         for folder in os.listdir(apps_dir):
@@ -210,19 +210,31 @@ class MainWindow(QWidget):
                 else:
                     self.availableContainers[folder] = None
     
+    def updateContainerDropdown(self):
+        self.containerDropdown.clear()
+        # Add only containers that are not currently running
+        for container in self.availableContainers.keys():
+            if not any(entry["container"] == container for entry in self.runningContainers.values()):
+                self.containerDropdown.addItem(container)
+    
     def startContainer(self):
-        host=self.hostDropdown.currentText()
-        container=self.containerDropdown.currentText()
-        nm.start_container(host,container,self.availableContainers[container])
-        container_id=f"{container}_{host}"
-        self.launchButton.setEnabled(False)
-        self.runningContainers[container_id]={"host":host,"container":container}
+        host = self.hostDropdown.currentText()
+        container = self.containerDropdown.currentText()
+        if not container: 
+            return
+        nm.start_container(host, container, self.availableContainers[container])
+        container_id = f"{container}_{host}"
+        self.runningContainers[container_id] = {"host": host, "container": container}
+        
+        self.updateContainerDropdown()
+        self.updateLaunchButton()
         self.updateMonitor()
 
     def stopAllContainers(self):
         nm.stop_all_containers()   
         self.cleanMonitor()
-        self.runningContainers={}
+        self.runningContainers = {}
+        self.updateContainerDropdown()
         self.updateLaunchButton()
     
     def updateMonitor(self):
@@ -231,21 +243,22 @@ class MainWindow(QWidget):
               container_frame = QFrame()
               container_frame.setFrameShape(QFrame.StyledPanel)
               container_layout = QHBoxLayout()
-              container_frame.setFixedSize(478,60)
+              container_frame.setFixedSize(478, 60)
               #container_frame.setFrameRect(QRect(10,10,300,300))
               label = QLabel(f"Host: {data['host']} | Container: {data['container']}")
               stop_button = QPushButton("KILL")
               stop_button.setFixedSize(70, 25)
-              stop_button.clicked.connect(lambda _, host=data['host'], container=data['container']: self.stop_container(host, container))
+              stop_button.clicked.connect(lambda checked=False, host=data['host'], container=data['container']: self.stop_container(host, container))
 
               container_layout.addWidget(label)
               container_layout.addWidget(stop_button)
               container_frame.setLayout(container_layout)
               self.activeContainerLayout.addWidget(container_frame)
+    
     def cleanMonitor(self):
         while self.activeContainerLayout.count():
-            item=self.activeContainerLayout.takeAt(0)
-            widget=item.widget()
+            item = self.activeContainerLayout.takeAt(0)
+            widget = item.widget()
             widget.deleteLater()
 
     def stop_container(self, host, container):
@@ -253,6 +266,7 @@ class MainWindow(QWidget):
         container_id = f"{container}_{host}"
         if container_id in self.runningContainers:
             del self.runningContainers[container_id]
+            self.updateContainerDropdown() 
             self.updateMonitor()
             self.updateLaunchButton()
 
