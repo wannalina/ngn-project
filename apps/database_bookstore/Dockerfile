@@ -9,7 +9,7 @@ ENV DB_PASSWORD=newpassword
 ENV GENERIC_DB_NAME=postgres
 ENV DB_NAME=bookstore
 ENV HOST_IP=localhost
-ENV PORT=5432
+ENV PORT=5433
 
 # check data dir exists
 RUN mkdir -p /var/lib/postgresql/data && chown -R postgres:postgres /var/lib/postgresql
