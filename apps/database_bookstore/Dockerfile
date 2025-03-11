@@ -31,4 +31,4 @@ WORKDIR /app
 COPY . /app
 
 # start postgres and the db app
-CMD service postgresql start && sleep 5 && python3 database_books.py
+CMD service postgresql start && sleep 5 && python3 database_bookstore.py
