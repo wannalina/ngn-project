@@ -289,12 +289,13 @@ class MainWindow(QWidget):
         label = QLabel(f"Dependencies for {container}:")
         layout.addWidget(label)
         dependencyList = QListWidget()
-    
+
+        currentDependencies=self.containerDependencies.get(container,[]) #[] default value IS NECESSASRY OTHERWISE CRASH
         for cont in self.availableContainers.keys(): #ADD ALL ITEMS BUT THE CURRENT CONTAINER
             if cont != container:
                 item = QListWidgetItem(cont)
                 item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-                item.setCheckState(Qt.checked if cont in self.containerDependencies.get(container) else Qt.Unchecked)
+                item.setCheckState(Qt.Checked if cont in currentDependencies else Qt.Unchecked)
                 dependencyList.addItem(item)
 
         layout.addWidget(dependencyList)
@@ -305,10 +306,9 @@ class MainWindow(QWidget):
         btnLayout.addWidget(cancelButton)
         layout.addLayout(btnLayout)
         dialog.setLayout(layout)
-        
+
         okButton.clicked.connect(lambda: self.saveDependencies(container, dependencyList, dialog))
         cancelButton.clicked.connect(dialog.reject)
-    
         dialog.exec_()
 
     def saveDependencies(self, container, dependencyList, dialog):
@@ -318,7 +318,6 @@ class MainWindow(QWidget):
             item = dependencyList.item(i)
             if item.checkState() == Qt.Checked:
                 dependencies.append(item.text())
-
         self.containerDependencies[container] = dependencies
         print(self.containerDependencies)
         dialog.accept()
