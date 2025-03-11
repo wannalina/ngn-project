@@ -13,4 +13,4 @@ COPY . /app
 
 RUN pip install psycopg2-binary flask
 
-CMD ["python3","server_cities.py"]
+CMD ["python3","server_bookstore.py"]
