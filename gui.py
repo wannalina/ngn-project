@@ -12,7 +12,6 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.initUI()
-        self.containersAdded=False
         self.availableContainers={} #container_id + host + container type 
         self.runningContainers={} #name + directory
 
@@ -135,7 +134,6 @@ class MainWindow(QWidget):
         self.setLayout(mainLayout)
     
     def run_clicked(self):
-        self.containersAdded=False
         global network_running
         print("RUN")
         nm.build_network()
@@ -151,7 +149,6 @@ class MainWindow(QWidget):
         self.findContainers()
         for key in self.availableContainers.keys():
             self.containerDropdown.addItem(key)
-        self.containersAdded=True
 
     def stop_clicked(self):
         global network_running
@@ -194,7 +191,7 @@ class MainWindow(QWidget):
         self.switchesBox.setEnabled(not network_running)
     
     def updateLaunchButton(self):
-        if self.containersAdded==True:
+        if self.containerGroupBox.isEnabled():
             container=self.containerDropdown.currentText()
             if any(entry["container"] == container for entry in self.runningContainers.values()):
                 self.launchButton.setEnabled(False)
