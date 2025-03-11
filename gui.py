@@ -189,6 +189,9 @@ class MainWindow(QWidget):
         self.run.setEnabled(topology_generated and not network_running)
         self.stop.setEnabled(network_running and topology_generated)
         self.generate.setEnabled(not network_running)
+        self.linkProbBox.setEnabled(not network_running)
+        self.hostsBox.setEnabled(not network_running)
+        self.switchesBox.setEnabled(not network_running)
     
     def updateLaunchButton(self):
         if self.containersAdded==True:
