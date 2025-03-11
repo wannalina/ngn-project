@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # get number of images
-folder_count=$(find fake_apps/ -mindepth 1 -maxdepth 1 -type d | wc -l)
+folder_count=$(find apps/ -mindepth 1 -maxdepth 1 -type d | wc -l)
 echo "NUMBER OF IMAGES TO BUILD: $folder_count"
 
-# get and loop through all folder names in fake_apps dir on the first hierarchical level
-find fake_apps/ -mindepth 1 -maxdepth 1 -type d | while read folder_name; do
+# get and loop through all folder names in apps dir on the first hierarchical level
+find apps/ -mindepth 1 -maxdepth 1 -type d | while read folder_name; do
 
     # extract folder name from the file path
     image_name=$(basename "$folder_name")

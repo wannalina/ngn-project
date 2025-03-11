@@ -55,7 +55,7 @@ if __name__ == '__main__':
     net.start()
 
     host2 = net.get('h2')
-    host2.cmd('docker load -i /fake_apps/random_logger.tar')
+    host2.cmd('docker load -i /apps/random_logger.tar')
     host2.cmd('docker run -d --name random_logger_h2 --net=host random-logger')
 
     CLI(net)
