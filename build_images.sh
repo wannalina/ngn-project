@@ -7,13 +7,18 @@ echo "NUMBER OF IMAGES TO BUILD: $folder_count"
 # get and loop through all folder names in fake_apps dir on the first hierarchical level
 find fake_apps/ -mindepth 1 -maxdepth 1 -type d | while read folder_name; do
 
+    # extract folder name from the file path
+    image_name=$(basename "$folder_name")
+
+    # remove existing Docker image from registry
+    docker rmi -f "$image_name"
+
+    # remove existing .tar file if exists in folder
+    if [ -f "$folder_name/$image_name.tar" ]; then
+        rm $folder_name/$image_name.tar
+
     # check if Dockerfile exists
     if [ -f "$folder_name/Dockerfile" ]; then
-        # extract folder name from the file path
-        image_name=$(basename "$folder_name")
-
-        echo "Folder name: "$folder_name", Image name: "$image_name""
-
         echo "BUILDING DOCKER IMAGE."
         docker build -t "$image_name" "$folder_name"
 
