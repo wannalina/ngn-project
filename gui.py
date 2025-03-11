@@ -239,6 +239,7 @@ class MainWindow(QWidget):
         nm.stop_all_containers()   
         self.cleanMonitor()
         self.runningContainers = {}
+        self.containerDependencies = {}
         self.updateContainerDropdown()
         self.updateLaunchButton()
     
@@ -270,6 +271,7 @@ class MainWindow(QWidget):
         nm.stop_container(host, container)
         container_id = f"{container}_{host}"
         if container_id in self.runningContainers:
+            del self.containerDependencies[container]
             del self.runningContainers[container_id]
             self.updateContainerDropdown() 
             self.updateMonitor()
@@ -302,9 +304,24 @@ class MainWindow(QWidget):
         btnLayout.addWidget(okButton)
         btnLayout.addWidget(cancelButton)
         layout.addLayout(btnLayout)
-        
         dialog.setLayout(layout)
+        
+        okButton.clicked.connect(lambda: self.saveDependencies(container, dependencyList, dialog))
+        cancelButton.clicked.connect(dialog.reject)
+    
         dialog.exec_()
+
+    def saveDependencies(self, container, dependencyList, dialog):
+        # Save the selected dependencies
+        dependencies = []
+        for i in range(dependencyList.count()):
+            item = dependencyList.item(i)
+            if item.checkState() == Qt.Checked:
+                dependencies.append(item.text())
+
+        self.containerDependencies[container] = dependencies
+        print(self.containerDependencies)
+        dialog.accept()
 
 def main():
     app = QApplication(sys.argv)
