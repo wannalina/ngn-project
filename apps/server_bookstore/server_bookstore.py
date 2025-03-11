@@ -37,7 +37,7 @@ def get_books():
         rows = cursor.fetchall()
 
         # format the result into a list of dictionaries
-        books = [{"id": row[0], "title": row[1], "author": row[2], "published_date": row[3], "genre": row[4]} for row in rows]
+        books = [{"id": row[0], "title": row[1], "author": row[2], "publication_year": row[3]} for row in rows]
 
         close_connection(connection, cursor)
 
@@ -61,8 +61,8 @@ def add_book():
         connection, cursor = establish_connection(os.getenv('DB_NAME'))
 
         # query to insert a new book into the books table
-        cursor.execute("INSERT INTO books (title, author, published_date, genre) VALUES (%s, %s, %s, %s);", 
-                        (title, author, published_date, genre))
+        cursor.execute("INSERT INTO books (title, author, published_date) VALUES (%s, %s, %s);", 
+                        (title, author, published_date))
 
         # close the connection
         close_connection(connection, cursor)
