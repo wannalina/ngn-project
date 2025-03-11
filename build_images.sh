@@ -15,10 +15,10 @@ find fake_apps/ -mindepth 1 -maxdepth 1 -type d | while read folder_name; do
         echo "Folder name: "$folder_name", Image name: "$image_name""
 
         echo "BUILDING DOCKER IMAGE."
-        docker build -t "$image_name" ./"$folder_name"
+        docker build -t "$image_name" "$folder_name"
 
         echo "SAVING IMAGE TO TAR FILE."
-        docker save "$image_name" -o "$folder_name.tar"
+        docker save "$image_name" -o "$folder_name/$image_name.tar"
 
         echo "LOADING NEW DOCKER IMAGE."
         docker load -i "$image_name.tar"
