@@ -294,7 +294,7 @@ class MainWindow(QWidget):
             if cont != container:
                 item = QListWidgetItem(cont)
                 item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-                item.setCheckState(Qt.Unchecked)
+                item.setCheckState(Qt.checked if cont in self.containerDependencies.get(container) else Qt.Unchecked)
                 dependencyList.addItem(item)
 
         layout.addWidget(dependencyList)
