@@ -56,11 +56,11 @@ class NetworkManager:
         
 #    example of dockers from topology1
 #    host2 = net.get('h2')
-#    host2.cmd('docker load -i /fake_apps/random_logger.tar')
+#    host2.cmd('docker load -i /apps/random_logger.tar')
 #    host2.cmd('docker run -d --name random_logger_h2 --net=host random-logger')
 
     #container functions
-    def start_container(self, host_name, container_name="database", image_path="/fake_apps/database/database.tar"):
+    def start_container(self, host_name, container_name="database", image_path="/apps/database/database.tar"):
 
         host = self.get_host(host_name)
         if not host:
@@ -106,9 +106,9 @@ if __name__ == '__main__':
             handler.stop_network()
             break
         elif cmd == "1":
-            handler.start_container('h1',"database_cities","/fake_apps/database_cities/database_cities.tar")
-            handler.start_container('h2',"random_logger","/fake_apps/random_logger/random_logger.tar")
-            handler.start_container('h2', "server_cities", "/fake_apps/server_cities/server_cities.tar")
+            handler.start_container('h1',"database_cities","/apps/database_cities/database_cities.tar")
+            handler.start_container('h2',"random_logger","/apps/random_logger/random_logger.tar")
+            handler.start_container('h2', "server_cities", "/apps/server_cities/server_cities.tar")
         elif cmd == "2":
             handler.stop_container('h1', 'database_cities')
             handler.stop_container('h2')

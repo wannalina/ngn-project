@@ -189,9 +189,9 @@ class MainWindow(QWidget):
     
     def findContainers(self):
         current_dir = os.path.dirname(os.path.abspath(__file__)) #this is where current file is located
-        fake_apps_dir = os.path.join(current_dir, "fake_apps") #path to fake_apps
-        for folder in os.listdir(fake_apps_dir):
-            folder_path = os.path.join(fake_apps_dir, folder)
+        apps_dir = os.path.join(current_dir, "apps") #path to apps
+        for folder in os.listdir(apps_dir):
+            folder_path = os.path.join(apps_dir, folder)
             if os.path.isdir(folder_path):
                 tar_files = [f for f in os.listdir(folder_path) if f.endswith(".tar")]
                 if tar_files:
