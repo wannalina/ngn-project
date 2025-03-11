@@ -1,5 +1,5 @@
 import sys,os
-from PyQt5.QtWidgets import QApplication, QWidget, QSpinBox, QGridLayout, QLabel, QPushButton, QHBoxLayout, QDoubleSpinBox,QGroupBox,QVBoxLayout,QComboBox,QScrollArea,QFrame
+from PyQt5.QtWidgets import QApplication, QWidget, QSpinBox, QGridLayout, QLabel, QPushButton, QHBoxLayout, QDoubleSpinBox,QGroupBox,QVBoxLayout,QComboBox,QScrollArea,QFrame, QDialog, QListWidget, QCheckBox, QListWidgetItem
 from PyQt5.QtCore import Qt, QObject
 from network import NetworkManager
 
@@ -15,6 +15,7 @@ class MainWindow(QWidget):
         self.availableContainers={} #container_id + host + container type 
         self.runningContainers={} #name + directory
         self.removedContainers = set()  # Track containers that are removed from dropdown
+        self.containerDependencies={}  
         
     def initUI(self):
         self.setWindowTitle("CONTAINER DEPLOYMENT")
@@ -61,7 +62,7 @@ class MainWindow(QWidget):
         topoLayout.addLayout(linkProbLayout, 0, 2)
         
         self.generate = QPushButton("Generate Topology")
-        topoLayout.addWidget(self.generate, 1, 0, 1, 3, Qt.AlignHCenter)
+        topoLayout.addWidget(self.generate, 1,0,1,3, Qt.AlignHCenter)
         
         self.run = QPushButton("RUN")
         self.stop = QPushButton("STOP")
@@ -91,11 +92,17 @@ class MainWindow(QWidget):
         self.containerDropdown.currentTextChanged.connect(self.updateLaunchButton)
         dockerContainersLayout.addWidget(self.containerDropdown)
 
+        # Setup the buttons for launching container and selecting dependencies
+        launchButtonsLayout = QVBoxLayout()
         self.launchButton = QPushButton("Start container")
+        self.dependencyButton = QPushButton("Select Dependencies")
+        self.dependencyButton.clicked.connect(self.openDependencyDialog)
+        launchButtonsLayout.addWidget(self.dependencyButton)
+        launchButtonsLayout.addWidget(self.launchButton)
         
         containerLayout.addLayout(dockerHostsLayout,0,0)
         containerLayout.addLayout(dockerContainersLayout,0,1)
-        containerLayout.addWidget(self.launchButton,0,2)
+        containerLayout.addLayout(launchButtonsLayout,0,2)
         
         activeContainersBox=QGroupBox("Active Containers")
         self.activeContainerLayout = QVBoxLayout()
@@ -107,7 +114,7 @@ class MainWindow(QWidget):
         containerLayout.addWidget(scrollArea,1,0,1,3)
         
         self.stopAllButton = QPushButton("Shut down ALL containers")
-        containerLayout.addWidget(self.stopAllButton, 2,0,1,3, Qt.AlignHCenter)
+        containerLayout.addWidget(self.stopAllButton,2,0,1,3, Qt.AlignHCenter)
     
         self.containerGroupBox.setLayout(containerLayout)
         mainLayout.addWidget(self.containerGroupBox)
@@ -121,6 +128,7 @@ class MainWindow(QWidget):
         self.stop.setFixedSize(100, 35)
         self.generate.setFixedSize(130, 45)
         self.launchButton.setFixedSize(130, 30)
+        self.dependencyButton.setFixedSize(130, 30)
         self.stopAllButton.setFixedSize(200, 45)
         
         # Connect signals
@@ -269,6 +277,9 @@ class MainWindow(QWidget):
             self.updateContainerDropdown() 
             self.updateMonitor()
             self.updateLaunchButton()
+    
+    def openDependencyDialog(self):
+        print("dependency window")
 
 
 def main():
