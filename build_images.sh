@@ -13,9 +13,11 @@ find fake_apps/ -mindepth 1 -maxdepth 1 -type d | while read folder_name; do
     # remove existing Docker image from registry
     docker rmi -f "$image_name"
 
-    # remove existing .tar file if exists in folder
+    # check if .tar file exists
     if [ -f "$folder_name/$image_name.tar" ]; then
+        echo "REMOVING EXISTING DOCKER IMAGE FILE."
         rm $folder_name/$image_name.tar
+    fi
 
     # check if Dockerfile exists
     if [ -f "$folder_name/Dockerfile" ]; then
