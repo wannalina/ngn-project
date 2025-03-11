@@ -12,7 +12,7 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.initUI()
-
+        self.containersAdded=False
         self.availableContainers={} #container_id + host + container type 
         self.runningContainers={} #name + directory
 
@@ -89,6 +89,7 @@ class MainWindow(QWidget):
         dockerContainersLayout=QHBoxLayout()
         dockerContainersLayout.addWidget(QLabel("Containers: "))
         self.containerDropdown = QComboBox()
+        self.containerDropdown.currentTextChanged.connect(self.updateLaunchButton)
         dockerContainersLayout.addWidget(self.containerDropdown)
 
         self.launchButton = QPushButton("Start container")
@@ -134,6 +135,7 @@ class MainWindow(QWidget):
         self.setLayout(mainLayout)
     
     def run_clicked(self):
+        self.containersAdded=False
         global network_running
         print("RUN")
         nm.build_network()
@@ -149,6 +151,7 @@ class MainWindow(QWidget):
         self.findContainers()
         for key in self.availableContainers.keys():
             self.containerDropdown.addItem(key)
+        self.containersAdded=True
 
     def stop_clicked(self):
         global network_running
@@ -187,6 +190,14 @@ class MainWindow(QWidget):
         self.stop.setEnabled(network_running and topology_generated)
         self.generate.setEnabled(not network_running)
     
+    def updateLaunchButton(self):
+        if self.containersAdded==True:
+            container=self.containerDropdown.currentText()
+            if any(entry["container"] == container for entry in self.runningContainers.values()):
+                self.launchButton.setEnabled(False)
+            else: 
+                self.launchButton.setEnabled(True)
+
     def findContainers(self):
         current_dir = os.path.dirname(os.path.abspath(__file__)) #this is where current file is located
         apps_dir = os.path.join(current_dir, "apps") #path to apps
@@ -204,6 +215,7 @@ class MainWindow(QWidget):
         container=self.containerDropdown.currentText()
         nm.start_container(host,container,self.availableContainers[container])
         container_id=f"{container}_{host}"
+        self.launchButton.setEnabled(False)
         self.runningContainers[container_id]={"host":host,"container":container}
         self.updateMonitor()
 
@@ -211,6 +223,7 @@ class MainWindow(QWidget):
         nm.stop_all_containers()   
         self.cleanMonitor()
         self.runningContainers={}
+        self.updateLaunchButton()
     
     def updateMonitor(self):
         self.cleanMonitor()
@@ -236,12 +249,12 @@ class MainWindow(QWidget):
             widget.deleteLater()
 
     def stop_container(self, host, container):
-        print(f"Stopping container {container} on host {host}")
         nm.stop_container(host, container)
         container_id = f"{container}_{host}"
         if container_id in self.runningContainers:
             del self.runningContainers[container_id]
             self.updateMonitor()
+            self.updateLaunchButton()
 
 
 def main():
