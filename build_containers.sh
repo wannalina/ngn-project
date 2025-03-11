@@ -20,9 +20,6 @@ find fake_apps/ -mindepth 1 -maxdepth 1 -type d | while read folder_name; do
 
     echo "LOADING NEW DOCKER IMAGE."
     docker load -i "$image_name.tar"
-
-    echo "RUNNING NEW DOCKER IMAGE."
-    docker run --name "$image_name" --net=host "$image_name"
 done
 
 docker ps -a
