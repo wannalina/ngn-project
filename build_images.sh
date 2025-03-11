@@ -21,22 +21,6 @@ find fake_apps/ -mindepth 1 -maxdepth 1 -type d | while read folder_name; do
         echo "REMOVING EXISTING DOCKER IMAGE FILE."
         rm $folder_name/$image_name.tar
     fi
-
-    echo "HELP: "$folder_name/$image_name.tar" AND "$folder_name/Dockerfile""
-
-    # check if Dockerfile exists
-    if [ -f "$folder_name/Dockerfile" ]; then
-        echo "BUILDING DOCKER IMAGE."
-        docker build -t "$image_name" "$folder_name"
-
-        echo "SAVING IMAGE TO TAR FILE."
-        docker save "$image_name" -o "$folder_name/$image_name.tar"
-
-        echo "LOADING NEW DOCKER IMAGE."
-        docker load -i "$image_name.tar"
-    else
-        echo "No Dockerfile found in "$folder_name"."
-    fi
 done
 
 echo "Removing dangling images."
