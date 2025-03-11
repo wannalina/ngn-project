@@ -12,9 +12,8 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.initUI()
-        self.availableContainers={} #container_id + host + container type 
-        self.runningContainers={} #name + directory
-        self.removedContainers = set()  # Track containers that are removed from dropdown
+        self.availableContainers={} #name (key) + directory
+        self.runningContainers={} #container_id (key) + host + container type 
         self.containerDependencies={}  
         
     def initUI(self):
@@ -277,8 +276,35 @@ class MainWindow(QWidget):
             self.updateLaunchButton()
     
     def openDependencyDialog(self):
-        print("dependency window")
+        container = self.containerDropdown.currentText()
+        if not container:
+            return
+        
+        dialog = QDialog(self) #DIALOG WINDOW
+        dialog.setWindowTitle("DEPENDENCIES")
+        dialog.setMinimumWidth(350)
+        layout = QVBoxLayout()
+        label = QLabel(f"Dependencies for {container}:")
+        layout.addWidget(label)
+        dependencyList = QListWidget()
+    
+        for cont in self.availableContainers.keys(): #ADD ALL ITEMS BUT THE CURRENT CONTAINER
+            if cont != container:
+                item = QListWidgetItem(cont)
+                item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+                item.setCheckState(Qt.Unchecked)
+                dependencyList.addItem(item)
 
+        layout.addWidget(dependencyList)
+        btnLayout = QHBoxLayout()
+        okButton = QPushButton("OK")
+        cancelButton = QPushButton("Cancel")
+        btnLayout.addWidget(okButton)
+        btnLayout.addWidget(cancelButton)
+        layout.addLayout(btnLayout)
+        
+        dialog.setLayout(layout)
+        dialog.exec_()
 
 def main():
     app = QApplication(sys.argv)
