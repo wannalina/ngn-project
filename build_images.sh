@@ -25,12 +25,10 @@ find fake_apps/ -mindepth 1 -maxdepth 1 -type d | while read folder_name; do
     else
         echo "No Dockerfile found in "$folder_name"."
     fi
-    echo "Cleaning up dangling images..."
-
-    echo "Removing dangling images."
-    docker image prune -f
-
 done
+
+echo "Removing dangling images."
+docker image prune -f
 
 docker images
 echo "ALL DOCKER IMAGES ARE READY TO EXECUTE."
