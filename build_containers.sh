@@ -2,10 +2,13 @@
 
 # get number of images
 folder_count=$(find fake_apps/ -mindepth 1 -maxdepth 1 -type d | wc -l)
-echo "Number of images to build: $folder_count"
+echo "NUMBER OF IMAGES TO BUILD: $folder_count"
 
 # get and loop through all folder names in fake_apps dir on the first hierarchical level
 find fake_apps/ -mindepth 1 -maxdepth 1 -type d | while read folder_name; do
+
+    echo "FOLDER NAME: $folder_name"
+    
     echo "BUILDING DOCKER IMAGE."
     docker build -t "$folder_name" ./"$folder_name"
 
