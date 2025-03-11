@@ -200,10 +200,8 @@ class MainWindow(QWidget):
     def updateLaunchButton(self):
         if self.containerGroupBox.isEnabled():
             container = self.containerDropdown.currentText()
-            if container and any(entry["container"] == container for entry in self.runningContainers.values()):
-                self.launchButton.setEnabled(False)
-            else: 
-                self.launchButton.setEnabled(True)
+            self.dependencyButton.setEnabled(bool(container))
+            self.launchButton.setEnabled(bool(container))
 
     def findContainers(self):
         self.availableContainers = {}
