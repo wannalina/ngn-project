@@ -2,6 +2,7 @@ import sys,os
 from PyQt5.QtWidgets import QApplication, QWidget, QSpinBox, QGridLayout, QLabel, QPushButton, QHBoxLayout, QDoubleSpinBox,QGroupBox,QVBoxLayout,QComboBox,QScrollArea,QFrame, QDialog, QListWidget, QCheckBox, QListWidgetItem
 from PyQt5.QtCore import Qt, QObject
 from network import NetworkManager
+import random
 
 network_running = False
 topology_generated = False
@@ -15,11 +16,12 @@ class MainWindow(QWidget):
         self.availableContainers={} #name (key) + directory
         self.runningContainers={} #container_id (key) + host + container type 
         self.containerDependencies={}  
+        self.hostContainerCounts = {}  #container per host
         
     def initUI(self):
         self.setWindowTitle("CONTAINER DEPLOYMENT")
         self.setGeometry(100, 100, 550, 650)
-        self.setFixedSize(550,650)
+        self.setFixedSize(550,850)
         
         mainLayout=QVBoxLayout();
         #TOPOLOGY AREA
@@ -55,18 +57,28 @@ class MainWindow(QWidget):
         linkProbLayout.addWidget(self.linkProbBox)
         linkProbLayout.setContentsMargins(5, 0, 5, 0)
         
+        # Max Containers per Host
+        maxContainersLayout = QHBoxLayout()
+        self.maxContainersBox = QSpinBox()
+        self.maxContainersBox.setRange(1,3)
+        self.maxContainersBox.setValue(2)
+        maxContainersLayout.addWidget(QLabel("Max containers per host: "))
+        maxContainersLayout.addWidget(self.maxContainersBox)
+        maxContainersLayout.setContentsMargins(5,0,5,0)
+        
         #HBoxLayouts on grid
         topoLayout.addLayout(switchesLayout, 0, 0)
         topoLayout.addLayout(hostsLayout, 0, 1)
         topoLayout.addLayout(linkProbLayout, 0, 2)
+        topoLayout.addLayout(maxContainersLayout, 1, 0, 1, 3)
         
         self.generate = QPushButton("Generate Topology")
-        topoLayout.addWidget(self.generate, 1,0,1,3, Qt.AlignHCenter)
+        topoLayout.addWidget(self.generate, 2, 0, 1, 3, Qt.AlignHCenter)
         
         self.run = QPushButton("RUN")
         self.stop = QPushButton("STOP")
-        topoLayout.addWidget(self.run, 2, 0, 1, 1, Qt.AlignRight)
-        topoLayout.addWidget(self.stop, 2, 2, 1, 1, Qt.AlignLeft)
+        topoLayout.addWidget(self.run, 3, 0, 1, 1, Qt.AlignRight)
+        topoLayout.addWidget(self.stop, 3, 2, 1, 1, Qt.AlignLeft)
         topoGroupBox.setLayout(topoLayout)
         mainLayout.addWidget(topoGroupBox)
         ##TOPOLOGY FINISHED
@@ -76,7 +88,6 @@ class MainWindow(QWidget):
 
         #DOCKER AREA
         self.containerGroupBox = QGroupBox("DOCKERS")
-        #self.containerGroupBox.setEnabled(False)
         containerLayout = QGridLayout()
         
         dockerHostsLayout=QHBoxLayout()
@@ -99,9 +110,13 @@ class MainWindow(QWidget):
         launchButtonsLayout.addWidget(self.dependencyButton)
         launchButtonsLayout.addWidget(self.launchButton)
         
-        containerLayout.addLayout(dockerHostsLayout,0,0)
-        containerLayout.addLayout(dockerContainersLayout,0,1)
-        containerLayout.addLayout(launchButtonsLayout,0,2)
+        containerLayout.addLayout(dockerHostsLayout, 0, 0)
+        containerLayout.addLayout(dockerContainersLayout, 0, 1)
+        containerLayout.addLayout(launchButtonsLayout, 0, 2)
+        
+        # Auto Deploy Button
+        self.autoDeployButton = QPushButton("Auto Deploy All Containers")
+        containerLayout.addWidget(self.autoDeployButton, 1, 0, 1, 3, Qt.AlignHCenter)
         
         activeContainersBox=QGroupBox("Active Containers")
         self.activeContainerLayout = QVBoxLayout()
@@ -110,33 +125,31 @@ class MainWindow(QWidget):
         scrollArea=QScrollArea()
         scrollArea.setWidgetResizable(True)
         scrollArea.setWidget(activeContainersBox)
-        containerLayout.addWidget(scrollArea,1,0,1,3)
+        containerLayout.addWidget(scrollArea, 2, 0, 1, 3)
         
         self.stopAllButton = QPushButton("Shut down ALL containers")
-        containerLayout.addWidget(self.stopAllButton,2,0,1,3, Qt.AlignHCenter)
+        containerLayout.addWidget(self.stopAllButton, 3, 0, 1, 3, Qt.AlignHCenter)
     
         self.containerGroupBox.setLayout(containerLayout)
         mainLayout.addWidget(self.containerGroupBox)
 
         self.updateEnables()
         
-        #self.open_cli = QPushButton("Open Mininet CLI")
-        #topoLayout.addWidget(self.open_cli, 3, 0, 1, 3, Qt.AlignHCenter)
-        
         self.run.setFixedSize(100, 35)
         self.stop.setFixedSize(100, 35)
         self.generate.setFixedSize(130, 45)
         self.launchButton.setFixedSize(130, 30)
         self.dependencyButton.setFixedSize(130, 30)
+        self.autoDeployButton.setFixedSize(200, 45)
         self.stopAllButton.setFixedSize(200, 45)
         
         # Connect signals
         self.run.clicked.connect(self.run_clicked)
         self.stop.clicked.connect(self.stop_clicked)
         self.generate.clicked.connect(self.generate_clicked)
-        #self.open_cli.clicked.connect(self.open_cli_clicked)
         self.launchButton.clicked.connect(self.startContainer)
         self.stopAllButton.clicked.connect(self.stopAllContainers)
+        self.autoDeployButton.clicked.connect(self.autoDeployContainers)
 
         self.setLayout(mainLayout)
     
@@ -321,6 +334,8 @@ class MainWindow(QWidget):
         self.containerDependencies[container] = dependencies
         print(self.containerDependencies)
         dialog.accept()
+    def autoDeployContainers(self):
+        print("autodeploy")
 
 def main():
     app = QApplication(sys.argv)
