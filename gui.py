@@ -82,18 +82,14 @@ class MainWindow(QWidget):
         topoGroupBox.setLayout(topoLayout)
         mainLayout.addWidget(topoGroupBox)
         ##TOPOLOGY FINISHED
-
-        #NET PARAMETERS SECTION TO BE ADDED HERE MAYBE???
-        # FOR EXAMPLE MAX 2H DOCKERS PER HOST
-
         #DOCKER AREA
         self.containerGroupBox = QGroupBox("DOCKERS")
         containerLayout = QGridLayout()
         
         dockerHostsLayout=QHBoxLayout()
         dockerHostsLayout.addWidget(QLabel("Hosts: "))
-        
         self.hostDropdown = QComboBox()
+        self.hostDropdown.currentTextChanged.connect(self.updateLaunchButton)
         dockerHostsLayout.addWidget(self.hostDropdown)
 
         dockerContainersLayout=QHBoxLayout()
@@ -213,8 +209,15 @@ class MainWindow(QWidget):
     def updateLaunchButton(self):
         if self.containerGroupBox.isEnabled():
             container = self.containerDropdown.currentText()
+            host = self.hostDropdown.currentText()
+            max_containers = self.maxContainersBox.value()
+
+            at_limit = False
+            if host:
+                current_count = self.hostContainerCounts.get(host,0) #method sometimes is called before current is initliazied as 0
+                at_limit = current_count >= max_containers
             self.dependencyButton.setEnabled(bool(container))
-            self.launchButton.setEnabled(bool(container))
+            self.launchButton.setEnabled(bool(container) and not at_limit)
 
     def findContainers(self):
         self.availableContainers = {}
@@ -339,7 +342,7 @@ class MainWindow(QWidget):
         self.containerDependencies[container] = dependencies
         print(self.containerDependencies)
         dialog.accept()
-
+         
     def autoDeployContainers(self):
         print(self.hostContainerCounts)
 
