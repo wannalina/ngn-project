@@ -250,6 +250,7 @@ class MainWindow(QWidget):
         self.hostContainerCounts[host] = self.hostContainerCounts.get(host) + 1
         
         self.updateContainerDropdown()
+        self.updateHostDropdown()
         self.updateLaunchButton()
         self.updateMonitor()
 
@@ -260,6 +261,7 @@ class MainWindow(QWidget):
         self.containerDependencies = {}
         self.hostContainerCounts = {host: 0 for host in self.hostContainerCounts}
         self.updateContainerDropdown()
+        self.updateHostDropdown()
         self.updateLaunchButton()
     
     def updateMonitor(self):
@@ -294,7 +296,8 @@ class MainWindow(QWidget):
                 del self.containerDependencies[container]
             del self.runningContainers[container_id]
             self.hostContainerCounts[host] = self.hostContainerCounts.get(host) - 1
-            self.updateContainerDropdown() 
+            self.updateContainerDropdown()
+            self.updateHostDropdown()
             self.updateMonitor()
             self.updateLaunchButton()
     
@@ -342,6 +345,16 @@ class MainWindow(QWidget):
         self.containerDependencies[container] = dependencies
         print(self.containerDependencies)
         dialog.accept()
+
+    def updateHostDropdown(self):
+        self.hostDropdown.clear()
+        # Add only hosts who are not currently at max capacity
+        max_containers = self.maxContainersBox.value()
+        for host in nm.net.hosts:
+            name=host.name
+            #print(self.hostContainerCounts.get(name,0),max_containers)
+            if self.hostContainerCounts.get(name,0) < max_containers:
+                self.hostDropdown.addItem(name)
          
     def autoDeployContainers(self):
         print(self.hostContainerCounts)
