@@ -253,6 +253,7 @@ class MainWindow(QWidget):
         self.updateHostDropdown()
         self.updateLaunchButton()
         self.updateMonitor()
+        self.checkAutoDeploy()
 
     def stopAllContainers(self):
         nm.stop_all_containers()   
@@ -263,6 +264,7 @@ class MainWindow(QWidget):
         self.updateContainerDropdown()
         self.updateHostDropdown()
         self.updateLaunchButton()
+        self.checkAutoDeploy()
     
     def updateMonitor(self):
         self.cleanMonitor()
@@ -300,6 +302,7 @@ class MainWindow(QWidget):
             self.updateHostDropdown()
             self.updateMonitor()
             self.updateLaunchButton()
+            self.checkAutoDeploy()
     
     def openDependencyDialog(self):
         container = self.containerDropdown.currentText()
@@ -388,9 +391,26 @@ class MainWindow(QWidget):
             self.hostContainerCounts[host] = self.hostContainerCounts.get(host) + 1
             
         self.updateMonitor()
+        self.updateHostDropdown()
         self.updateContainerDropdown()
         self.updateLaunchButton()
-        
+        self.checkAutoDeploy()
+
+    def checkAutoDeploy(self):
+        available_hosts = [] #ALL CONTAINERS NOT AT MAX
+        max_containers = self.maxContainersBox.value()
+        for host in nm.net.hosts:
+            name = host.name
+            if self.hostContainerCounts.get(name, 0) < max_containers:
+                available_hosts.append(name)
+            
+        available_containers = [] #ALL CONTAINERS NOT RUNNING
+        for container in self.availableContainers.keys():
+            if not any(entry["container"] == container for entry in self.runningContainers.values()):
+                available_containers.append(container)
+        print("there are available hosts:", bool(available_hosts))
+        print("there are available containers: ",bool(available_containers))
+        self.autoDeployButton.setEnabled(bool(available_hosts) and bool(available_containers))
 
 def main():
     app = QApplication(sys.argv)
