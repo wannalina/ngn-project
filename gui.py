@@ -155,6 +155,7 @@ class MainWindow(QWidget):
         network_running = True
         self.updateEnables()
     
+        self.containerDependencies={}
         self.hostDropdown.clear()
         for host in nm.net.hosts:
             self.hostDropdown.addItem(host.name)
@@ -169,6 +170,7 @@ class MainWindow(QWidget):
         self.stopAllContainers()
         nm.stop_network()
         network_running = False
+        
         self.updateEnables()
     
     def generate_clicked(self):
@@ -236,6 +238,7 @@ class MainWindow(QWidget):
         for container in self.availableContainers.keys():
             if not any(entry["container"] == container for entry in self.runningContainers.values()):
                 self.containerDropdown.addItem(container)
+        #self.containerDependencies={}  
     
     def startContainer(self):
         host = self.hostDropdown.currentText()
@@ -257,7 +260,7 @@ class MainWindow(QWidget):
         nm.stop_all_containers()   
         self.cleanMonitor()
         self.runningContainers = {}
-        self.containerDependencies = {}
+        #self.containerDependencies = {}
         self.hostContainerCounts = {host: 0 for host in self.hostContainerCounts}
         self.updateContainerDropdown()
         self.updateHostDropdown()
@@ -292,8 +295,8 @@ class MainWindow(QWidget):
         nm.stop_container(host, container)
         container_id = f"{container}_{host}"
         if container_id in self.runningContainers:
-            if container in self.containerDependencies:
-                del self.containerDependencies[container]
+            #if container in self.containerDependencies:
+            #    del self.containerDependencies[container]
             del self.runningContainers[container_id]
             self.hostContainerCounts[host] = self.hostContainerCounts.get(host) - 1
             self.updateContainerDropdown()
@@ -303,6 +306,7 @@ class MainWindow(QWidget):
             self.checkAutoDeploy()
     
     def openDependencyDialog(self):
+        print(self.containerDependencies)
         container_select_dialog = QDialog(self)
         container_select_dialog.setWindowTitle("Containers")
         container_select_dialog.setMinimumWidth(300)
@@ -383,7 +387,6 @@ class MainWindow(QWidget):
             if item.checkState() == Qt.Checked:
                 dependencies.append(item.text())
         self.containerDependencies[container] = dependencies
-        print(self.containerDependencies)
         dialog.accept()
 
     def updateHostDropdown(self):
