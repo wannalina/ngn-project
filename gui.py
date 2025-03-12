@@ -359,6 +359,39 @@ class MainWindow(QWidget):
     def autoDeployContainers(self):
         print(self.hostContainerCounts)
 
+        available_hosts = [] #ALL CONTAINERS NOT AT MAX
+        max_containers = self.maxContainersBox.value()
+        for host in nm.net.hosts:
+            name = host.name
+            if self.hostContainerCounts.get(name, 0) < max_containers:
+                available_hosts.append(name)
+            
+        available_containers = [] #ALL CONTAINERS NOT RUNNING
+        for container in self.availableContainers.keys():
+            if not any(entry["container"] == container for entry in self.runningContainers.values()):
+                available_containers.append(container)
+                      
+        #RANDOM DEPLOYMENT
+        for container in available_containers: 
+            valid_hosts = [h for h in available_hosts #list comprehension
+                          if self.hostContainerCounts.get(h) < self.maxContainersBox.value()]
+        
+            if not valid_hosts:
+                print("All hosts at max capacity")
+                continue
+            host = random.choice(valid_hosts)
+            
+            #DEPLOYMENT
+            nm.start_container(host, container, self.availableContainers[container])
+            container_id = f"{container}_{host}"
+            self.runningContainers[container_id] = {"host": host, "container": container}
+            self.hostContainerCounts[host] = self.hostContainerCounts.get(host) + 1
+            
+        self.updateMonitor()
+        self.updateContainerDropdown()
+        self.updateLaunchButton()
+        
+
 def main():
     app = QApplication(sys.argv)
     window = MainWindow()
