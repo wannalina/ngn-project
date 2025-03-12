@@ -85,6 +85,10 @@ class MainWindow(QWidget):
         #DOCKER AREA
         self.containerGroupBox = QGroupBox("DOCKERS")
         containerLayout = QGridLayout()
+
+        self.dependencyButton = QPushButton("Select Dependencies")
+        self.dependencyButton.clicked.connect(self.openDependencyDialog)
+        containerLayout.addWidget(self.dependencyButton, 0, 0, 1, 3, Qt.AlignHCenter)
         
         dockerHostsLayout=QHBoxLayout()
         dockerHostsLayout.addWidget(QLabel("Hosts: "))
@@ -98,21 +102,15 @@ class MainWindow(QWidget):
         self.containerDropdown.currentTextChanged.connect(self.updateLaunchButton)
         dockerContainersLayout.addWidget(self.containerDropdown)
 
-        # Setup the buttons for launching container and selecting dependencies
-        launchButtonsLayout = QVBoxLayout()
         self.launchButton = QPushButton("Start container")
-        self.dependencyButton = QPushButton("Select Dependencies")
-        self.dependencyButton.clicked.connect(self.openDependencyDialog)
-        launchButtonsLayout.addWidget(self.dependencyButton)
-        launchButtonsLayout.addWidget(self.launchButton)
         
-        containerLayout.addLayout(dockerHostsLayout, 0, 0)
-        containerLayout.addLayout(dockerContainersLayout, 0, 1)
-        containerLayout.addLayout(launchButtonsLayout, 0, 2)
+        containerLayout.addLayout(dockerHostsLayout, 1, 0)
+        containerLayout.addLayout(dockerContainersLayout, 1, 1)
+        containerLayout.addWidget(self.launchButton,1, 2)
         
         # Auto Deploy Button
         self.autoDeployButton = QPushButton("Auto Deploy All Containers")
-        containerLayout.addWidget(self.autoDeployButton, 1, 0, 1, 3, Qt.AlignHCenter)
+        containerLayout.addWidget(self.autoDeployButton, 2, 0, 1, 3, Qt.AlignHCenter)
         
         activeContainersBox=QGroupBox("Active Containers")
         self.activeContainerLayout = QVBoxLayout()
@@ -121,10 +119,10 @@ class MainWindow(QWidget):
         scrollArea=QScrollArea()
         scrollArea.setWidgetResizable(True)
         scrollArea.setWidget(activeContainersBox)
-        containerLayout.addWidget(scrollArea, 2, 0, 1, 3)
+        containerLayout.addWidget(scrollArea, 3, 0, 1, 3)
         
         self.stopAllButton = QPushButton("Shut down ALL containers")
-        containerLayout.addWidget(self.stopAllButton, 3, 0, 1, 3, Qt.AlignHCenter)
+        containerLayout.addWidget(self.stopAllButton, 4, 0, 1, 3, Qt.AlignHCenter)
     
         self.containerGroupBox.setLayout(containerLayout)
         mainLayout.addWidget(self.containerGroupBox)
@@ -135,7 +133,7 @@ class MainWindow(QWidget):
         self.stop.setFixedSize(100, 35)
         self.generate.setFixedSize(130, 45)
         self.launchButton.setFixedSize(130, 30)
-        self.dependencyButton.setFixedSize(130, 30)
+        self.dependencyButton.setFixedSize(200, 35)
         self.autoDeployButton.setFixedSize(200, 45)
         self.stopAllButton.setFixedSize(200, 45)
         
@@ -216,7 +214,7 @@ class MainWindow(QWidget):
             if host:
                 current_count = self.hostContainerCounts.get(host,0) #method sometimes is called before current is initliazied as 0
                 at_limit = current_count >= max_containers
-            self.dependencyButton.setEnabled(bool(container))
+            #self.dependencyButton.setEnabled(bool(container))
             self.launchButton.setEnabled(bool(container) and not at_limit)
 
     def findContainers(self):
@@ -305,37 +303,76 @@ class MainWindow(QWidget):
             self.checkAutoDeploy()
     
     def openDependencyDialog(self):
-        container = self.containerDropdown.currentText()
-        if not container:
-            return
+        container_select_dialog = QDialog(self)
+        container_select_dialog.setWindowTitle("Containers")
+        container_select_dialog.setMinimumWidth(300)
+        select_layout = QVBoxLayout()
         
-        dialog = QDialog(self) #DIALOG WINDOW
-        dialog.setWindowTitle("DEPENDENCIES")
+        select_label = QLabel("Select a container to set dependencies:")
+        select_layout.addWidget(select_label)
+        
+        container_list = QListWidget()
+       #FETCH ALL CONTAINERS
+        all_containers = set(self.availableContainers.keys())
+        for container in all_containers:
+            container_list.addItem(container)
+            
+        select_layout.addWidget(container_list)
+        
+        btn_layout = QHBoxLayout()
+        select_ok_button = QPushButton("Select")
+        select_cancel_button = QPushButton("Cancel")
+        btn_layout.addWidget(select_ok_button)
+        btn_layout.addWidget(select_cancel_button)
+        select_layout.addLayout(btn_layout)
+        
+        container_select_dialog.setLayout(select_layout)
+        
+        # Connect buttons
+        select_cancel_button.clicked.connect(container_select_dialog.reject)
+        select_ok_button.clicked.connect(lambda: self.showDependenciesForContainer(
+            container_list.currentItem().text() if container_list.currentItem() else None,
+            container_select_dialog
+        ))
+        
+        container_select_dialog.exec_()
+    
+    def showDependenciesForContainer(self, container, parent_dialog):
+        if not container:
+            return    
+        parent_dialog.accept()
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Dependencies")
         dialog.setMinimumWidth(350)
         layout = QVBoxLayout()
-        label = QLabel(f"Dependencies for {container}:")
+
+        label = QLabel(f"Set dependencies for {container}:")
         layout.addWidget(label)
         dependencyList = QListWidget()
+        currentDependencies = self.containerDependencies.get(container, [])
 
-        currentDependencies=self.containerDependencies.get(container,[]) #[] default value IS NECESSASRY OTHERWISE CRASH
-        for cont in self.availableContainers.keys(): #ADD ALL ITEMS BUT THE CURRENT CONTAINER
+        for cont in self.availableContainers.keys():#ADD ALL ITEMS BUT THE CURRENT CONTAINER
             if cont != container:
                 item = QListWidgetItem(cont)
                 item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
                 item.setCheckState(Qt.Checked if cont in currentDependencies else Qt.Unchecked)
                 dependencyList.addItem(item)
-
+                
         layout.addWidget(dependencyList)
+        
         btnLayout = QHBoxLayout()
         okButton = QPushButton("OK")
         cancelButton = QPushButton("Cancel")
         btnLayout.addWidget(okButton)
         btnLayout.addWidget(cancelButton)
         layout.addLayout(btnLayout)
+        
         dialog.setLayout(layout)
-
+        
         okButton.clicked.connect(lambda: self.saveDependencies(container, dependencyList, dialog))
         cancelButton.clicked.connect(dialog.reject)
+        
         dialog.exec_()
 
     def saveDependencies(self, container, dependencyList, dialog):
