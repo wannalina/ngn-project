@@ -208,6 +208,7 @@ class MainWindow(QWidget):
         self.linkProbBox.setEnabled(not network_running)
         self.hostsBox.setEnabled(not network_running)
         self.switchesBox.setEnabled(not network_running)
+        self.maxContainersBox.setEnabled(not network_running)
     
     def updateLaunchButton(self):
         if self.containerGroupBox.isEnabled():
