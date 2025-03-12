@@ -16,7 +16,7 @@ class MainWindow(QWidget):
         self.availableContainers={} #name (key) + directory
         self.runningContainers={} #container_id (key) + host + container type 
         self.containerDependencies={}  
-        self.hostContainerCounts = {}  #container per host
+        self.hostContainerCounts = {}  #container per host, hostname(key) + int
         
     def initUI(self):
         self.setWindowTitle("CONTAINER DEPLOYMENT")
@@ -164,7 +164,7 @@ class MainWindow(QWidget):
         self.hostDropdown.clear()
         for host in nm.net.hosts:
             self.hostDropdown.addItem(host.name)
-        
+            self.hostContainerCounts[host.name] = 0
         self.containerDropdown.clear()
         self.findContainers()
         self.updateContainerDropdown()
@@ -243,6 +243,7 @@ class MainWindow(QWidget):
         nm.start_container(host, container, self.availableContainers[container])
         container_id = f"{container}_{host}"
         self.runningContainers[container_id] = {"host": host, "container": container}
+        self.hostContainerCounts[host] = self.hostContainerCounts.get(host) + 1
         
         self.updateContainerDropdown()
         self.updateLaunchButton()
@@ -253,6 +254,7 @@ class MainWindow(QWidget):
         self.cleanMonitor()
         self.runningContainers = {}
         self.containerDependencies = {}
+        self.hostContainerCounts = {host: 0 for host in self.hostContainerCounts}
         self.updateContainerDropdown()
         self.updateLaunchButton()
     
@@ -284,8 +286,10 @@ class MainWindow(QWidget):
         nm.stop_container(host, container)
         container_id = f"{container}_{host}"
         if container_id in self.runningContainers:
-            del self.containerDependencies[container]
+            if container in self.containerDependencies:
+                del self.containerDependencies[container]
             del self.runningContainers[container_id]
+            self.hostContainerCounts[host] = self.hostContainerCounts.get(host) - 1
             self.updateContainerDropdown() 
             self.updateMonitor()
             self.updateLaunchButton()
@@ -334,8 +338,9 @@ class MainWindow(QWidget):
         self.containerDependencies[container] = dependencies
         print(self.containerDependencies)
         dialog.accept()
+
     def autoDeployContainers(self):
-        print("autodeploy")
+        print(self.hostContainerCounts)
 
 def main():
     app = QApplication(sys.argv)
