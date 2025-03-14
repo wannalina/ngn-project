@@ -1,117 +1,145 @@
 from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.node import RemoteController
-from mininet.cli import CLI
-import random
-from topologies.topology_generator import RandomTopo
+import socket
 import subprocess
+import sys
+import os
+import time
+
+def kill_previous_instances():
+    try:
+        subprocess.run(['pkill', '-f', 'topology_generator.py'], stderr=subprocess.DEVNULL) #any running xterm processes
+        subprocess.run(['sudo', 'mn', '-c'], stderr=subprocess.DEVNULL) #any running mininet
+        #subprocess.run(['pkill', '-f', 'python.*topology_generator'], stderr=subprocess.DEVNULL)
+        subprocess.run(['sudo', 'pkill', '-f', 'ryu-manager'], stderr=subprocess.DEVNULL)#any ryu-manager processes
+        time.sleep(2)
+    except Exception as e:
+        print(f"Error cleaning up previous instances: {e}")
 
 class NetworkManager:
     def __init__(self):
-        self.topo = None
         self.net = None
-        self.controller = RemoteController('c1', ip='127.0.0.1', port=6633)
+        self.sock = None
+        self.proc = None
+        self.controller_process= None
 
     def start_controller(self):
-        print("Starting Ryu controller")
-        self.controller_process = subprocess.Popen(["ryu-manager", "simple_switch_stp_13.py"],stdout=open("ryu.log", "w"),stderr=subprocess.STDOUT)
+        print("Starting Ryu controller in a new xterm window")
+        cmd = [
+            "sudo",
+            "xterm",
+            "-hold",
+            "-e",
+            "ryu-manager",
+            "simple_switch_stp_13.py"
+        ]
+        self.controller_process = subprocess.Popen(cmd)
+        print("Ryu controller started in xterm successfully")
 
-    def stop_controller(self):
-        if self.controller_process:
-            print("Stopping Ryu controller")
-            self.controller_process.terminate()
-            self.controller_process.wait()
-
-    def generate_topology(self, num_switches=5, num_hosts=10, links_prob=0.4):
-        #self.topo = RandomTopo(num_switches, num_hosts, links_prob)
-        self.topo=RandomTopo()
-        self.topo.build(num_switches, num_hosts, links_prob)
+    def start_network_process(self, num_switches, num_hosts, links_prob):
+        kill_previous_instances()
+        script_path = os.path.join(os.path.dirname(__file__), "topology_generator.py")
+        # Use a list for the command arguments instead of shell=True
+        cmd = [
+            'xterm',
+            '-e',
+            'python3',
+            script_path,
+            str(num_switches),
+            str(num_hosts),
+            str(links_prob)
+        ]
+        print(f"Launching Xterm with command: {' '.join(cmd)}")
+        
+        try:
+            self.proc = subprocess.Popen(cmd)
+            print("Xterm launched successfully.")
+        except Exception as e:
+            print(f"Failed to launch Xterm: {e}")
+            raise
     
-    def build_network(self):
-        self.net = Mininet(topo=self.topo, build=False)
-        self.net.addController(self.controller)
-        self.net.build()
-        #self.hosts=self.net.hosts
-        #self.switches=self.net.switches
-       
-    def start_network(self):
-        self.start_controller()
-        print("Starting Network")
-        self.net.start()
+        print("Waiting for socket server to start")
+        time.sleep(5)  # Wait 5 seconds before attempting to connect
+        self._connect_to_socket()
 
-    def open_cli(self):
-        CLI(self.net)
+    def _connect_to_socket(self):
+        print("Connecting to socket")
+        # Close any existing socket first
+        if self.sock:
+            try:
+                self.sock.close()
+            except:
+                pass
+        
+        # Create a new socket
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        retries = 15  # Number of retries
+        for i in range(retries):
+            try:
+                self.sock.connect(('localhost', 9999))
+                print("Socket connected successfully!")
+                return
+            except ConnectionRefusedError:
+                print(f"Socket not ready, retrying ({i+1}/{retries})")
+                time.sleep(3)  # Wait 3 seconds before retrying
+        raise ConnectionRefusedError("Failed to connect to socket after retries")
 
-    def stop_network(self):
-        print("Shutting down")
-        self.net.stop()
-        self.stop_controller()
-        subprocess.run(["mn","-c"])
-    
-    def get_host(self, host_name):
-        for host in self.net.hosts:
-           if host.name == host_name:
-            return host
-        return None
-        
-#    example of dockers from topology1
-#    host2 = net.get('h2')
-#    host2.cmd('docker load -i /apps/random_logger.tar')
-#    host2.cmd('docker run -d --name random_logger_h2 --net=host random-logger')
+    def start_container(self, host_name, container_name, image_path):
+        print("start container: ",host_name,container_name,image_path)
+        cmd = f"START_CONTAINER {host_name} {container_name} {image_path}"
+        self.sock.send(cmd.encode())
 
-    #container functions
-    def start_container(self, host_name, container_name="database", image_path="/apps/database/database.tar"):
+        response = self.sock.recv(1024).decode() #WAIT FOR ACK RESPONSE
+        print(f"Container start response: {response}")
 
-        host = self.get_host(host_name)
-        if not host:
-            return False
-        
-        # Load Image
-        host.cmd(f'docker load -i {image_path}')
-        
-        # CORRERE CORSA
-        host.cmd(f'docker run -d --name {container_name}_{host_name} --net=host {container_name}')
-        
-    def stop_container(self, host_name, container_name="random_logger"):
-        container_key = f"{host_name}_{container_name}" #key is combination of host + image name
-        host = self.get_host(host_name)
-        if host:
-            host.cmd(f'docker rm -f {container_name}_{host_name}') #flag -f needed to stop exectuion before remotion
-            return True
-        return False
-    
+    def stop_container(self, host_name, container_name):
+        cmd = f"STOP_CONTAINER {host_name} {container_name}"
+        self.sock.send(cmd.encode())
+
     def stop_all_containers(self):
-        for host_name in self.net.hosts:
-            host = self.get_host(host_name.name)
-            if host:
-                host.cmd('docker rm -f $(docker ps -a -q)')
-        return True
+        cmd = "STOP_ALL"
+        self.sock.send(cmd.encode())
 
-# TEST NETWORK
-if __name__ == '__main__':
-    handler = NetworkManager()
-    handler.generate_topology(4, 8, 0.5) #CHANGE PARAMETERS HERE!
-    handler.build_network()
-    handler.start_network()
+    def shutdown(self):
+        try:
+            # Stop the Ryu controller
+            if self.controller_process:
+                print("Stopping Ryu controller")
+                self.controller_process.terminate()
+                try:
+                    self.controller_process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    self.controller_process.kill()
+                self.controller_process = None
+                subprocess.run(['sudo', 'pkill', '-f', 'ryu-manager'], stderr=subprocess.DEVNULL)
+                print("Ryu controller stopped.")
+
+            if self.sock: # Send a shutdown command to the topology generator
+                try:
+                    self.sock.send("SHUTDOWN".encode())
+                except:
+                    pass  # Ignore errors if the socket is already closed
+                self.sock.close()
+                self.sock = None
+                
+            # Kill the xterm process
+            if self.proc:
+                self.proc.terminate()
+                try:
+                    self.proc.wait(timeout=5)  # Wait up to 5 seconds for normal termination
+                except subprocess.TimeoutExpired:
+                    self.proc.kill()  # Force kill if it doesn't terminate
+                self.proc = None
+                
+            # Wait a bit to be sure ports are released
+            time.sleep(1)
+            
+            print("Network shutdown complete")
+        except Exception as e:
+            print(f"Error during shutdown: {e}")
     
-    #handler.start_container('h1')    
-
-    while True:
-        cmd = input("[cli] Open Mininet | [stop] Stop The Network | [1] boot whale | [2] kill whale | : ").strip().lower()
-        
-        if cmd == "cli":
-            handler.open_cli()
-        elif cmd == "stop":
-            handler.stop_all_containers()
-            handler.stop_network()
-            break
-        elif cmd == "1":
-            handler.start_container('h1',"database_cities","/apps/database_cities/database_cities.tar")
-            handler.start_container('h2',"random_logger","/apps/random_logger/random_logger.tar")
-            handler.start_container('h2', "server_cities", "/apps/server_cities/server_cities.tar")
-        elif cmd == "2":
-            handler.stop_container('h1', 'database_cities')
-            handler.stop_container('h2')
-            handler.stop_container('h2', 'server_cities')
-        else:
-            print("Please use 'cli' or 'stop'")
+    def get_hosts(self): #GIVES BACK A FULL LIST OF HOST
+        self.sock.send("GET_HOSTS".encode())
+        data = self.sock.recv(4096).decode()
+        return data.split()  #Host names are space separated
