@@ -38,24 +38,23 @@ class RandomTopo(Topo):
 class NetworkServer:
     def __init__(self, net):
         self.net = net
-        print("Creating socket...")
+        #print("Creating socket")
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #=???????
-        print("Binding socket to localhost:9999...")
+        #print("Binding socket to localhost:9999")
         self.sock.bind(('localhost', 9999))
-        print("Socket bound successfully. Listening for connections...")
+        #print("Socket bound successfully. Listening for connections")
         self.sock.listen(1)
         print("Socket server is now listening on localhost:9999")
 
 
     def handle_commands(self, conn):
-        """Handle commands from the GUI"""
         while True:
             try:
                 data = conn.recv(1024).decode()
                 if not data:
                     break
-                
+
                 if data.startswith("START_CONTAINER"):
                     _, host, container, image = data.split()
                     self.start_container(host, container, image)
@@ -85,44 +84,39 @@ class NetworkServer:
     def start_container(self, host_name, container_name, image_path):
         host = self.net.get(host_name)
         if host:
-            print(f"Starting container {container_name} on host {host_name}...")
+            print(f"Starting container {container_name} on host {host_name}")
             host.cmd(f'docker load -i {image_path}')
             host.cmd(f'docker run -d --name {container_name}_{host_name} --net=host {container_name}')
 
     def stop_container(self, host_name, container_name):
         host = self.net.get(host_name)
         if host:
-            print(f"Stopping container {container_name} on host {host_name}...")
+            print(f"Stopping container {container_name} on host {host_name}")
             host.cmd(f'docker rm -f {container_name}_{host_name}')
 
     def stop_all_containers(self):
-        print("Stopping all containers...")
+        print("Stopping all containers")
         for host in self.net.hosts:
             host.cmd('docker rm -f $(docker ps -a -q)')
 
 def main(num_switches, num_hosts, links_prob):
     # Create network
-    # Add at the beginning of main()
     print(f"Starting with parameters: switches={num_switches}, hosts={num_hosts}, link_prob={links_prob}")
     topo = RandomTopo()
     topo.build(num_switches, num_hosts, links_prob)
     net = Mininet(topo=topo, controller=RemoteController('c1', ip='127.0.0.1', port=6633))
-    print("Starting Mininet network...")
+    print("Starting Mininet network")
     net.start()
-    
-    # Start command server
-    print("Starting socket server...")
+
+    #print("Starting socket server")
     server = NetworkServer(net)
     
     # Start a thread to handle incoming connections
     def handle_connections():
-        #while True:
-        print("Waiting for a connection...")
+        #print("Waiting for a connection")
         conn, addr = server.sock.accept()  # Accept a connection
         print(f"Connection established with {addr}")
-        # Handle commands in a new thread
         threading.Thread(target=server.handle_commands, args=(conn,)).start()
-    
     # Start the connection handler thread
     threading.Thread(target=handle_connections).start()
     
