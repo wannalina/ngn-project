@@ -346,7 +346,7 @@ class MainWindow(QWidget):
         layout.addWidget(label)
 
         dependencyList = QListWidget()
-        currentDependencies = self.containerDependencies.get(container, [])
+        currentDependencies = self.containerDependencies.get(container, {})
         for cont in self.availableContainers.keys():
             if cont != container:
                 item = QListWidgetItem(cont)
@@ -369,11 +369,11 @@ class MainWindow(QWidget):
         dialog.exec_()
 
     def saveDependencies(self, container, dependencyList, dialog):
-        dependencies = []
+        dependencies = set()
         for i in range(dependencyList.count()):
             item = dependencyList.item(i)
             if item.checkState() == Qt.Checked:
-                dependencies.append(item.text())
+                dependencies.add(item.text())
         self.containerDependencies[container] = dependencies
         dialog.accept()
 
@@ -400,10 +400,6 @@ class MainWindow(QWidget):
             if not any(entry["container"] == container for entry in self.runningContainers.values()):
                 available_containers.append(container)
         
-        
-
-
-
         #available_hosts = [host.name for host in self.host_list if self.hostContainerCounts.get(host.name, 0) < self.maxContainersBox.value()]
         #available_containers = [container for container in self.availableContainers.keys() if not any(entry["container"] == container for entry in self.runningContainers.values())]
         #RANDOM DEPLOYMENT
@@ -446,7 +442,33 @@ class MainWindow(QWidget):
 
     def confirmDependency(self):
         self.dependenciesConfirmed=True
-        ##CALCULATE FINAL DEPENDENCIES HERE
+        print("raw dependencies",self.containerDependencies)
+        #IF A DEPENDS ON B, LETS MAKE B DEPEND ON A TOO
+        copy=self.containerDependencies.keys()
+        for host in copy:
+            for dependency in self.containerDependencies.get(host):
+                dependencies = self.containerDependencies.get(dependency,set())
+                dependencies.add(host)
+                self.containerDependencies[dependency]=dependencies
+
+        print("updated dependencies",self.containerDependencies)
+        self.updateEnables()
+
+    def confirmDependency(self):
+        self.dependenciesConfirmed = True
+        print("raw dependencies", self.containerDependencies)
+       
+        updated_dependencies = {} #FILL UP COPY OTHERWISE "DICTIONARY CHANGED SIZE WHILE ITERATING"
+        updated_dependencies = self.containerDependencies.copy()
+    
+        for container, deps in self.containerDependencies.items():
+            for dependency in deps:
+                #if dependency not in updated_dependencies:
+                updated_dependencies[dependency] = set()
+                updated_dependencies[dependency].add(container)
+    
+        self.containerDependencies = updated_dependencies
+        print("updated dependencies", self.containerDependencies)
         self.updateEnables()
 
 def main():
