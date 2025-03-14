@@ -19,6 +19,7 @@ class MainWindow(QWidget):
         self.hostContainerCounts = {}  # containers per host, hostname(key) + int
         self.containerDependencies = {}  # container dependencies
         self.isRunning=False
+        self.dependenciesConfirmed=False
         self.host_list=[]
         self.initUI()
 
@@ -92,7 +93,11 @@ class MainWindow(QWidget):
         # Dependency Button
         self.dependencyButton = QPushButton("Select Dependencies")
         self.dependencyButton.clicked.connect(self.openDependencyDialog)
-        depenencyLayout.addWidget(self.dependencyButton,0,Qt.AlignHCenter)
+        depenencyLayout.addWidget(self.dependencyButton)
+        #Confirm dependencies
+        self.confirmDependencyButton = QPushButton("Confirm Dependencies")
+        self.confirmDependencyButton.clicked.connect(self.confirmDependency)
+        depenencyLayout.addWidget(self.confirmDependencyButton)
 
         self.dependencyGroupBox.setLayout(depenencyLayout)
         mainLayout.addWidget(self.dependencyGroupBox)
@@ -149,6 +154,7 @@ class MainWindow(QWidget):
         self.dependencyButton.setFixedSize(200, 35)
         self.autoDeployButton.setFixedSize(200, 45)
         self.stopAllButton.setFixedSize(200, 45)
+        self.confirmDependencyButton.setFixedSize(200, 35)
         
         # Connect signals
         self.run.clicked.connect(self.run_clicked)
@@ -182,6 +188,7 @@ class MainWindow(QWidget):
     def stop_clicked(self):
             print("STOP button clicked")
             self.isRunning=False
+            self.dependenciesConfirmed=False
             self.stopAllContainers()
             self.nm.shutdown()
             self.updateEnables()
@@ -195,13 +202,14 @@ class MainWindow(QWidget):
         event.accept()
 
     def updateEnables(self):
-        self.containerGroupBox.setEnabled(self.isRunning)  
+        self.containerGroupBox.setEnabled(self.isRunning and self.dependenciesConfirmed)  
         self.run.setEnabled(not self.isRunning)
         self.stop.setEnabled(self.isRunning)
         self.linkProbBox.setEnabled(not self.isRunning)
         self.hostsBox.setEnabled(not self.isRunning)
         self.switchesBox.setEnabled(not self.isRunning)
         self.maxContainersBox.setEnabled(not self.isRunning)
+        self.dependencyGroupBox.setEnabled(self.isRunning and not self.dependenciesConfirmed)
 
     def updateLaunchButton(self):
         if self.containerGroupBox.isEnabled():
@@ -435,6 +443,11 @@ class MainWindow(QWidget):
         self.autoDeployButton.setEnabled(bool(available_hosts) and bool(available_containers))
 
         self.stopAllButton.setEnabled(bool(self.runningContainers))
+
+    def confirmDependency(self):
+        self.dependenciesConfirmed=True
+        ##CALCULATE FINAL DEPENDENCIES HERE
+        self.updateEnables()
 
 def main():
     app = QApplication(sys.argv)
