@@ -84,14 +84,23 @@ class MainWindow(QWidget):
         topoGroupBox.setLayout(topoLayout)
         mainLayout.addWidget(topoGroupBox)
         ##TOPOLOGY FINISHED
-        #DOCKER AREA
-        self.containerGroupBox = QGroupBox("DOCKERS")
-        containerLayout = QGridLayout()
+
+        #DEPENDENCY AREA
+        self.dependencyGroupBox = QGroupBox("DEPENDENCIES")
+        depenencyLayout=QHBoxLayout()
 
         # Dependency Button
         self.dependencyButton = QPushButton("Select Dependencies")
         self.dependencyButton.clicked.connect(self.openDependencyDialog)
-        containerLayout.addWidget(self.dependencyButton, 0, 0, 1, 3, Qt.AlignHCenter)
+        depenencyLayout.addWidget(self.dependencyButton,0,Qt.AlignHCenter)
+
+        self.dependencyGroupBox.setLayout(depenencyLayout)
+        mainLayout.addWidget(self.dependencyGroupBox)
+        #FINISHED DEPENDENCY AREA
+
+        #DOCKER AREA
+        self.containerGroupBox = QGroupBox("DOCKERS")
+        containerLayout = QGridLayout()
 
         # Host and Container dropdowns
         dockerHostsLayout = QHBoxLayout()
@@ -107,13 +116,13 @@ class MainWindow(QWidget):
         dockerContainersLayout.addWidget(self.containerDropdown)
 
         self.launchButton = QPushButton("Start container")
-        containerLayout.addLayout(dockerHostsLayout, 1, 0)
-        containerLayout.addLayout(dockerContainersLayout, 1, 1)
-        containerLayout.addWidget(self.launchButton, 1, 2)
+        containerLayout.addLayout(dockerHostsLayout, 0, 0)
+        containerLayout.addLayout(dockerContainersLayout, 0, 1)
+        containerLayout.addWidget(self.launchButton, 0, 2)
 
         # Auto Deploy Button
         self.autoDeployButton = QPushButton("Auto Deploy All Containers")
-        containerLayout.addWidget(self.autoDeployButton, 2, 0, 1, 3, Qt.AlignHCenter)
+        containerLayout.addWidget(self.autoDeployButton, 1, 0, 1, 3, Qt.AlignHCenter)
 
         # Active Containers List
         activeContainersBox = QGroupBox("Active Containers")
@@ -123,11 +132,11 @@ class MainWindow(QWidget):
         scrollArea = QScrollArea()
         scrollArea.setWidgetResizable(True)
         scrollArea.setWidget(activeContainersBox)
-        containerLayout.addWidget(scrollArea, 3, 0, 1, 3)
+        containerLayout.addWidget(scrollArea, 2, 0, 1, 3)
 
         # Stop All Button
         self.stopAllButton = QPushButton("Shut down ALL containers")
-        containerLayout.addWidget(self.stopAllButton, 4, 0, 1, 3, Qt.AlignHCenter)
+        containerLayout.addWidget(self.stopAllButton, 3, 0, 1, 3, Qt.AlignHCenter)
 
         self.containerGroupBox.setLayout(containerLayout)
         mainLayout.addWidget(self.containerGroupBox)
