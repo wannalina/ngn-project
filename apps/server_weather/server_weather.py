@@ -31,6 +31,10 @@ def establish_connection():
     cursor = connection.cursor()
     return connection, cursor
 
+@app.route('/', methods=['GET'])
+def get():
+    print("Works!", flush=True)
+
 @app.route('/get-weather', methods=['GET'])
 def get_weather(city):
     try:
@@ -38,7 +42,7 @@ def get_weather(city):
                     'place_id': city}
 
         data = requests.get(os.getenv("API_URL"), parameters).json()
-        print('Current temperature in London is {} °C.'.format(data['current']['temperature'])) 
+        print('Current temperature in London is {} °C.'.format(data['current']['temperature']), flush=True) 
         
         return data
     except Exception as e: 
@@ -52,7 +56,7 @@ def insert_weather(connection, cursor):
             city = (DB_TABLE_VALUES[i][0]).lower()
             cities_weather_list.append(get_weather(city))
 
-        print("city: ", cities_weather_list)
+        print("city: ", cities_weather_list, flush=True)
 
         # insert values in table
         cursor.executemany("INSERT INTO mock_cities_data (temperature) VALUES (%s) WHERE city=(%s);", cities_weather_list, DB_TABLE_VALUES)

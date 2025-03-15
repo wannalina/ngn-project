@@ -12,6 +12,6 @@ ENV API_URL=https://www.meteosource.com/api/v1/free/point
 WORKDIR /app
 COPY . /app
 
-RUN pip install psycopg2-binary flask
+RUN pip install psycopg2-binary flask requests
 
 CMD ["python3","server_weather.py"]
