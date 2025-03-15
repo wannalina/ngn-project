@@ -441,20 +441,6 @@ class MainWindow(QWidget):
         self.stopAllButton.setEnabled(bool(self.runningContainers))
 
     def confirmDependency(self):
-        self.dependenciesConfirmed=True
-        print("raw dependencies",self.containerDependencies)
-        #IF A DEPENDS ON B, LETS MAKE B DEPEND ON A TOO
-        copy=self.containerDependencies.keys()
-        for host in copy:
-            for dependency in self.containerDependencies.get(host):
-                dependencies = self.containerDependencies.get(dependency,set())
-                dependencies.add(host)
-                self.containerDependencies[dependency]=dependencies
-
-        print("updated dependencies",self.containerDependencies)
-        self.updateEnables()
-
-    def confirmDependency(self):
         self.dependenciesConfirmed = True
         print("raw dependencies", self.containerDependencies)
        
