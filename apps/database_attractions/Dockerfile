@@ -1,13 +1,12 @@
 FROM python:3.9
 
-WORKDIR /app
-
-#install flask
-RUN pip install flask
-
 # copy app files
 WORKDIR /app
 COPY . /app
+
+
+#install flask
+RUN pip install flask
 
 # expose app port
 EXPOSE 6000
