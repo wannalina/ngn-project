@@ -5,7 +5,9 @@ WORKDIR /app
 #install flask
 RUN pip install flask
 
-COPY . .
+# copy app files
+WORKDIR /app
+COPY . /app
 
 # expose app port
 EXPOSE 6000
