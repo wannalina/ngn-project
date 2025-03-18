@@ -16,6 +16,14 @@ def add_attraction():
         return response.json(), response.status_code
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+@app.route('/get-attractions', methods=['GET'])
+def get_all_attractions():
+    try:
+        response = requests.get(f"{os.getenv('DATABASE_URL')}/attractions")
+        return response.json(), response.status_code
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7000, debug=True)
