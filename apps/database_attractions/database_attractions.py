@@ -83,7 +83,12 @@ attractions_list = [
 
 @app.route('/attractions', methods=['GET'])
 def get_attractions():
-    return attractions_list
+    try:
+        for item in attractions_list:
+            print(f"City: {item['city']}\n\n Attraction: {item['attraction']}\n\n Description:\n {item['description']}", flush=True)
+        return attractions_list
+    except Exception as e:
+        return f"An error occurred: {e}"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=6000, debug=True)
