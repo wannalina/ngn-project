@@ -25,4 +25,4 @@ CMD bash -c "\
   CONTAINER_NAME=$(hostname) && \
   REGISTRATION_DATA='{\"mac\": \"$MAC_ADDRESS\", \"ip\": \"$IP_ADDRESS\", \"name\": \"$CONTAINER_NAME\"}' && \
   echo -n $REGISTRATION_DATA | nc 0.0.0.0 6633 && \
-  python server_attractions.py"
+  python database_attractions.py"
