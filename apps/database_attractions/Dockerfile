@@ -12,4 +12,4 @@ RUN pip install flask
 EXPOSE 6000
 
 # run app
-CMD ["python", "database_attractions.py"]
+CMD python3 database_attractions.py && bash ../../libs/register_apps.sh
