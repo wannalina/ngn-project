@@ -14,7 +14,7 @@ class NetworkManager:
 
     def start_controller(self):
         print("Starting Ryu controller")
-        self.controller_process = subprocess.Popen(["ryu-manager", "simple_switch_stp_13.py"],stdout=open("ryu.log", "w"),stderr=subprocess.STDOUT)
+        self.controller_process = subprocess.Popen(["ryu-manager", "controller.py"],stdout=open("ryu.log", "w"),stderr=subprocess.STDOUT)
 
     def stop_controller(self):
         if self.controller_process:
