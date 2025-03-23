@@ -14,7 +14,7 @@ RUN pip install flask requests
 
 # Set the environment variable for the database URL
 ENV DATABASE_URL=http://localhost:6000
-ENV CONTROLLER_URL=http://controller-ip:6000/register  # Controller's registration API endpoint
+ENV CONTROLLER_URL=http://0.0.0.0:6633/register  # Controller's registration API endpoint
 
 # Expose the app port (as the application runs on port 7000)
 EXPOSE 6000
