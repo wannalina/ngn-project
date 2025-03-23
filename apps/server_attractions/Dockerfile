@@ -3,17 +3,20 @@ FROM python:3.9-slim
 # Set working directory
 WORKDIR /app
 
+# Install required system packages (apt-get and netcat)
+RUN apt-get update && apt-get install -y \
+    apt-utils \
+    iproute2 \
+    netcat
+
 # Copy application files into the container
 COPY . /app
-
-# Install required packages
-RUN apt-get update && apt-get install -y iproute2 netcat
 
 # Install Python dependencies
 RUN pip install flask requests
 
 # Set the environment variable for the database URL
-ENV DATABASE_URL=http://localhost:6000
+ENV DATABASE_URL=http://localhost:7000
 
 # Expose the app port (as the application runs on port 7000)
 EXPOSE 7000
@@ -24,5 +27,5 @@ CMD bash -c "\
   IP_ADDRESS=$(ip addr show eth0 | grep inet | awk '{print $2}' | cut -d/ -f1) && \
   CONTAINER_NAME=$(hostname) && \
   REGISTRATION_DATA='{\"mac\": \"$MAC_ADDRESS\", \"ip\": \"$IP_ADDRESS\", \"name\": \"$CONTAINER_NAME\"}' && \
-  echo -n $REGISTRATION_DATA | nc 127.0.0.1 6000 && \
-  python server_attractions.py"  # Replace with the actual Python application start command
+  echo -n $REGISTRATION_DATA | nc 0.0.0.0 6633 && \
+  python server_attractions.py"
