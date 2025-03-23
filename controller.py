@@ -5,9 +5,9 @@ from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet, ethernet
 import networkx as nx
-import socket
 import threading
 import json
+from flask import Flask, request, jsonify
 
 class SDNController(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -17,10 +17,10 @@ class SDNController(app_manager.RyuApp):
         self.net = nx.Graph()
         self.mac_to_port = {}
         self.dependencies = {}
-        self.container_info = {}
-
-        # Ssart registration server in a separate thread
-        self.start_registration_server()
+        self.container_info = {}  # Store container information such as MAC and IP
+        
+        # Start Flask API server in a separate thread for registration
+        self.start_flask_server()
 
     def set_dependencies(self, dependencies):
         self.dependencies = dependencies
@@ -118,37 +118,31 @@ class SDNController(app_manager.RyuApp):
                 del self.mac_to_port[datapath_id][container_mac]
                 self.logger.info("Removed flows for container %s", container_mac)
 
-    def start_registration_server(self):
-        # start new thread for the registration server
-        server_thread = threading.Thread(target=self.registration_server)
+    def start_flask_server(self):
+        # Start the Flask API server in a separate thread
+        server_thread = threading.Thread(target=self.run_flask_app)
         server_thread.daemon = True
         server_thread.start()
 
-    def registration_server(self, host="0.0.0.0", port=6000):
-        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server.bind((host, port))
-        server.listen(5)
-        self.logger.info(f"Registration server listening on {host}:{port}...")
+    def run_flask_app(self):
+        app = Flask(__name__)
 
-        while True:
-            client_socket, addr = server.accept()
-            self.logger.info(f"Connection from {addr} established.")
-            
-            # handle registration data
-            registration_data = client_socket.recv(1024).decode()
-            self.logger.info(f"Received registration data: {registration_data}")
-
-            # parse the registration data
-            container_info = json.loads(registration_data)
-            container_mac = container_info.get('mac')
-            container_ip = container_info.get('ip')
-            container_name = container_info.get('name')
+        @app.route('/register', methods=['POST'])
+        def register_container():
+            # Receive registration data from containers
+            data = request.json
+            container_mac = data.get('mac')
+            container_ip = data.get('ip')
+            container_name = data.get('name')
 
             if container_mac and container_ip and container_name:
                 self.container_info[container_mac] = {'ip': container_ip, 'name': container_name}
                 self.logger.info(f"Container {container_name} registered with MAC {container_mac}")
 
-                # send confirmation to the container
-                client_socket.send("Registration Successful".encode())
+                # Respond with a success message
+                return jsonify({"message": "Registration successful"}), 200
+            else:
+                return jsonify({"message": "Invalid data"}), 400
 
-            client_socket.close()
+        app.run(host='0.0.0.0', port=6000)
+
