@@ -4,10 +4,7 @@ FROM python:3.9-slim
 WORKDIR /app
 
 # Install required system packages (apt-get and netcat)
-RUN apt-get update && apt-get install -y \
-    apt-utils \
-    iproute2 \
-    netcat
+RUN apt-get update && apt-get install -y iproute2 netcat
 
 # Copy application files into the container
 COPY . /app
