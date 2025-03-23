@@ -21,7 +21,7 @@ EXPOSE 6000
 # Register the container with the SDN Controller and start the application
 CMD bash -c "\
   MAC_ADDRESS=$(ip link show eth0 | awk '/ether/ {print $2}') && \
-  IP_ADDRESS=$(ip addr show eth0 | grep inet | awk '{print $2}' | cut -d/ -f1) && \
+  IP_ADDRESS=$(ip addr show eth0 | grep 'inet ' | awk '{print $2}' | cut -d/ -f1) && \
   CONTAINER_NAME=$(hostname) && \
   REGISTRATION_DATA='{\"mac\": \"$MAC_ADDRESS\", \"ip\": \"$IP_ADDRESS\", \"name\": \"$CONTAINER_NAME\"}' && \
   echo -n $REGISTRATION_DATA | nc 0.0.0.0 6633 && \
