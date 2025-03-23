@@ -71,7 +71,8 @@ def create_db(connection_generic, cursor_generic):
             CREATE TABLE IF NOT EXISTS mock_cities_data 
                 (id SERIAL PRIMARY KEY, 
                 city VARCHAR(50), 
-                country VARCHAR(50));
+                country VARCHAR(50)), 
+                temperature(INT(60));
         """)
         connection.commit()
 
