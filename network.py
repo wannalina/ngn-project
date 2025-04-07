@@ -32,7 +32,7 @@ class NetworkManager:
             "-hold",
             "-e",
             "ryu-manager",
-            "simple_switch_stp_13.py"
+            "controller.py"
         ]
         self.controller_process = subprocess.Popen(cmd)
         print("Ryu controller started in xterm successfully")
