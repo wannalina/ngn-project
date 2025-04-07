@@ -16,7 +16,7 @@ class SDNController(app_manager.RyuApp):
         super(SDNController, self).__init__(*args, **kwargs)
         self.net = nx.Graph()
         self.mac_to_port = {}
-        self.dependencies = {}
+        self.dependencies = set()
         self.container_info = {}  # Store container information such as MAC and IP
         
         # Start Flask API server in a separate thread for registration
@@ -78,10 +78,15 @@ class SDNController(app_manager.RyuApp):
         else:
             out_port = ofproto.OFPP_FLOOD
 
-        # block unauthorized communication
-        if src in self.dependencies and dst not in self.dependencies[src]:
-            self.logger.info("Blocking unauthorized traffic from %s to %s", src, dst)
-            return
+        # allow ARP packets
+        if eth.ethertype == 0x0806:  # ARP ethertype
+            self.logger.debug("Allowing ARP packet from %s to %s", src, dst)
+        else:
+            # block non-whitelisted traffic
+            if src in self.dependencies and dst not in self.dependencies[src]:
+                self.logger.info("Blocking unauthorized traffic from %s to %s", src, dst)
+                return
+
         
         actions = [parser.OFPActionOutput(out_port)]
         
