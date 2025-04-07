@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 from network import NetworkManager
 import random
-import time
+import requests
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -443,7 +443,9 @@ class MainWindow(QWidget):
     def confirmDependency(self):
         self.dependenciesConfirmed = True
         print("raw dependencies", self.containerDependencies)
-       
+        
+        self.send_dependencies_to_controller()
+
         updated_dependencies = {} #FILL UP COPY OTHERWISE "DICTIONARY CHANGED SIZE WHILE ITERATING"
         updated_dependencies = self.containerDependencies.copy()
     
@@ -456,6 +458,19 @@ class MainWindow(QWidget):
         self.containerDependencies = updated_dependencies
         print("updated dependencies", self.containerDependencies)
         self.updateEnables()
+
+    def send_dependencies_to_controller(self):
+        url = 'http://0.0.0.0:6633/add-dependencies'
+        print("container id + host: ", self.runningContainers)
+        
+        data = {
+            "host_ip": "",
+            "container_name": ""
+        }
+        response = requests.post(url, json=data)
+
+        if response.status_code != 200:
+            print(f"Failed to send dependency data to controller")
 
 def main():
     app = QApplication(sys.argv)

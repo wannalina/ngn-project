@@ -17,7 +17,7 @@ class SDNController(app_manager.RyuApp):
         self.net = nx.Graph()
         self.mac_to_port = {}
         self.dependencies = set()
-        self.container_info = {}  # Store container information such as MAC and IP
+        self.containers_list = []  # Store container information such as MAC and IP
         
         # Start Flask API server in a separate thread for registration
         self.start_flask_server()
@@ -136,18 +136,24 @@ class SDNController(app_manager.RyuApp):
         def register_container():
             # Receive registration data from containers
             data = request.json
-            container_mac = data.get('mac')
-            container_ip = data.get('ip')
-            container_name = data.get('name')
+            container_name = data.get('container_name')
 
-            if container_mac and container_ip and container_name:
-                self.container_info[container_mac] = {'ip': container_ip, 'name': container_name}
-                self.logger.info(f"Container {container_name} registered with MAC {container_mac}")
+            if container_name:
+                self.containers_list.append(container_name)
+                self.logger.info(f"Container {container_name} registered on host {host_ip}")
 
                 # Respond with a success message
                 return jsonify({"message": "Registration successful"}), 200
             else:
                 return jsonify({"message": "Invalid data"}), 400
+            
+        @app.route('/add-dependencies', methods=['POST'])
+        def add_dependencies():
+            data = request.json
+            host_ip = data.host_ip
+            
+            print("host ip": host_ip)
+            return            
 
         app.run(host='0.0.0.0', port=9000)
 
