@@ -144,5 +144,5 @@ class SDNController(app_manager.RyuApp):
             else:
                 return jsonify({"message": "Invalid data"}), 400
 
-        app.run(host='0.0.0.0', port=6633)
+        app.run(host='0.0.0.0', port=9000)
 
