@@ -152,7 +152,7 @@ class SDNController(app_manager.RyuApp):
             data = request.json
             host_ip = data.host_ip
             
-            print("host ip": host_ip)
+            print("host ip:", host_ip)
             return            
 
         app.run(host='0.0.0.0', port=9000)
