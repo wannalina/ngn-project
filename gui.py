@@ -446,6 +446,7 @@ class MainWindow(QWidget):
         print("raw dependencies", self.containerDependencies)
         
         self.send_dependencies_to_controller()
+        print("??")
 
         updated_dependencies = {} #FILL UP COPY OTHERWISE "DICTIONARY CHANGED SIZE WHILE ITERATING"
         updated_dependencies = self.containerDependencies.copy()
@@ -468,6 +469,8 @@ class MainWindow(QWidget):
 
         if response.status_code != 200:
             print(f"Failed to send dependency data to controller")
+            
+        print("done")
         return
 
 def main():
