@@ -462,12 +462,13 @@ class MainWindow(QWidget):
 
     def send_dependencies_to_controller(self):
         url = 'http://0.0.0.0:6633/add-dependencies'
-        print("container id + host: ", self.containerDependencies)
+        print("container id + host: ", self.containerDependencies, self.dependenciesConfirmed)
         
         response = requests.post(url, json=json.dumps(list(self.containerDependencies)))
 
         if response.status_code != 200:
             print(f"Failed to send dependency data to controller")
+        return
 
 def main():
     app = QApplication(sys.argv)
