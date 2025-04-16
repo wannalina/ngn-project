@@ -9,6 +9,7 @@ from PyQt5.QtCore import Qt
 from network import NetworkManager
 import random
 import requests
+from flask import jsonify
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -463,7 +464,7 @@ class MainWindow(QWidget):
         url = 'http://0.0.0.0:6633/add-dependencies'
         print("container id + host: ", self.containerDependencies)
         
-        response = requests.post(url, json={ self.containerDependencies })
+        response = requests.post(url, json=jsonify(self.containerDependencies))
 
         if response.status_code != 200:
             print(f"Failed to send dependency data to controller")
