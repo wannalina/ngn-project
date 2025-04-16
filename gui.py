@@ -461,7 +461,7 @@ class MainWindow(QWidget):
         self.updateEnables()
 
     def send_dependencies_to_controller(self):
-        url = 'http://0.0.0.0:6633/add-dependencies'
+        url = 'http://0.0.0.0:9000/add-dependencies'
         print("container id + host: ", self.containerDependencies, self.dependenciesConfirmed)
         
         response = requests.post(url, json=list(self.containerDependencies))
