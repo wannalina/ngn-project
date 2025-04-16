@@ -9,7 +9,6 @@ from PyQt5.QtCore import Qt
 from network import NetworkManager
 import random
 import requests
-import json
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -465,7 +464,7 @@ class MainWindow(QWidget):
         url = 'http://0.0.0.0:6633/add-dependencies'
         print("container id + host: ", self.containerDependencies, self.dependenciesConfirmed)
         
-        response = requests.post(url, json=json.dumps(list(self.containerDependencies)))
+        response = requests.post(url, json=list(self.containerDependencies))
 
         if response.status_code != 200:
             print(f"Failed to send dependency data to controller")
