@@ -150,10 +150,9 @@ class SDNController(app_manager.RyuApp):
             
         @app.route('/add-dependencies', methods=['POST'])
         def add_dependencies():
-            data = request.json
-            
-            print("allowed connections:", self.allowedDependencies)
-            return
+            data = request.json()
+            print("allowed connections:", data, self.allowedDependencies)
+            return jsonify({"message": "Registration successful"}), 200
 
         app.run(host='0.0.0.0', port=9000)
 
