@@ -255,6 +255,7 @@ class MainWindow(QWidget):
         container = self.containerDropdown.currentText()
         if not container: 
             return
+        self.addHostToContainerForController(host, container)
         self.nm.start_container(host, container, self.availableContainers[container])
         container_id = f"{container}_{host}"
         self.runningContainers[container_id] = {"host": host, "container": container}
@@ -448,8 +449,6 @@ class MainWindow(QWidget):
     def confirmDependency(self):
         self.dependenciesConfirmed = True
         print("raw dependencies", self.containerDependencies)
-        
-        self.send_dependencies_to_controller()
 
         updated_dependencies = {} #FILL UP COPY OTHERWISE "DICTIONARY CHANGED SIZE WHILE ITERATING"
         updated_dependencies = self.containerDependencies.copy()
@@ -464,6 +463,7 @@ class MainWindow(QWidget):
         self.updateEnables()
         
     def addHostToContainerForController(self, host, container):
+        url = 'http://0.0.0.0:9000/add-dependencies'
         dependenciesList = []
         response = NetworkManager.getHostMnObject(host)
         dependenciesList.append(self.containerDependencies[container])
@@ -479,16 +479,11 @@ class MainWindow(QWidget):
             "dependencies": dependenciesList
         }
         self.containersOnHost.append(containerData)
-
-    def send_dependencies_to_controller(self):
-        url = 'http://0.0.0.0:9000/add-dependencies'
-        print("container id + host: ", self.runningContainers, self.dependenciesConfirmed)
         
         response = requests.post(url, json=list(self.runningContainers))
 
         if response.status_code != 200:
             print(f"Failed to send dependency data to controller")
-
         return
 
 def main():
