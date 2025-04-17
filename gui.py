@@ -10,7 +10,7 @@ from network import NetworkManager
 import random
 import requests
 
-from network import NetworkManager.getHostMnObject
+from network import NetworkManager
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -465,7 +465,7 @@ class MainWindow(QWidget):
         
     def addHostToContainerForController(self, host, container):
         dependenciesList = []
-        response = getHostMnObject(host)
+        response = NetworkManager.getHostMnObject(host)
         dependenciesList.append(self.containerDependencies[container])
         
         print("dependencies:", dependenciesList, host, response)
