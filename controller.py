@@ -18,7 +18,7 @@ class SDNController(app_manager.RyuApp):
         self.mac_to_port = {}
         self.dependencies = set()
         self.containers_list = []  # Store container information such as MAC and IP
-        self.allowedDependencies = []
+        self.allowedDependencies = {}
         
         # Start Flask API server in a separate thread for registration
         self.start_flask_server()
@@ -35,6 +35,7 @@ class SDNController(app_manager.RyuApp):
         match = parser.OFPMatch()
         actions = []
         # drop traffic by default
+
         self.add_flow(datapath, 0, match, actions)
 
     def add_flow(self, datapath, priority, match, actions):
@@ -135,15 +136,15 @@ class SDNController(app_manager.RyuApp):
 
         @app.route('/register', methods=['POST'])
         def register_container():
-            # Receive registration data from containers
-            data = request.json
+            # receive registration data from containers
+            data = request.json_get()
             container_name = data.get('container_name')
+
+            print("container registered name:", container_name)
 
             if container_name:
                 self.containers_list.append(container_name)
-                self.logger.info(f"Container {container_name} registered on host {self.host_ip}")
 
-                # Respond with a success message
                 return jsonify({"message": "Registration successful"}), 200
             else:
                 return jsonify({"message": "Invalid data"}), 400

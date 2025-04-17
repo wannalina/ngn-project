@@ -143,3 +143,23 @@ class NetworkManager:
         self.sock.send("GET_HOSTS".encode())
         data = self.sock.recv(4096).decode()
         return data.split()  #Host names are space separated
+    
+    def getHostMnObject(self, host):
+        host_data = {}
+        hosts_list = self.get_hosts()
+
+        if host in hosts_list:
+            intf = host.defaultIntf()
+            link = intf.link
+            port = link.intf2 if link.intf1 == intf else link.intf1
+            switch = port.node
+            dpid = switch.dpid
+            port_number = switch.ports[port].port_no
+            
+            host_data = {
+                "host_object": host,
+                "switch": switch,
+                "dpid": dpid,
+                "port": port_number,
+            }
+        return host_data

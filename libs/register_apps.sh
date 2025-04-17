@@ -4,7 +4,7 @@
 CONTAINER_NAME=$(basename"$PWD")
 
 # SDN controller API address
-CONTROLLER_URL="http://0.0.0.0:6633/register"
+CONTROLLER_URL="http://0.0.0.0:9000/register"
 
 # register container to controller
 curl -X POST "$CONTROLLER_URL" -H "Content-Type: application/json" \

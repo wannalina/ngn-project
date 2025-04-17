@@ -10,6 +10,8 @@ from network import NetworkManager
 import random
 import requests
 
+from network import getHostMnObject
+
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -18,6 +20,7 @@ class MainWindow(QWidget):
         self.runningContainers = {}  # container_id (key) + host + container type
         self.hostContainerCounts = {}  # containers per host, hostname(key) + int
         self.containerDependencies = {}  # container dependencies
+        self.containersOnHost = []
         self.isRunning=False
         self.dependenciesConfirmed=False
         self.host_list=[]
@@ -417,6 +420,8 @@ class MainWindow(QWidget):
             self.runningContainers[container_id] = {"host": host, "container": container}
             self.hostContainerCounts[host] = self.hostContainerCounts.get(host, 0) + 1
             
+            self.addHostToContainerForController(host, container)
+            
 
         self.updateMonitor()
         self.updateHostDropdown()
@@ -445,7 +450,6 @@ class MainWindow(QWidget):
         print("raw dependencies", self.containerDependencies)
         
         self.send_dependencies_to_controller()
-        print("??")
 
         updated_dependencies = {} #FILL UP COPY OTHERWISE "DICTIONARY CHANGED SIZE WHILE ITERATING"
         updated_dependencies = self.containerDependencies.copy()
@@ -454,22 +458,37 @@ class MainWindow(QWidget):
             for dependency in deps:
                 #if dependency not in updated_dependencies:
                 updated_dependencies[dependency] = set()
-                updated_dependencies[dependency].add(container)
-    
+                updated_dependencies[dependency].add(container)  
         self.containerDependencies = updated_dependencies
         print("updated dependencies", self.containerDependencies)
         self.updateEnables()
+        
+    def addHostToContainerForController(self, host, container):
+        dependenciesList = []
+        response = getHostMnObject(host)
+        dependenciesList.append(self.containerDependencies[container])
+        
+        print("dependencies:", dependenciesList, host, response)
+
+        containerData = {
+            "host": host,
+            "host_mac": (response.host_object).MAC(),
+            "dpid": response.dpid,
+            "port": response.port,
+            "container_name": container,
+            "dependencies": dependenciesList
+        }
+        self.containersOnHost.append(containerData)
 
     def send_dependencies_to_controller(self):
         url = 'http://0.0.0.0:9000/add-dependencies'
-        print("container id + host: ", self.containerDependencies, self.dependenciesConfirmed)
+        print("container id + host: ", self.runningContainers, self.dependenciesConfirmed)
         
-        response = requests.post(url, json=list(self.containerDependencies))
+        response = requests.post(url, json=list(self.runningContainers))
 
         if response.status_code != 200:
             print(f"Failed to send dependency data to controller")
-            
-        print("done")
+
         return
 
 def main():
