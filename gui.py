@@ -10,7 +10,7 @@ from network import NetworkManager
 import random
 import requests
 
-from network import getHostMnObject
+from network import NetworkManager.getHostMnObject
 
 class MainWindow(QWidget):
     def __init__(self):
