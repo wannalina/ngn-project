@@ -147,6 +147,7 @@ class NetworkManager:
     def getHostMnObject(self, host):
         print("HOST:", host)
         host_data = {}
+        self._connect_to_socket()
         hosts_list = self.get_hosts()
 
         if host in hosts_list:
