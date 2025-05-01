@@ -50,7 +50,6 @@ def handle_client(conn, net):
 
             elif data.startswith("GET_HOST_DETAILS"):
                 try:
-                    print("data: ", data)
                     _, host_name = data.split()
                     host = net.get(host_name)
                     intf = host.defaultIntf()
@@ -66,6 +65,7 @@ def handle_client(conn, net):
                         "dpid": dpid,
                         "port": port_number
                     }
+                    print("repsonse:", response)
                     conn.send(json.dumps(response).encode())
                 except Exception as e:
                     conn.send(f"ERROR: {e}".encode())
