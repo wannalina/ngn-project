@@ -4,8 +4,6 @@ import os
 import time
 import json
 
-from topology_generator import create_topology
-
 def kill_previous_instances():
     try:
         subprocess.run(['pkill', '-f', 'topology_generator.py'], stderr=subprocess.DEVNULL) #any running xterm processes
