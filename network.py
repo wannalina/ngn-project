@@ -145,6 +145,11 @@ class NetworkManager:
             print(f"Error during shutdown: {e}")
     
     def get_hosts(self): #GIVES BACK A FULL LIST OF HOST
+        self.sock.send("GET_HOSTS".encode())
+        data = self.sock.recv(4096).decode()
+        return data.split()  #Host names are space separated
+    
+    def get_hosts_for_controller(self): #GIVES BACK A FULL LIST OF HOST
         self.get_new_socket_connection()
         self.sock.send("GET_HOSTS".encode())
         data = self.sock.recv(4096).decode()
@@ -154,7 +159,7 @@ class NetworkManager:
         print("HOST:", host)
         host_data = {}
         self._connect_to_socket()
-        hosts_list = self.get_hosts()
+        hosts_list = self.get_hosts_for_controller()
 
         if host in hosts_list:
             intf = host.defaultIntf()
