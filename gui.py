@@ -257,11 +257,12 @@ class MainWindow(QWidget):
         if not container: 
             return
 
-        self.addHostToContainerForController(host, container)
         self.nm.start_container(host, container, self.availableContainers[container])
         container_id = f"{container}_{host}"
         self.runningContainers[container_id] = {"host": host, "container": container}
         self.hostContainerCounts[host] = self.hostContainerCounts.get(host,0) + 1
+        
+        self.addHostToContainerForController(host, container)
         self.updateContainerDropdown()
         self.updateHostDropdown()
         self.updateMonitor()
@@ -483,7 +484,8 @@ class MainWindow(QWidget):
         print("container data:", containerData)
         self.containersOnHost.append(containerData)
 
-        serializable_containers = [str(container) for container in self.runningContainers]
+        serializable_containers = [str(container) for container in self.containersOnHost]
+        
         response = requests.post(url, json=serializable_containers)
 
         if response.status_code != 200:
