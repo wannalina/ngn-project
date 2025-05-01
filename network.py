@@ -159,8 +159,11 @@ class NetworkManager:
     
     def get_hosts_for_controller(self): #GIVES BACK A FULL LIST OF HOST
         self.get_new_socket_connection()
+        print("?")
         self.sock.send("GET_HOSTS".encode())
+        print("??")
         data = self.sock.recv(4096).decode()
+        print("???")
         return data.split()  #Host names are space separated
     
     def getHostMnObject(self, host):
@@ -168,6 +171,7 @@ class NetworkManager:
         host_data = {}
         self._connect_to_socket()
         hosts_list = self.get_hosts_for_controller()
+        print("????")
 
         if host in hosts_list:
             intf = host.defaultIntf()
