@@ -84,6 +84,11 @@ class NetworkManager:
                 print(f"Socket not ready, retrying ({i+1}/{retries})")
                 time.sleep(3)  # Wait 3 seconds before retrying
         raise ConnectionRefusedError("Failed to connect to socket after retries")
+    
+    def get_new_socket_connection(self, host='localhost', port=12345):
+        new_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        new_sock.connect((host, port))
+        return new_sock
 
     def start_container(self, host_name, container_name, image_path):
         print("start container: ",host_name,container_name,image_path)
@@ -140,6 +145,7 @@ class NetworkManager:
             print(f"Error during shutdown: {e}")
     
     def get_hosts(self): #GIVES BACK A FULL LIST OF HOST
+        self.get_new_socket_connection()
         self.sock.send("GET_HOSTS".encode())
         data = self.sock.recv(4096).decode()
         return data.split()  #Host names are space separated
