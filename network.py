@@ -85,7 +85,7 @@ class NetworkManager:
                 time.sleep(3)  # Wait 3 seconds before retrying
         raise ConnectionRefusedError("Failed to connect to socket after retries")
     
-    def get_new_socket_connection(self, host='localhost', port=12345):
+    def get_new_socket_connection(self, host='localhost', port=9500):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         retries = 15  # Number of retries
         for i in range(retries):
