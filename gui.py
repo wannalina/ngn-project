@@ -473,9 +473,9 @@ class MainWindow(QWidget):
 
         containerData = {
             "host": host,
-            "host_mac": response.host_mac,
-            "dpid": response.dpid,
-            "port": response.port,
+            "host_mac": response["host_mac"],
+            "dpid": response["dpid"],
+            "port": response["port"],
             "container_name": container,
             "dependencies": dependenciesList
         }
