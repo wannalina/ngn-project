@@ -482,8 +482,9 @@ class MainWindow(QWidget):
             "dependencies": dependenciesList
         }
         self.containersOnHost.append(containerData)
-        
-        response = requests.post(url, json=list(self.runningContainers))
+
+        serializable_containers = [str(container) for container in self.runningContainers]
+        response = requests.post(url, json=serializable_containers)
 
         if response.status_code != 200:
             print(f"Failed to send dependency data to controller")
