@@ -53,25 +53,13 @@ def handle_client(conn, net):
                     _, host_name = data.split()
                     host = net.get(host_name)
                     intf = host.defaultIntf()
-                    link = host.connectionsTo(None)[0] #intf.link
-                    print("link?", link)
-                    switch = link[1].node if link[0].node == host else link[0].node  # Identify switch
-                    switch_intf = link[1] if link[0].node == host else link[0]        # Switch interface
-                    #port = link.intf2 if link.intf1 == intf else link.intf1
-                    #switch = port.node
-                    port_number = switch.ports[switch_intf].port_no
-                    print("port", port_number)
+                    link = intf.link
+                    port = link.intf2 if link.intf1 == intf else link.intf1
+                    switch = port.node
+                    print("switch", switch)
                     dpid = switch.dpid
-                    
-                    print("port number:", port_number)
-                    #port_number = switch.ports[intf].port_no
-
-                    # find the correct port number on the switch
-                    #port_number = None
-                    #for p in switch.ports.values():
-                    #    if p == port:
-                    #        port_number = p.port_no
-                    #        break
+                    port_number = switch.listenPort
+                    print("port no:", port_number)
 
                     response = {
                         "host": host.name,
