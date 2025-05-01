@@ -52,15 +52,19 @@ def handle_client(conn, net):
                 try:
                     _, host_name = data.split()
                     host = net.get(host_name)
-                    intf = host.defaultIntf()
-                    link = intf.link
-                    port = link.intf2 if link.intf1 == intf else link.intf1
-                    switch = port.node
+                    intf = host.defaultIntf()  # Get the host's default interface
+                    link = intf.link  # Link between the host and the switch
+                    port = link.intf2 if link.intf1 == intf else link.intf1  # Get the other end of the link (the switch port)
+                    switch = port.node  # The switch the port is connected to
                     dpid = switch.dpid
 
-                    # Find the correct port number on the switch
+                    # Debugging: Print out the link and port information
+                    print(f"Host: {host_name}, Interface: {intf}, Link: {link}, Switch: {switch}, Port: {port}")
+
+                    # Find the correct port number on the switch by iterating over switch ports
                     port_number = None
                     for p in switch.ports.values():
+                        print(f"Checking port {p} (Port number: {p.port_no})")
                         if p == port:
                             port_number = p.port_no
                             break
@@ -69,7 +73,7 @@ def handle_client(conn, net):
                         "host": host.name,
                         "host_mac": host.MAC(),
                         "dpid": dpid,
-                        "port": port_number
+                        "port": port_number  # The port number that the host is connected to
                     }
                     print("response:", response)
                     conn.send(json.dumps(response).encode())
