@@ -52,9 +52,12 @@ def handle_client(conn, net):
                     _, host_name = data.split()
                     host = net.get(host_name)
                     intf = host.defaultIntf()
+                    print("intf", intf)
                     switch = intf.node.connectionsTo(host)[0][0].node
+                    print("switch", switch)
                     dpid = switch.dpid
                     port_number = switch.ports[intf].port_no
+                    print("port no", port_number)
 
                     response = {
                         "host": host.name,
