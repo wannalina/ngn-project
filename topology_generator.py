@@ -1,3 +1,4 @@
+import json
 import subprocess
 import threading
 import socket
@@ -47,21 +48,21 @@ class NetworkServer:
         self.sock.listen(1)
         print("Socket server is now listening on localhost:9999")
 
-
     def handle_commands(self, conn):
         while True:
             try:
                 data = conn.recv(1024).decode()
                 if not data:
                     break
-
                 if data.startswith("START_CONTAINER"):
                     _, host, container, image = data.split()
                     self.start_container(host, container, image)
                     conn.send("CONTAINER_STARTED".encode()) #ACKNOWLEDGE COMMAND
+
                 elif data.startswith("GET_HOST_DETAILS"):
                     try:
                         _, host_name = data.split()
+                        print("host name:", host_name)
                         host = self.net.get(host_name)
                         intf = host.defaultIntf()
                         link = intf.link

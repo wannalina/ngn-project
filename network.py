@@ -161,8 +161,6 @@ class NetworkManager:
             sock = self.get_new_socket_connection()
             cmd = f"GET_HOST_DETAILS {host_name}"
             sock.send(cmd.encode())
-
-            sock.settimeout(5)
             response = sock.recv(4096).decode()
             sock.close()
 
