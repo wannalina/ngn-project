@@ -57,11 +57,13 @@ def handle_client(conn, net):
                     port = link.intf2 if link.intf1 == intf else link.intf1
                     switch = port.node
                     dpid = switch.dpid
-                    #port_number = switch.ports[port].port_no
+                    port_number = switch.ports[port]
+
+                    print("switch:", switch)
 
                     response = {
                         "host": host.name,
-                        "switch": switch.name,
+                        "host_mac": host.MAC(),
                         "dpid": dpid,
                         #"port": port_number
                     }
