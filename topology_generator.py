@@ -50,6 +50,7 @@ def handle_client(conn, net):
 
             elif data.startswith("GET_HOST_DETAILS"):
                 try:
+                    print("data: ", data)
                     _, host_name = data.split()
                     host = net.get(host_name)
                     intf = host.defaultIntf()
