@@ -57,7 +57,9 @@ def handle_client(conn, net):
                     port = link.intf2 if link.intf1 == intf else link.intf1
                     switch = port.node
                     dpid = switch.dpid
-                    port_number = switch.listenPort
+                    
+                    print("port number:", switch.ports[intf])
+                    port_number = switch.ports[intf].port_no
 
                     # find the correct port number on the switch
                     #port_number = None
