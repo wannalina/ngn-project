@@ -86,13 +86,13 @@ class NetworkManager:
         raise ConnectionRefusedError("Failed to connect to socket after retries")
     
     def get_new_socket_connection(self, host='localhost', port=9999):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         retries = 15  # Number of retries
         for i in range(retries):
             try:
-                self.sock.connect((host, port))
+                sock.connect((host, port))
                 print("Socket connected successfully!")
-                return
+                return sock
             except ConnectionRefusedError:
                 print(f"Socket not ready, retrying ({i+1}/{retries})")
                 time.sleep(3)  # Wait 3 seconds before retrying
@@ -158,18 +158,17 @@ class NetworkManager:
         return data.split()  #Host names are space separated
     
     def get_hosts_for_controller(self): #GIVES BACK A FULL LIST OF HOST
-        self.get_new_socket_connection()
+        sock = self.get_new_socket_connection()
         print("?")
-        self.sock.send("GET_HOSTS".encode())
+        sock.send("GET_HOSTS".encode())
         print("??")
-        data = self.sock.recv(4096).decode()
+        data = sock.recv(4096).decode()
         print("???")
         return data.split()  #Host names are space separated
     
     def getHostMnObject(self, host):
         print("HOST:", host)
         host_data = {}
-        self._connect_to_socket()
         hosts_list = self.get_hosts_for_controller()
         print("????")
 
