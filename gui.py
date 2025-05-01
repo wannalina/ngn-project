@@ -255,6 +255,8 @@ class MainWindow(QWidget):
         container = self.containerDropdown.currentText()
         if not container: 
             return
+        
+        print("host 0: ", host)
         self.addHostToContainerForController(host, container)
         self.nm.start_container(host, container, self.availableContainers[container])
         container_id = f"{container}_{host}"
@@ -465,6 +467,7 @@ class MainWindow(QWidget):
     def addHostToContainerForController(self, host, container):
         url = 'http://0.0.0.0:9000/add-dependencies'
         dependenciesList = []
+        print("host: ", host)
         response = NetworkManager.getHostMnObject(host)
         dependenciesList.append(self.containerDependencies[container])
         
