@@ -175,7 +175,7 @@ class MainWindow(QWidget):
             self.hostsBox.value(),
             self.linkProbBox.value()
         )
-        print(f"Starting network with params: {params}")
+        print(f'Starting network with params: {params}')
         self.nm.start_network_process(*params)
         self.host_list = self.nm.get_hosts()
         self.nm.start_controller()
