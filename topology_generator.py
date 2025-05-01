@@ -57,17 +57,21 @@ def handle_client(conn, net):
                     port = link.intf2 if link.intf1 == intf else link.intf1
                     switch = port.node
                     dpid = switch.dpid
-                    port_number = switch.ports[port]
 
-                    print("switch:", switch)
+                    # Find the correct port number on the switch
+                    port_number = None
+                    for p in switch.ports.values():
+                        if p == port:
+                            port_number = p.port_no
+                            break
 
                     response = {
                         "host": host.name,
                         "host_mac": host.MAC(),
                         "dpid": dpid,
-                        #"port": port_number
+                        "port": port_number
                     }
-                    print("repsonse:", response)
+                    print("response:", response)
                     conn.send(json.dumps(response).encode())
                 except Exception as e:
                     conn.send(f"ERROR: {e}".encode())
