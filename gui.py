@@ -11,6 +11,7 @@ import random
 import requests
 
 from network import NetworkManager
+network_manager = NetworkManager()
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -466,7 +467,7 @@ class MainWindow(QWidget):
     def addHostToContainerForController(self, host, container):
         url = 'http://0.0.0.0:9000/add-dependencies'
         dependenciesList = []
-        response = NetworkManager.getHostMnObject(host)
+        response = network_manager.getHostMnObject(host)
         print("response: ", response)
         dependenciesList.append(self.containerDependencies[container])
         
