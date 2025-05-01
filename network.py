@@ -1,11 +1,10 @@
-from mininet.topo import Topo
-from mininet.net import Mininet
-from mininet.node import RemoteController
 import socket
 import subprocess
-import sys
 import os
 import time
+import json
+
+from topology_generator import create_topology
 
 def kill_previous_instances():
     try:
@@ -157,40 +156,29 @@ class NetworkManager:
         data = self.sock.recv(4096).decode()
         return data.split()  #Host names are space separated
     
-    def get_hosts_for_controller(self): #GIVES BACK A FULL LIST OF HOST
-        sock = self.get_new_socket_connection()
-        print("?")
-        sock.send("GET_HOSTS".encode())
-        print("??")
+    def getHostMnObject(self, host_name):
+        print("Fetching Mininet host info via socket:", host_name)
 
-        sock.settimeout(5)
         try:
-            data = sock.recv(4096).decode()
+            sock = self.get_new_socket_connection()
+            cmd = f"GET_HOST_DETAILS {host_name}"
+            sock.send(cmd.encode())
+
+            sock.settimeout(5)
+            response = sock.recv(4096).decode()
+            sock.close()
+
+            if response.startswith("ERROR"):
+                print("Received error:", response)
+                return {}
+
+            data = json.loads(response)
+            print("Host data:", data)
+            return data
+
         except socket.timeout:
             print("Socket timeout — no data received from server")
-            return []
-
-        print("DATA:", data)
-        return data.split()  #Host names are space separated
-    
-    def getHostMnObject(self, host):
-        print("HOST:", host)
-        host_data = {}
-        hosts_list = self.get_hosts_for_controller()
-        print("????")
-
-        if host in hosts_list:
-            intf = host.defaultIntf()
-            link = intf.link
-            port = link.intf2 if link.intf1 == intf else link.intf1
-            switch = port.node
-            dpid = switch.dpid
-            port_number = switch.ports[port].port_no
-            
-            host_data = {
-                "host_object": host,
-                "switch": switch,
-                "dpid": dpid,
-                "port": port_number,
-            }
-        return host_data
+            return {}
+        except json.JSONDecodeError:
+            print("Invalid JSON received")
+            return {}
