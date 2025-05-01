@@ -470,8 +470,6 @@ class MainWindow(QWidget):
         response = network_manager.getHostMnObject(host)
         print("response: ", response)
         dependenciesList.append(self.containerDependencies[container])
-        
-        print("dependencies:", dependenciesList, host, response)
 
         containerData = {
             "host": host,
