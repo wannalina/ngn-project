@@ -145,6 +145,7 @@ class NetworkManager:
         return data.split()  #Host names are space separated
     
     def getHostMnObject(self, host):
+        print("HOST:", host)
         host_data = {}
         hosts_list = self.get_hosts()
 
