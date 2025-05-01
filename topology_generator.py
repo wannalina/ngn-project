@@ -47,26 +47,14 @@ def handle_client(conn, net):
             if data == "GET_HOSTS":
                 host_names = [h.name for h in net.hosts]
                 conn.send(" ".join(host_names).encode())
-
             elif data.startswith("GET_HOST_DETAILS"):
                 try:
                     _, host_name = data.split()
                     host = net.get(host_name)
                     intf = host.defaultIntf()
-                    link = intf.link
-                    port = link.intf2 if link.intf1 == intf else link.intf1
-                    switch = port.node
+                    switch = intf.node.connectionsTo(host)[0][0].node
                     dpid = switch.dpid
-                    
-                    print("port number:", switch.ports[intf])
                     port_number = switch.ports[intf].port_no
-
-                    # find the correct port number on the switch
-                    #port_number = None
-                    #for p in switch.ports.values():
-                    #    if p == port:
-                    #        port_number = p.port_no
-                    #        break
 
                     response = {
                         "host": host.name,
@@ -76,8 +64,8 @@ def handle_client(conn, net):
                     }
                     conn.send(json.dumps(response).encode())
                 except Exception as e:
+                    print(f"Error: {e}")
                     conn.send(f"ERROR: {e}".encode())
-
             elif data.startswith("START_CONTAINER"):
                 # Placeholder logic for container start
                 conn.send("ACK: container started".encode())
