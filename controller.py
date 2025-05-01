@@ -75,25 +75,25 @@ class SDNController(app_manager.RyuApp):
         self.mac_to_port.setdefault(datapath.id, {})
         self.mac_to_port[datapath.id][src] = in_port
 
+        # Allow all ARP packets
+        if eth.ethertype == 0x0806:
+            self.logger.debug("Allowing ARP packet from %s to %s", src, dst)
+        else:
+            # Enforce dependency-based communication
+            allowed_dsts = self.allowedDependencies.get(src, [])
+            if dst not in allowed_dsts:
+                self.logger.info("Blocking unauthorized traffic from %s to %s", src, dst)
+                return
+
         if dst in self.mac_to_port[datapath.id]:
             out_port = self.mac_to_port[datapath.id][dst]
         else:
             out_port = ofproto.OFPP_FLOOD
 
-        # allow ARP packets
-        if eth.ethertype == 0x0806:  # ARP ethertype
-            self.logger.debug("Allowing ARP packet from %s to %s", src, dst)
-        else:
-            # block non-whitelisted traffic
-            if src in self.dependencies and dst not in self.dependencies[src]:
-                self.logger.info("Blocking unauthorized traffic from %s to %s", src, dst)
-                return
-
-        
         actions = [parser.OFPActionOutput(out_port)]
-        
+
         if out_port != ofproto.OFPP_FLOOD:
-            match = parser.OFPMatch(in_port=in_port, eth_dst=dst)
+            match = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
             self.add_flow(datapath, 1, match, actions)
 
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
@@ -136,24 +136,29 @@ class SDNController(app_manager.RyuApp):
 
         @app.route('/register', methods=['POST'])
         def register_container():
-            # receive registration data from containers
-            data = request.json_get()
+            data = request.get_json()  # FIXED
             container_name = data.get('container_name')
 
             print("container registered name:", container_name)
 
             if container_name:
                 self.containers_list.append(container_name)
-
                 return jsonify({"message": "Registration successful"}), 200
             else:
                 return jsonify({"message": "Invalid data"}), 400
-            
+
         @app.route('/add-dependencies', methods=['POST'])
         def add_dependencies():
             data = request.get_json()
-            print("allowed connections:", data, self.allowedDependencies)
-            return jsonify({"message": "Registration successful"}), 200
+
+            # Expecting {"container1_mac": ["container2_mac", ...], ...}
+            if isinstance(data, dict):
+                self.allowedDependencies = data
+                print("Updated allowedDependencies:", self.allowedDependencies)
+                return jsonify({"message": "Dependencies updated"}), 200
+            else:
+                return jsonify({"message": "Invalid format"}), 400
 
         app.run(host='0.0.0.0', port=9000)
+
 

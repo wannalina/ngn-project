@@ -394,7 +394,7 @@ class MainWindow(QWidget):
             except Exception as e:
                 print(f"Error updating host dropdown: {e}")
 
-         
+
     def autoDeployContainers(self):
         print(self.hostContainerCounts)
         available_hosts = [] #ALL CONTAINERS NOT AT MAX
