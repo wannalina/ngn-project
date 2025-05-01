@@ -162,8 +162,15 @@ class NetworkManager:
         print("?")
         sock.send("GET_HOSTS".encode())
         print("??")
-        data = sock.recv(4096).decode()
-        print("???")
+
+        sock.settimeout(5)
+        try:
+            data = sock.recv(4096).decode()
+        except socket.timeout:
+            print("Socket timeout — no data received from server")
+            return []
+
+        print("DATA:", data)
         return data.split()  #Host names are space separated
     
     def getHostMnObject(self, host):
