@@ -61,7 +61,7 @@ class NetworkServer:
 
                 elif data.startswith("GET_HOST_DETAILS"):
                     try:
-                        print("data:", data)
+                        print("data:", self.net)
                         _, host_name = data.split()
                         print("host name:", host_name)
                         host = self.net.get(host_name)
@@ -71,7 +71,7 @@ class NetworkServer:
                         switch = port.node
                         print("switch", switch)
                         dpid = switch.dpid
-                        port_number = switch.Node
+                        port_number = switch
                         print("port no:", port_number)
 
                         response = {

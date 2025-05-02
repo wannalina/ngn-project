@@ -159,8 +159,11 @@ class NetworkManager:
 
         try:
             sock = self.get_new_socket_connection()
+            print("hello from network.py")
             cmd = f"GET_HOST_DETAILS {host_name}"
+            print("hello one down")
             sock.send(cmd.encode())
+            print("hellow two down")
             response = sock.recv(4096).decode()
             sock.close()
 
