@@ -466,7 +466,6 @@ class MainWindow(QWidget):
         url = 'http://10.0.2.15:9000/add-dependencies'
         dependenciesList = []
         response = self.nm.getHostMnObject(host)
-        print("response: ", response)
         dependenciesList.append(self.containerDependencies[container])
 
         containerData = {
@@ -482,7 +481,6 @@ class MainWindow(QWidget):
         self.containersOnHost.append(containerData)
 
         serializable_containers = [str(container) for container in self.containersOnHost]
-        print("serializable:", serializable_containers)
         
         response = requests.post(url, json=serializable_containers)
 
