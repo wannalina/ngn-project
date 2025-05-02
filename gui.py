@@ -485,6 +485,7 @@ class MainWindow(QWidget):
         self.containersOnHost.append(containerData)
 
         serializable_containers = [str(container) for container in self.containersOnHost]
+        print("serializable:", serializable_containers)
         
         response = requests.post(url, json=serializable_containers)
 

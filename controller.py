@@ -150,6 +150,8 @@ class SDNController(app_manager.RyuApp):
         @app.route('/add-dependencies', methods=['POST'])
         def add_dependencies():
             data = request.get_json()
+            
+            print("type:", type(data))
 
             # Expecting {"container1_mac": ["container2_mac", ...], ...}
             if isinstance(data, dict):
