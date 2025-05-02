@@ -36,22 +36,22 @@ def start_socket_server(net):
         conn, addr = server_socket.accept()
         threading.Thread(target=handle_client, args=(conn, net)).start()
         
-def start_container(self, host_name, container_name, image_path):
-    host = self.net.get(host_name)
+def start_container(net, host_name, container_name, image_path):
+    host = net.get(host_name)
     if host:
         print(f"Starting container {container_name} on host {host_name}")
         host.cmd(f'docker load -i {image_path}')
         host.cmd(f'docker run -d --name {container_name}_{host_name} --net=host {container_name}')
         
-def stop_container(self, host_name, container_name):
-    host = self.net.get(host_name)
+def stop_container(net, host_name, container_name):
+    host = net.get(host_name)
     if host:
         print(f"Stopping container {container_name} on host {host_name}")
         host.cmd(f'docker rm -f {container_name}_{host_name}')
 
-def stop_all_containers(self):
+def stop_all_containers(net):
     print("Stopping all containers")
-    for host in self.net.hosts:
+    for host in net.hosts:
         host.cmd('docker rm -f $(docker ps -a -q)')
 
 def handle_client(conn, net):
@@ -90,16 +90,16 @@ def handle_client(conn, net):
 
             elif data.startswith("START_CONTAINER"):
                 _, host, container, image = data.split()
-                start_container(host, container, image)
+                start_container(net, host, container, image)
                 conn.send("CONTAINER_STARTED".encode()) #ACKNOWLEDGE COMMAND
 
             elif data.startswith("STOP_CONTAINER"):
                 _, host, container = data.split()
-                stop_container(host, container)
+                stop_container(net, host, container)
                 conn.send("ACK: container stopped".encode())
 
             elif data == "STOP_ALL":
-                stop_all_containers()
+                stop_all_containers(net)
                 conn.send("ACK: all containers stopped".encode())
 
             elif data == "SHUTDOWN":

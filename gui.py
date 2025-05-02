@@ -3,15 +3,12 @@ import os
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QSpinBox, QGridLayout, QLabel, QPushButton, QVBoxLayout,
     QGroupBox, QComboBox, QScrollArea, QFrame, QHBoxLayout, QDialog, QListWidget,
-    QListWidgetItem, QCheckBox,QDoubleSpinBox
+    QListWidgetItem,QDoubleSpinBox
 )
 from PyQt5.QtCore import Qt
 from network import NetworkManager
 import random
 import requests
-
-from network import NetworkManager
-network_manager = NetworkManager()
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -468,7 +465,7 @@ class MainWindow(QWidget):
     def addHostToContainerForController(self, host, container):
         url = 'http://10.0.2.15:9000/add-dependencies'
         dependenciesList = []
-        response = network_manager.getHostMnObject(host)
+        response = self.nm.getHostMnObject(host)
         print("response: ", response)
         dependenciesList.append(self.containerDependencies[container])
 
