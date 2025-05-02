@@ -468,7 +468,6 @@ class MainWindow(QWidget):
     def addHostToContainerForController(self, host, container):
         url = 'http://10.0.2.15:9000/add-dependencies'
         dependenciesList = []
-        print("host:", host)
         response = network_manager.getHostMnObject(host)
         print("response: ", response)
         dependenciesList.append(self.containerDependencies[container])
@@ -477,7 +476,7 @@ class MainWindow(QWidget):
             "host": host,
             "host_mac": response["host_mac"],
             "dpid": response["dpid"],
-            "port": response["port"],
+           # "port": response["port"],
             "container_name": container,
             "dependencies": dependenciesList
         }
