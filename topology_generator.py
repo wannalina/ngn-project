@@ -79,6 +79,7 @@ def handle_client(conn, net):
 
                     response = {
                         "host": host.name,
+                        "host_mac": host.MAC(),
                         "switch": switch.name,
                         "dpid": dpid,
                        # "port": port_number
