@@ -48,7 +48,7 @@ class NetworkServer:
         self.sock.listen(1)
         print("Socket server is now listening on localhost:9999")
 
-    def handle_commands(self, conn):
+    def handle_commands(self, conn, net):
         while True:
             try:
                 data = conn.recv(1024).decode()
@@ -58,13 +58,28 @@ class NetworkServer:
                     _, host, container, image = data.split()
                     self.start_container(host, container, image)
                     conn.send("CONTAINER_STARTED".encode()) #ACKNOWLEDGE COMMAND
-
                 elif data.startswith("GET_HOST_DETAILS"):
                     try:
                         print("data:", data)
                         _, host_name = data.split()
                         print("host name:", host_name)
-                        return
+                        host = net.get(host_name)
+                        intf = host.defaultIntf()
+                        link = intf.link
+                        port = link.intf2 if link.intf1 == intf else link.intf1
+                        switch = port.node
+                        print("switch", switch)
+                        dpid = switch.dpid
+                        port_number = switch
+                        print("port no:", port_number)
+
+                        response = {
+                            "host": host.name,
+                            "host_mac": host.MAC(),
+                            "dpid": dpid,
+                            "port": port_number
+                        }
+                        conn.send(json.dumps(response).encode())
                     except Exception as e:
                         conn.send(f"ERROR: {e}".encode())
                 elif data.startswith("STOP_CONTAINER"):
@@ -124,7 +139,7 @@ def main(num_switches, num_hosts, links_prob):
         #print("Waiting for a connection")
         conn, addr = server.sock.accept()  # Accept a connection
         print(f"Connection established with {addr}")
-        threading.Thread(target=server.handle_commands, args=(conn,)).start()
+        threading.Thread(target=server.handle_commands, args=(conn, net)).start()
     # Start the connection handler thread
     threading.Thread(target=handle_connections).start()
     
