@@ -157,8 +157,9 @@ class NetworkManager:
     def getHostMnObject(self, host_name):
         print("Fetching Mininet host info via socket:", host_name)
 
+        sock = self.get_new_socket_connection()
+        sock.settimeout(7)
         try:
-            sock = self.get_new_socket_connection()
             print("hello from network.py")
             cmd = f"GET_HOST_DETAILS {host_name}"
             print("hello one down")
