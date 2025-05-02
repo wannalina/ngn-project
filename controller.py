@@ -147,16 +147,30 @@ class SDNController(app_manager.RyuApp):
             else:
                 return jsonify({"message": "Invalid data"}), 400
 
+        # endpoint to send controller started containers
         @app.route('/add-dependencies', methods=['POST'])
         def add_dependencies():
             data = request.get_json()
-
-            # Expecting {"container1_mac": ["container2_mac", ...], ...}
             if isinstance(data, list):
                 self.allowedDependencies = data
                 print("Updated allowedDependencies:", self.allowedDependencies)
-                return jsonify({"message": "Dependencies updated"}), 200
+                return jsonify({"message": "Flows added to controller"}), 200
             else:
+                return jsonify({"message": "Invalid format"}), 400
+            
+        # endpoint to send controller stopped containers
+        @app.route('/delete-dependencies', methods=['POST'])
+        def remove_dependencies():
+            data = request.get_json()
+            if isinstance(data, list) and len(data) == 1:  # if one container stopped
+                for container in self.allowedDependencies:
+                    if (container['container_name'] == data[0]['container_name']): # stopped container name = container name of item in self.allowedDependencies
+                        self.allowedDependencies.remove(container)
+                return jsonify({"message": "Flows removed from controller"}), 200
+            elif isinstance(data, object) and len(data) > 1: # if all containers stopped at once
+                self.allowedDependencies = data
+                return jsonify({"message": "Flows removed from controller"}), 200
+            else: 
                 return jsonify({"message": "Invalid format"}), 400
 
         app.run(host='0.0.0.0', port=9000)

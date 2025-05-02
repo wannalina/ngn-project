@@ -267,6 +267,7 @@ class MainWindow(QWidget):
 
     def stopAllContainers(self):
         self.nm.stop_all_containers()
+        self.removeDependenciesFromController(self.runningContainers)
         self.runningContainers = {}
         self.hostContainerCounts = {host: 0 for host in self.hostContainerCounts}
         self.updateMonitor()
@@ -302,6 +303,7 @@ class MainWindow(QWidget):
         if container_id in self.runningContainers:
             del self.runningContainers[container_id]
             self.hostContainerCounts[host] = self.hostContainerCounts.get(host) - 1
+            self.removeDependenciesFromController(container)
             self.updateContainerDropdown()
             self.updateHostDropdown()
             self.updateMonitor()
@@ -484,6 +486,17 @@ class MainWindow(QWidget):
         
         response = requests.post(url, json=serializable_containers)
 
+        if response.status_code != 200:
+            print(f"Failed to send dependency data to controller")
+        return
+    
+    def removeDependenciesFromController(self, containers):
+        url = 'http://10.0.2.15:9000/delete-dependencies'
+        if isinstance(containers, str):
+            response = requests.post(url, json=[containers])
+        else:
+            serializable_containers = [str(container) for container in containers]
+            response = requests.post(url, json=serializable_containers)
         if response.status_code != 200:
             print(f"Failed to send dependency data to controller")
         return
