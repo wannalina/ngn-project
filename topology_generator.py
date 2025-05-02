@@ -70,7 +70,7 @@ class NetworkServer:
                         switch = port.node
                         print("switch", switch)
                         dpid = switch.dpid
-                        port_number = switch.listenPort
+                        port_number = switch.Node
                         print("port no:", port_number)
 
                         response = {
