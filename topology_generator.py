@@ -61,6 +61,7 @@ class NetworkServer:
 
                 elif data.startswith("GET_HOST_DETAILS"):
                     try:
+                        print("data:", data)
                         _, host_name = data.split()
                         print("host name:", host_name)
                         host = self.net.get(host_name)
