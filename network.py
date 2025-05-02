@@ -165,6 +165,7 @@ class NetworkManager:
             sock.send(cmd.encode())
             print("hellow two down")
             response = sock.recv(4096).decode()
+            print("hello three down")
             sock.close()
 
             if response.startswith("ERROR"):
