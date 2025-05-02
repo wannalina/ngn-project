@@ -154,7 +154,7 @@ class SDNController(app_manager.RyuApp):
             print("type:", type(data))
 
             # Expecting {"container1_mac": ["container2_mac", ...], ...}
-            if isinstance(data, dict):
+            if isinstance(data, list):
                 self.allowedDependencies = data
                 print("Updated allowedDependencies:", self.allowedDependencies)
                 return jsonify({"message": "Dependencies updated"}), 200
