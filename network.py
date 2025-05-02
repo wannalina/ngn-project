@@ -182,3 +182,5 @@ class NetworkManager:
         except json.JSONDecodeError:
             print("Invalid JSON received")
             return {}
+        except Exception as e: 
+            print("An error occurred: ", e)
