@@ -61,26 +61,10 @@ class NetworkServer:
 
                 elif data.startswith("GET_HOST_DETAILS"):
                     try:
-                        print("data:", self.net)
+                        print("data:", data)
                         _, host_name = data.split()
                         print("host name:", host_name)
-                        host = self.net.get(host_name)
-                        intf = host.defaultIntf()
-                        link = intf.link
-                        port = link.intf2 if link.intf1 == intf else link.intf1
-                        switch = port.node
-                        print("switch", switch)
-                        dpid = switch.dpid
-                        port_number = switch
-                        print("port no:", port_number)
-
-                        response = {
-                            "host": host.name,
-                            "host_mac": host.MAC(),
-                            "dpid": dpid,
-                            "port": port_number
-                        }
-                        conn.send(json.dumps(response).encode())
+                        return
                     except Exception as e:
                         conn.send(f"ERROR: {e}".encode())
                 elif data.startswith("STOP_CONTAINER"):
