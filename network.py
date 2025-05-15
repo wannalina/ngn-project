@@ -35,7 +35,7 @@ class NetworkManager:
 
     def start_network_process(self, num_switches, num_hosts, links_prob):
         kill_previous_instances()
-        script_path = os.path.join(os.path.dirname(__file__), "topology/main.py")
+        script_path = os.path.join(os.path.dirname(__file__), "/topology/main.py")
         # Use a list for the command arguments instead of shell=True
         cmd = [
             'xterm',
