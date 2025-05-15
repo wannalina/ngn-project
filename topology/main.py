@@ -15,8 +15,8 @@ from mininet.node import RemoteController
 from mininet.cli import CLI
 
 # import classes
-from topology.random_topology import RandomTopo
-from topology.socket_server import SocketServer
+from random_topology import RandomTopo
+from socket_server import SocketServer
 
 # start a thread to handle incoming connections
 def handle_connections(server):
