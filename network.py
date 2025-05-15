@@ -1,9 +1,5 @@
-from mininet.topo import Topo
-from mininet.net import Mininet
-from mininet.node import RemoteController
 import socket
 import subprocess
-import sys
 import os
 import time
 
@@ -32,7 +28,7 @@ class NetworkManager:
             "-hold",
             "-e",
             "ryu-manager",
-            "simple_switch_stp_13.py"
+            "controller.py"
         ]
         self.controller_process = subprocess.Popen(cmd)
         print("Ryu controller started in xterm successfully")

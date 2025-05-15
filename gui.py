@@ -3,16 +3,16 @@ import os
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QSpinBox, QGridLayout, QLabel, QPushButton, QVBoxLayout,
     QGroupBox, QComboBox, QScrollArea, QFrame, QHBoxLayout, QDialog, QListWidget,
-    QListWidgetItem, QCheckBox,QDoubleSpinBox
+    QListWidgetItem,QDoubleSpinBox
 )
 from PyQt5.QtCore import Qt
-from topology.socket_server import SocketServer
+from network import NetworkManager
 import random
 
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.nm = SocketServer()
+        self.nm = NetworkManager()
         self.availableContainers = {}  # name (key) + directory
         self.runningContainers = {}  # container_id (key) + host + container type
         self.hostContainerCounts = {}  # containers per host, hostname(key) + int
