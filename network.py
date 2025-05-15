@@ -9,7 +9,7 @@ import time
 
 def kill_previous_instances():
     try:
-        subprocess.run(['pkill', '-f', 'topology_generator.py'], stderr=subprocess.DEVNULL) #any running xterm processes
+        subprocess.run(['pkill', '-f', '/topology/main.py'], stderr=subprocess.DEVNULL) #any running xterm processes
         subprocess.run(['sudo', 'mn', '-c'], stderr=subprocess.DEVNULL) #any running mininet
         #subprocess.run(['pkill', '-f', 'python.*topology_generator'], stderr=subprocess.DEVNULL)
         subprocess.run(['sudo', 'pkill', '-f', 'ryu-manager'], stderr=subprocess.DEVNULL)#any ryu-manager processes
@@ -39,7 +39,7 @@ class NetworkManager:
 
     def start_network_process(self, num_switches, num_hosts, links_prob):
         kill_previous_instances()
-        script_path = os.path.join(os.path.dirname(__file__), "topology_generator.py")
+        script_path = os.path.join(os.path.dirname(__file__), "topology/main.py")
         # Use a list for the command arguments instead of shell=True
         cmd = [
             'xterm',
