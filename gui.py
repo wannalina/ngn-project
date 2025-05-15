@@ -6,14 +6,13 @@ from PyQt5.QtWidgets import (
     QListWidgetItem, QCheckBox,QDoubleSpinBox
 )
 from PyQt5.QtCore import Qt
-from network import NetworkManager
+from topology.socket_server import SocketServer
 import random
-import time
 
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.nm = NetworkManager()
+        self.nm = SocketServer()
         self.availableContainers = {}  # name (key) + directory
         self.runningContainers = {}  # container_id (key) + host + container type
         self.hostContainerCounts = {}  # containers per host, hostname(key) + int
