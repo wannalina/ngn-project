@@ -18,6 +18,7 @@ class MainWindow(QWidget):
         self.runningContainers = {}  # container_id (key) + host + container type
         self.hostContainerCounts = {}  # containers per host, hostname(key) + int
         self.containerDependencies = {}  # container dependencies
+        self.containers_on_host = []
         self.isRunning=False
         self.dependenciesConfirmed=False
         self.host_list=[]
@@ -480,9 +481,9 @@ class MainWindow(QWidget):
         }
 
         print("container data:", containerData)
-        self.containersOnHost.append(containerData)
+        self.containers_on_host.append(containerData)
 
-        serializable_containers = [str(container) for container in self.containersOnHost]
+        serializable_containers = [str(container) for container in self.containers_on_host]
         
         response = requests.post(url, json=serializable_containers)
 
