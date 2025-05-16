@@ -464,7 +464,7 @@ class MainWindow(QWidget):
 
     # function to send app communication requirements to controller
     def add_host_to_controller(self, host, container):
-        url = 'http://10.0.2.15:9000/add-dependency'
+        url = 'http://localhost:9000/add-dependency'
         dependenciesList = []
         response = self.nm.get_host_mn_object(host)
         dependenciesList.append(self.containerDependencies[container])
@@ -491,7 +491,7 @@ class MainWindow(QWidget):
 
     # function to remove app communication requirements from controller
     def remove_dependencies_from_controller(self, containers):
-        url = 'http://10.0.2.15:9000/delete-dependencies'
+        url = 'http://localhost:9000/delete-dependencies'
         if isinstance(containers, str):
             response = requests.post(url, json=[containers])
         else:
