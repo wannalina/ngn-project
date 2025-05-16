@@ -16,6 +16,7 @@ from ryu.lib.packet import ethernet
 import json
 import os
 from datetime import datetime
+import networkx as nx
 
 
 class SDNController(app_manager.RyuApp):
@@ -31,6 +32,9 @@ class SDNController(app_manager.RyuApp):
         # packet logging
         self.log_dir = "packet_logs"
         os.makedirs(self.log_dir, exist_ok=True)
+        
+        # initialize network graph: nodes = switches (dpid), edges = links between switches
+        self.net = nx.Graph()
 
         #TODO: check this and modify
         # Sample of stplib config.
@@ -59,18 +63,36 @@ class SDNController(app_manager.RyuApp):
             json.dump(log_entry, f)
             f.write("\n")
 
-    #TODO: function to remove flows based on match
-    def delete_flow(self, datapath, match):
+    # function to remove flows based on matched dst MAC addresses
+    def delete_flow(self, datapath):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
+        # iterate over all known dst MAC addresses for this datapath
         for dst in self.mac_to_port[datapath.id].keys():
             match = parser.OFPMatch(eth_dst=dst)
+
+            # delete flows with priority 1
             mod = parser.OFPFlowMod(
                 datapath, command=ofproto.OFPFC_DELETE,
                 out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY,
                 priority=1, match=match)
             datapath.send_msg(mod)
+
+        # log flow deletion
+        self.log_packets(
+            dpid=datapath.id,
+            src="controller",
+            dst="all",
+            in_port=-1,
+            action="delete_all_flows",
+            pkt_type="flow"
+        )
+
+        # clear all MAC-to-port mappings for this datapath
+        if datapath.id in self.mac_to_port:
+            del self.mac_to_port[datapath.id]
+        self.logger.info(f"Flow deleterd successfully for: {datapath.id}")
 
     # function to handle packets that do not match existing flows
     @set_ev_cls(stplib.EventPacketIn, MAIN_DISPATCHER)
@@ -118,7 +140,7 @@ class SDNController(app_manager.RyuApp):
         self.log_packet_event(dpid, src, dst, in_port, "allowed", "other")  # log allowed packet
         actions = [parser.OFPActionOutput(out_port)]
 
-        # add flow for allowed dependency (avoids packet_in occurring again)
+        #! add flow for allowed dependency (avoids packet_in occurring again)
         if out_port != ofproto.OFPP_FLOOD:
             match = parser.OFPMatch(in_port=in_port, eth_dst=dst)
             self.add_flow(datapath, 1, match, actions)
@@ -138,17 +160,42 @@ class SDNController(app_manager.RyuApp):
         )
         datapath.send_msg(out)
 
+    # function to handle topology change (switch/link failure/reconfig)
     @set_ev_cls(stplib.EventTopologyChange, MAIN_DISPATCHER)
     def _topology_change_handler(self, ev):
-        dp = ev.dp
+        dp = ev.dp  # datapath where topology change happened
         dpid_str = dpid_lib.dpid_to_str(dp.id)
         msg = 'Receive topology change event. Flush MAC table.'
         self.logger.debug("[dpid=%s] %s", dpid_str, msg)
 
+        # if switch MAC-to-port table exists in records
         if dp.id in self.mac_to_port:
-            self.delete_flow(dp)
-            del self.mac_to_port[dp.id]
+            self.delete_flow(dp)            # delete flows
+            del self.mac_to_port[dp.id]     # remove mac-to-port mapping
 
+        # add flows for allowed communication after flushing
+        for src, allowed_dsts in self.allowedDependencies.items():
+            for dst in allowed_dsts:
+                src_port = self.mac_to_port.get(dp.id, {}).get(src)
+                dst_port = self.mac_to_port.get(dp.id, {}).get(dst)
+                if src_port and dst_port:
+                    match = dp.ofproto_parser.OFPMatch(in_port=src_port, eth_dst=dst)
+                    actions = [dp.ofproto_parser.OFPActionOutput(dst_port)]
+
+                    # log addition of flow
+                    self.log_packets(
+                        dpid=dp.id,
+                        src=src,
+                        dst=dst,
+                        in_port=src_port,
+                        action="flow_reinstalled_after_topology_change",
+                        packet_type="policy"
+                    )
+
+                    # re-add flow
+                    self.add_flow(dp, 1, match, actions)
+
+    # function to handle port state changes and log new state of port on a switch
     @set_ev_cls(stplib.EventPortStateChange, MAIN_DISPATCHER)
     def _port_state_change_handler(self, ev):
         dpid_str = dpid_lib.dpid_to_str(ev.dp.id)
@@ -159,3 +206,10 @@ class SDNController(app_manager.RyuApp):
                     stplib.PORT_STATE_FORWARD: 'FORWARD'}
         self.logger.debug("[dpid=%s][port=%d] state=%s",
                           dpid_str, ev.port_no, of_state[ev.port_state])
+
+    #TODO: function to compute shortest path between two switches
+    def get_shortest_path(self, src, dst):
+        try:
+            return nx.shortest_path(self.net, source=src, target=dst)
+        except nx.NetworkXNoPath:
+            return None
