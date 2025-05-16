@@ -228,7 +228,7 @@ class SDNController(app_manager.RyuApp):
                     stplib.PORT_STATE_LEARN: 'LEARN',
                     stplib.PORT_STATE_FORWARD: 'FORWARD'}
         self.logger.debug("[dpid=%s][port=%d] state=%s",
-                          dpid_str, ev.port_no, of_state[ev.port_state])
+                        dpid_str, ev.port_no, of_state[ev.port_state])
 
     #TODO: function to compute shortest path between two switches
     def get_shortest_path(self, src, dst):
@@ -307,7 +307,7 @@ class SDNController(app_manager.RyuApp):
                 return jsonify({"error": f"Error deleting dependency from controller: {e}"}), 500
 
         # start Flask server
-        app.run(host='127.0.0.1', port=9000, threaded=True, use_reloader=False)
+        app.run(host='10.0.2.15', port=9000, threaded=True, use_reloader=False)
 
     # function to launch flask app
     def start_flask_server(self):

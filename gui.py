@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 from network import NetworkManager
 import random
+import requests
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -255,6 +256,8 @@ class MainWindow(QWidget):
         container_id = f"{container}_{host}"
         self.runningContainers[container_id] = {"host": host, "container": container}
         self.hostContainerCounts[host] = self.hostContainerCounts.get(host,0) + 1
+
+        self.add_host_to_controller(host, container)
         self.updateContainerDropdown()
         self.updateHostDropdown()
         self.updateMonitor()
@@ -262,6 +265,7 @@ class MainWindow(QWidget):
 
     def stopAllContainers(self):
         self.nm.stop_all_containers()
+        self.remove_dependencies_from_controller(self.runningContainers)
         self.runningContainers = {}
         self.hostContainerCounts = {host: 0 for host in self.hostContainerCounts}
         self.updateMonitor()
@@ -297,6 +301,7 @@ class MainWindow(QWidget):
         if container_id in self.runningContainers:
             del self.runningContainers[container_id]
             self.hostContainerCounts[host] = self.hostContainerCounts.get(host) - 1
+            self.remove_dependencies_from_controller(container)
             self.updateContainerDropdown()
             self.updateHostDropdown()
             self.updateMonitor()
@@ -386,7 +391,7 @@ class MainWindow(QWidget):
             except Exception as e:
                 print(f"Error updating host dropdown: {e}")
 
-         
+
     def autoDeployContainers(self):
         print(self.hostContainerCounts)
         available_hosts = [] #ALL CONTAINERS NOT AT MAX
@@ -415,7 +420,8 @@ class MainWindow(QWidget):
             container_id = f"{container}_{host}"
             self.runningContainers[container_id] = {"host": host, "container": container}
             self.hostContainerCounts[host] = self.hostContainerCounts.get(host, 0) + 1
-            
+
+            self.add_host_to_controller(host, container)
 
         self.updateMonitor()
         self.updateHostDropdown()
@@ -442,7 +448,7 @@ class MainWindow(QWidget):
     def confirmDependency(self):
         self.dependenciesConfirmed = True
         print("raw dependencies", self.containerDependencies)
-       
+
         updated_dependencies = {} #FILL UP COPY OTHERWISE "DICTIONARY CHANGED SIZE WHILE ITERATING"
         updated_dependencies = self.containerDependencies.copy()
     
@@ -455,6 +461,45 @@ class MainWindow(QWidget):
         self.containerDependencies = updated_dependencies
         print("updated dependencies", self.containerDependencies)
         self.updateEnables()
+
+    # function to send app communication requirements to controller
+    def add_host_to_controller(self, host, container):
+        url = 'http://10.0.2.15:9000/add-dependency'
+        dependenciesList = []
+        response = self.nm.get_host_mn_object(host)
+        dependenciesList.append(self.containerDependencies[container])
+
+        containerData = {
+            "host": host,
+            "host_mac": response["host_mac"],
+            "dpid": response["dpid"],
+            # "port": response["port"],
+            "container_name": container,
+            "dependencies": dependenciesList
+        }
+
+        print("container data:", containerData)
+        self.containersOnHost.append(containerData)
+
+        serializable_containers = [str(container) for container in self.containersOnHost]
+        
+        response = requests.post(url, json=serializable_containers)
+
+        if response.status_code != 200:
+            print(f"Failed to send dependency data to controller")
+        return
+
+    # function to remove app communication requirements from controller
+    def remove_dependencies_from_controller(self, containers):
+        url = 'http://10.0.2.15:9000/delete-dependencies'
+        if isinstance(containers, str):
+            response = requests.post(url, json=[containers])
+        else:
+            serializable_containers = [str(container) for container in containers]
+            response = requests.post(url, json=serializable_containers)
+        if response.status_code != 200:
+            print(f"Failed to send dependency data to controller")
+        return
 
 def main():
     app = QApplication(sys.argv)

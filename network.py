@@ -2,6 +2,7 @@ import socket
 import subprocess
 import os
 import time
+import json
 
 def kill_previous_instances():
     try:
@@ -139,3 +140,25 @@ class NetworkManager:
         self.sock.send("GET_HOSTS".encode())
         data = self.sock.recv(4096).decode()
         return data.split()  #Host names are space separated
+
+    # function to fetch mininet host info
+    def get_host_mn_object(self, host):
+        try:
+            # send request to socket server to get host info
+            request = f"GET_HOST_INFO {host}"
+            self.sock.send(request.encode())
+
+            # get and decode json response
+            data = self.sock.recv(4096).decode()
+            host_info = json.loads(data)
+
+            # validate data
+            required_keys = ["host_mac", "dpid"]
+            for key in required_keys:
+                if key not in host_info:
+                    raise ValueError(f"Missing '{key}' in host info response")
+            return host_info
+
+        except Exception as e:
+            print(f"Failed to get host info for {host}: {e}")
+            return None
