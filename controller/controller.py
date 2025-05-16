@@ -274,8 +274,9 @@ class SDNController(app_manager.RyuApp):
         def add_dependency_route():
             try:
                 request_body = request.json
+                print("request body:", request_body)
                 # check if valid format
-                if isinstance(request_body, dict): 
+                if isinstance(request_body, list): 
                     self.allowed_dependencies = request_body
                     print("Updated allowed_dependencies:", self.allowed_dependencies)
                     return jsonify({"message": "Dependencies added"}), 200
