@@ -16,7 +16,9 @@ from ryu.lib.packet import ethernet
 import json
 import os
 from datetime import datetime
+import threading
 import networkx as nx
+from flask import Flask, request, jsonify
 
 
 class SDNController(app_manager.RyuApp):
@@ -35,16 +37,19 @@ class SDNController(app_manager.RyuApp):
         
         # initialize network graph: nodes = switches (dpid), edges = links between switches
         self.net = nx.Graph()
+        self.running_container_names = set()    # set of regitsered (running) container names
+        self.communication_reqs = set()     # application communication requirements/dependencies
+        self.allowed_dependencies = {}      # mapping of allowed src - dest MAC pairs
 
         #TODO: check this and modify
         # Sample of stplib config.
         #  please refer to stplib.Stp.set_config() for details.
         config = {dpid_lib.str_to_dpid('0000000000000001'):
-                  {'bridge': {'priority': 0x8000}},
-                  dpid_lib.str_to_dpid('0000000000000002'):
-                  {'bridge': {'priority': 0x9000}},
-                  dpid_lib.str_to_dpid('0000000000000003'):
-                  {'bridge': {'priority': 0xa000}}}
+                {'bridge': {'priority': 0x8000}},
+                dpid_lib.str_to_dpid('0000000000000002'):
+                {'bridge': {'priority': 0x9000}},
+                dpid_lib.str_to_dpid('0000000000000003'):
+                {'bridge': {'priority': 0xa000}}}
         self.stp.set_config(config)
 
     # function to log packet events and save logs in json file
@@ -62,6 +67,24 @@ class SDNController(app_manager.RyuApp):
         with open(log_file, "a") as f:
             json.dump(log_entry, f)
             f.write("\n")
+
+    # function to set communication requirements (dependencies) between applications
+    def set_communication_reqs(self, dependencies):
+        self.communication_reqs = dependencies
+    
+    '''
+    def add_flow(self, datapath, priority, match, actions):
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
+        mod = parser.OFPFlowMod(
+            datapath=datapath, priority=priority,
+            match=match, instructions=inst
+        )
+        datapath.send_msg(mod)
+    '''
+
 
     # function to remove flows based on matched dst MAC addresses
     def delete_flow(self, datapath):
@@ -122,7 +145,7 @@ class SDNController(app_manager.RyuApp):
             self.logger.debug("Allowing ARP packet from %s to %s", src, dst)    # log allowed packet
         else:
             #! only allow communication between specified dependencies (else; drop by default)
-            allowed_dsts = self.allowedDependencies.get(src, [])
+            allowed_dsts = self.allowed_dependencies.get(src, [])
             self.log_packets(dpid, src, dst, in_port, "dropped", "other")   # log dropped packet
             if dst not in allowed_dsts:
                 self.logger.info("Blocking unauthorized traffic from %s to %s", src, dst)
@@ -137,7 +160,7 @@ class SDNController(app_manager.RyuApp):
             self.log_packets(dpid, src, dst, in_port, "dropped_unknown_dst", "other")   # log dropped packet
             return
 
-        self.log_packet_event(dpid, src, dst, in_port, "allowed", "other")  # log allowed packet
+        self.log_packets(dpid, src, dst, in_port, "allowed", "other")  # log allowed packet
         actions = [parser.OFPActionOutput(out_port)]
 
         #! add flow for allowed dependency (avoids packet_in occurring again)
@@ -174,7 +197,7 @@ class SDNController(app_manager.RyuApp):
             del self.mac_to_port[dp.id]     # remove mac-to-port mapping
 
         # add flows for allowed communication after flushing
-        for src, allowed_dsts in self.allowedDependencies.items():
+        for src, allowed_dsts in self.allowed_dependencies.items():
             for dst in allowed_dsts:
                 src_port = self.mac_to_port.get(dp.id, {}).get(src)
                 dst_port = self.mac_to_port.get(dp.id, {}).get(dst)
@@ -213,3 +236,81 @@ class SDNController(app_manager.RyuApp):
             return nx.shortest_path(self.net, source=src, target=dst)
         except nx.NetworkXNoPath:
             return None
+
+
+
+    ''' FLASK APPLICATION '''
+
+    # function to run flask app and define routes
+    def run_flask_app(self):
+        app = Flask(__name__)
+
+        # base route to test controller
+        @app.route('/', methods=['GET'])
+        def default_route():
+            return "Controller is running!"
+
+        # route to register application to controller
+        @app.route('/register', methods=['POST'])
+        def register_container_route():
+            try:
+                request_body = request.json
+                container_name = request_body.get('container_name')
+
+                if not container_name: 
+                    return jsonify({"message": "No contianer name provided"}), 400
+                
+                # add container name to list of running containers
+                self.running_container_names.add(container_name)
+                return jsonify({"message": "Application registered to controller successfully!"}), 200
+            except Exception as e:
+                return jsonify({"error": f"Error registering container to controller: {e}"}), 500
+
+        # route to add communication requirement between apps
+        @app.route('/add-dependency', methods=['POST'])
+        def add_dependency_route():
+            try:
+                request_body = request.json
+                # check if valid format
+                if isinstance(request_body, dict): 
+                    self.allowed_dependencies = request_body
+                    print("Updated allowed_dependencies:", self.allowed_dependencies)
+                    return jsonify({"message": "Dependencies added"}), 200
+
+                return jsonify({"message": "Dependencies received in invalid format"}), 400
+            except Exception as e:
+                return jsonify({"error": f"Error adding communication requirement to controller: {e}"}), 500
+
+        # route to remove allowed communication requirements
+        @app.route('/delete-dependency', methods=['POST'])
+        def remove_dependency_route():
+            try:
+                request_body = request.json
+
+                # reomve dependencies of one container
+                if isinstance(request_body, list) and len(request_body) == 1:
+                    container_name = request_body[0].get('container_name')
+                    self.running_container_names.remove(container_name)
+                    to_remove = [k for k in self.allowed_dependencies if k == container_name]
+                    for key in to_remove:
+                        del self.allowed_dependencies[key]
+                    return jsonify({"message": "Dependencies removed"}), 200
+
+                # remove all dependencies
+                elif isinstance(request_body, dict):
+                    self.allowed_dependencies = {}
+                    self.running_container_names.clear()
+                    return jsonify({"message": "All dependencies removed"}), 200
+
+                return jsonify({"message": "Dependencies were received in invalid format"}), 400
+            except Exception as e:
+                return jsonify({"error": f"Error deleting dependency from controller: {e}"}), 500
+
+        # start Flask server
+        app.run(host='127.0.0.1', port=9000, threaded=True, use_reloader=False)
+
+    # function to launch flask app
+    def start_flask_server(self):
+        server_thread = threading.Thread(target=self.run_flask_app)
+        server_thread.daemon = True
+        server_thread.start()
