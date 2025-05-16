@@ -6,8 +6,8 @@ What is this used for?
 '''
 
 # import libraries
-import sys
 import socket
+import sys
 
 # class to expose TCP socket interface for managing containers on mininet hosts
 class SocketServer:

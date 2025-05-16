@@ -8,16 +8,15 @@ What is this used for?
 '''
 
 # import libraries
+import sys
 import threading
-from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.node import RemoteController
 from mininet.cli import CLI
-import sys
 
 # import classes
-from topology.random_topology import RandomTopo
-from topology.socket_server import SocketServer
+from random_topology import RandomTopo
+from socket_server import SocketServer
 
 # start a thread to handle incoming connections
 def handle_connections(server):

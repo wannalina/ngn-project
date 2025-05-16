@@ -3,12 +3,12 @@ import os
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QSpinBox, QGridLayout, QLabel, QPushButton, QVBoxLayout,
     QGroupBox, QComboBox, QScrollArea, QFrame, QHBoxLayout, QDialog, QListWidget,
-    QListWidgetItem, QCheckBox,QDoubleSpinBox
+    QListWidgetItem,QDoubleSpinBox
 )
 from PyQt5.QtCore import Qt
 from network import NetworkManager
 import random
-import time
+import requests
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -18,6 +18,7 @@ class MainWindow(QWidget):
         self.runningContainers = {}  # container_id (key) + host + container type
         self.hostContainerCounts = {}  # containers per host, hostname(key) + int
         self.containerDependencies = {}  # container dependencies
+        self.containersOnHost = []
         self.isRunning=False
         self.dependenciesConfirmed=False
         self.host_list=[]
@@ -172,7 +173,7 @@ class MainWindow(QWidget):
             self.hostsBox.value(),
             self.linkProbBox.value()
         )
-        print(f"Starting network with params: {params}")
+        print(f'Starting network with params: {params}')
         self.nm.start_network_process(*params)
         self.host_list = self.nm.get_hosts()
         self.nm.start_controller()
@@ -252,10 +253,13 @@ class MainWindow(QWidget):
         container = self.containerDropdown.currentText()
         if not container: 
             return
+
         self.nm.start_container(host, container, self.availableContainers[container])
         container_id = f"{container}_{host}"
         self.runningContainers[container_id] = {"host": host, "container": container}
         self.hostContainerCounts[host] = self.hostContainerCounts.get(host,0) + 1
+        
+        self.addHostToContainerForController(host, container)
         self.updateContainerDropdown()
         self.updateHostDropdown()
         self.updateMonitor()
@@ -263,6 +267,7 @@ class MainWindow(QWidget):
 
     def stopAllContainers(self):
         self.nm.stop_all_containers()
+        self.removeDependenciesFromController(self.runningContainers)
         self.runningContainers = {}
         self.hostContainerCounts = {host: 0 for host in self.hostContainerCounts}
         self.updateMonitor()
@@ -298,6 +303,7 @@ class MainWindow(QWidget):
         if container_id in self.runningContainers:
             del self.runningContainers[container_id]
             self.hostContainerCounts[host] = self.hostContainerCounts.get(host) - 1
+            self.removeDependenciesFromController(container)
             self.updateContainerDropdown()
             self.updateHostDropdown()
             self.updateMonitor()
@@ -387,7 +393,7 @@ class MainWindow(QWidget):
             except Exception as e:
                 print(f"Error updating host dropdown: {e}")
 
-         
+
     def autoDeployContainers(self):
         print(self.hostContainerCounts)
         available_hosts = [] #ALL CONTAINERS NOT AT MAX
@@ -417,6 +423,8 @@ class MainWindow(QWidget):
             self.runningContainers[container_id] = {"host": host, "container": container}
             self.hostContainerCounts[host] = self.hostContainerCounts.get(host, 0) + 1
             
+            self.addHostToContainerForController(host, container)
+            
 
         self.updateMonitor()
         self.updateHostDropdown()
@@ -443,7 +451,7 @@ class MainWindow(QWidget):
     def confirmDependency(self):
         self.dependenciesConfirmed = True
         print("raw dependencies", self.containerDependencies)
-       
+
         updated_dependencies = {} #FILL UP COPY OTHERWISE "DICTIONARY CHANGED SIZE WHILE ITERATING"
         updated_dependencies = self.containerDependencies.copy()
     
@@ -451,11 +459,47 @@ class MainWindow(QWidget):
             for dependency in deps:
                 #if dependency not in updated_dependencies:
                 updated_dependencies[dependency] = set()
-                updated_dependencies[dependency].add(container)
-    
+                updated_dependencies[dependency].add(container)  
         self.containerDependencies = updated_dependencies
         print("updated dependencies", self.containerDependencies)
         self.updateEnables()
+        
+    def addHostToContainerForController(self, host, container):
+        url = 'http://10.0.2.15:9000/add-dependencies'
+        dependenciesList = []
+        response = self.nm.getHostMnObject(host)
+        dependenciesList.append(self.containerDependencies[container])
+
+        containerData = {
+            "host": host,
+            "host_mac": response["host_mac"],
+            "dpid": response["dpid"],
+            # "port": response["port"],
+            "container_name": container,
+            "dependencies": dependenciesList
+        }
+        
+        print("container data:", containerData)
+        self.containersOnHost.append(containerData)
+
+        serializable_containers = [str(container) for container in self.containersOnHost]
+        
+        response = requests.post(url, json=serializable_containers)
+
+        if response.status_code != 200:
+            print(f"Failed to send dependency data to controller")
+        return
+    
+    def removeDependenciesFromController(self, containers):
+        url = 'http://10.0.2.15:9000/delete-dependencies'
+        if isinstance(containers, str):
+            response = requests.post(url, json=[containers])
+        else:
+            serializable_containers = [str(container) for container in containers]
+            response = requests.post(url, json=serializable_containers)
+        if response.status_code != 200:
+            print(f"Failed to send dependency data to controller")
+        return
 
 def main():
     app = QApplication(sys.argv)
