@@ -3,12 +3,11 @@ import os
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QSpinBox, QGridLayout, QLabel, QPushButton, QVBoxLayout,
     QGroupBox, QComboBox, QScrollArea, QFrame, QHBoxLayout, QDialog, QListWidget,
-    QListWidgetItem, QCheckBox,QDoubleSpinBox
+    QListWidgetItem,QDoubleSpinBox
 )
 from PyQt5.QtCore import Qt
 from network import NetworkManager
 import random
-import time
 
 class MainWindow(QWidget):
     def __init__(self):

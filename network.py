@@ -1,15 +1,11 @@
-from mininet.topo import Topo
-from mininet.net import Mininet
-from mininet.node import RemoteController
 import socket
 import subprocess
-import sys
 import os
 import time
 
 def kill_previous_instances():
     try:
-        subprocess.run(['pkill', '-f', 'topology_generator.py'], stderr=subprocess.DEVNULL) #any running xterm processes
+        subprocess.run(['pkill', '-f', 'topology/main.py'], stderr=subprocess.DEVNULL) #any running xterm processes
         subprocess.run(['sudo', 'mn', '-c'], stderr=subprocess.DEVNULL) #any running mininet
         #subprocess.run(['pkill', '-f', 'python.*topology_generator'], stderr=subprocess.DEVNULL)
         subprocess.run(['sudo', 'pkill', '-f', 'ryu-manager'], stderr=subprocess.DEVNULL)#any ryu-manager processes
@@ -32,14 +28,14 @@ class NetworkManager:
             "-hold",
             "-e",
             "ryu-manager",
-            "simple_switch_stp_13.py"
+            "controller/controller.py"
         ]
         self.controller_process = subprocess.Popen(cmd)
         print("Ryu controller started in xterm successfully")
 
     def start_network_process(self, num_switches, num_hosts, links_prob):
         kill_previous_instances()
-        script_path = os.path.join(os.path.dirname(__file__), "topology_generator.py")
+        script_path = os.path.join(os.path.dirname(__file__), "topology/main.py")
         # Use a list for the command arguments instead of shell=True
         cmd = [
             'xterm',
