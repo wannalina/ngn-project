@@ -1,18 +1,7 @@
-# Copyright (C) 2016 Nippon Telegraph and Telephone Corporation.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-# implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+''' THIS CONTROLLER IMPLEMENTATION USES THE simple_switch_stp_13.py 
+EXAMPLE AS A BASE FOR OUR OWN IMPLEMENTATION '''
 
+# import ryu libraries
 from ryu.base import app_manager
 from ryu.controller import ofp_event
 from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER
@@ -22,18 +11,28 @@ from ryu.lib import dpid as dpid_lib
 from ryu.lib import stplib
 from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
-from ryu.app import simple_switch_13
+
+# import other libraries (logging etc)
+import json
+import os
+from datetime import datetime
 
 
-class SimpleSwitch13(simple_switch_13.SimpleSwitch13):
-    OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
+class SDNController(app_manager.RyuApp):
+    OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]   # use OpenFlow 1.3
     _CONTEXTS = {'stplib': stplib.Stp}
 
+    # initialize SDN controller
     def __init__(self, *args, **kwargs):
-        super(SimpleSwitch13, self).__init__(*args, **kwargs)
+        super(SDNController, self).__init__(*args, **kwargs)
         self.mac_to_port = {}
         self.stp = kwargs['stplib']
+        
+        # packet logging
+        self.log_dir = "packet_logs"
+        os.makedirs(self.log_dir, exist_ok=True)
 
+        #TODO: check this and modify
         # Sample of stplib config.
         #  please refer to stplib.Stp.set_config() for details.
         config = {dpid_lib.str_to_dpid('0000000000000001'):
@@ -44,7 +43,24 @@ class SimpleSwitch13(simple_switch_13.SimpleSwitch13):
                   {'bridge': {'priority': 0xa000}}}
         self.stp.set_config(config)
 
-    def delete_flow(self, datapath):
+    # function to log packet events and save logs in json file
+    def log_packets(self, dpid, src, dst, in_port, action, pkt_type='unknown'):
+        log_entry = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "dpid": dpid,
+            "src": src,
+            "dst": dst,
+            "in_port": in_port,
+            "action": action,
+            "packet_type": pkt_type
+        }
+        log_file = os.path.join(self.log_dir, "packet_events.json")
+        with open(log_file, "a") as f:
+            json.dump(log_entry, f)
+            f.write("\n")
+
+    #TODO: function to remove flows based on match
+    def delete_flow(self, datapath, match):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
@@ -56,6 +72,7 @@ class SimpleSwitch13(simple_switch_13.SimpleSwitch13):
                 priority=1, match=match)
             datapath.send_msg(mod)
 
+    # function to handle packets that do not match existing flows
     @set_ev_cls(stplib.EventPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
         msg = ev.msg
@@ -64,38 +81,61 @@ class SimpleSwitch13(simple_switch_13.SimpleSwitch13):
         parser = datapath.ofproto_parser
         in_port = msg.match['in_port']
 
+        # parse eth header
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
-
         dst = eth.dst
         src = eth.src
-
         dpid = datapath.id
-        self.mac_to_port.setdefault(dpid, {})
 
         self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
 
-        # learn a mac address to avoid FLOOD next time.
+        # learn mac address to avoid FLOOD next time
+        self.mac_to_port.setdefault(dpid, {})
         self.mac_to_port[dpid][src] = in_port
 
+        # always allow ARP packets through
+        if eth.ethertype == 0x0806:
+            self.log_packets(dpid, src, dst, in_port, "allowed", "ARP")
+            self.logger.debug("Allowing ARP packet from %s to %s", src, dst)    # log allowed packet
+        else:
+            #! only allow communication between specified dependencies (else; drop by default)
+            allowed_dsts = self.allowedDependencies.get(src, [])
+            self.log_packets(dpid, src, dst, in_port, "dropped", "other")   # log dropped packet
+            if dst not in allowed_dsts:
+                self.logger.info("Blocking unauthorized traffic from %s to %s", src, dst)
+                return  # drop packet
+
+        # check if output port is known
         if dst in self.mac_to_port[dpid]:
             out_port = self.mac_to_port[dpid][dst]
         else:
-            out_port = ofproto.OFPP_FLOOD
+            # drop packet if no communication requirement specified
+            self.logger.info("Destination %s unknown on dpid %s. Dropping.", dst, dpid)
+            self.log_packets(dpid, src, dst, in_port, "dropped_unknown_dst", "other")   # log dropped packet
+            return
 
+        self.log_packet_event(dpid, src, dst, in_port, "allowed", "other")  # log allowed packet
         actions = [parser.OFPActionOutput(out_port)]
 
-        # install a flow to avoid packet_in next time
+        # add flow for allowed dependency (avoids packet_in occurring again)
         if out_port != ofproto.OFPP_FLOOD:
             match = parser.OFPMatch(in_port=in_port, eth_dst=dst)
             self.add_flow(datapath, 1, match, actions)
 
+        # extract packet data if no buffer ID
         data = None
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
             data = msg.data
 
-        out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
-                                  in_port=in_port, actions=actions, data=data)
+        # send data packet out
+        out = parser.OFPPacketOut(
+            datapath=datapath, 
+            buffer_id=msg.buffer_id,
+            in_port=in_port, 
+            actions=actions, 
+            data=data
+        )
         datapath.send_msg(out)
 
     @set_ev_cls(stplib.EventTopologyChange, MAIN_DISPATCHER)
