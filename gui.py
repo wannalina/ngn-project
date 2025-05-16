@@ -464,10 +464,10 @@ class MainWindow(QWidget):
 
     # function to send app communication requirements to controller
     def add_host_to_controller(self, host, container):
-        print("logged")
         url = 'http://localhost:9000/add-dependency'
         dependenciesList = []
         response = self.nm.get_host_mn_object(host)
+        print("response:", response)
         dependenciesList.append(self.containerDependencies[container])
 
         containerData = {

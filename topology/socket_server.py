@@ -8,6 +8,7 @@ What is this used for?
 # import libraries
 import socket
 import sys
+import json
 
 # class to expose TCP socket interface for managing containers on mininet hosts
 class SocketServer:
@@ -59,6 +60,28 @@ class SocketServer:
                 elif data == "GET_HOSTS":
                     host_names = " ".join([host.name for host in self.net.hosts])
                     conn.send(host_names.encode())
+
+                # get information about a specific host
+                elif data.startswith("GET_HOST_INFO"):
+                    _, host_name = data.split()
+                    host = self.net.get(host_name)
+                    if host:
+                        try:
+                            host_mac = host.MAC()
+                            dpid = host.connectionsTo(host)[0][0].dpid if host.connectionsTo(host) else "unknown"
+                            host_info = {
+                                "host_mac": host_mac,
+                                "dpid": dpid
+                            }
+                            response = json.dumps(host_info)
+                            conn.send(response.encode())
+                        except Exception as e:
+                            error_msg = json.dumps({"error": f"Failed to get host info: {e}"})
+                            conn.send(error_msg.encode())
+                    else:
+                        error_msg = json.dumps({"error": f"Host {host_name} not found"})
+                        conn.send(error_msg.encode())
+
 
             except Exception as e:
                 print(f"Error handling command: {e}")
