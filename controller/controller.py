@@ -307,7 +307,7 @@ class SDNController(app_manager.RyuApp):
                 return jsonify({"error": f"Error deleting dependency from controller: {e}"}), 500
 
         # start Flask server
-        app.run(host='10.0.2.15', port=9000, threaded=True, use_reloader=False)
+        app.run(host='0.0.0.0', port=9000, threaded=True, use_reloader=False)
 
     # function to launch flask app
     def start_flask_server(self):
