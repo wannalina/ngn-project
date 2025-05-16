@@ -41,6 +41,9 @@ class SDNController(app_manager.RyuApp):
         self.communication_reqs = set()     # application communication requirements/dependencies
         self.allowed_dependencies = {}      # mapping of allowed src - dest MAC pairs
 
+        # start flask server in background thread for api
+        self.start_flask_server()
+
         #TODO: check this and modify
         # Sample of stplib config.
         #  please refer to stplib.Stp.set_config() for details.
