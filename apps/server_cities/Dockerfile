@@ -1,6 +1,8 @@
 # specify docker version
 FROM python:3.9-slim
 
+RUN apt-get update && apt-get install -y jq curl
+
 # set env variables
 ENV DB_NAME=cities
 ENV DB_USER=postgres
@@ -22,4 +24,4 @@ RUN chmod +x /app/libs/register_apps.sh
 RUN pip install psycopg2-binary flask
 
 # run register_apps.sh and start server
-CMD bash -c "/app/libs/register_apps.sh && python3 server_cities.py"
+CMD bash -c "/app/scripts/register_apps.sh && python3 server_cities.py"

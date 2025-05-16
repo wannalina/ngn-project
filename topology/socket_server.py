@@ -71,7 +71,7 @@ class SocketServer:
         if host:
             print(f"Starting container {container_name} on host {host_name}")
             host.cmd(f'docker load -i {image_path}')
-            host.cmd(f'docker run -d --name {container_name}_{host_name} --net=host {container_name}')
+            host.cmd(f'docker run -d --name {container_name}_{host_name} --net=host -e CONTAINER_NAME={container_name}_{host_name} {container_name} {container_name}')
 
     # function to stop docker container (docker commands)
     def stop_container(self, host_name, container_name):

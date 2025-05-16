@@ -1,7 +1,7 @@
 FROM python:3.9-slim
 
 # install postgresql dependency
-RUN apt-get update && apt-get install -y postgresql
+RUN apt-get update && apt-get install -y postgresql jq curl
 
 # set env variables
 ENV DB_USER=postgres
@@ -33,4 +33,4 @@ COPY libs/register_apps.sh /app/libs/register_apps.sh
 RUN chmod +x /app/libs/register_apps.sh
 
 # start database, run application and regitser to controller
-CMD bash -c "service postgresql start && sleep 5 && python3 database_cities.py && /app/libs/register_apps.sh"
+CMD bash -c "service postgresql start && sleep 5 && python3 database_cities.py && /app/scripts/register_apps.sh"
