@@ -278,7 +278,6 @@ class MainWindow(QWidget):
 
     def updateMonitor(self):
         self.cleanMonitor()
-        print("UPDATE MONITOR")
         for container_id, data in self.runningContainers.items():
             container_frame = QFrame()
             container_frame.setFrameShape(QFrame.StyledPanel)
@@ -486,7 +485,12 @@ class MainWindow(QWidget):
         print("container data:", containerData)
         self.containers_on_host.append(containerData)
 
-        response = requests.post(url, json=self.containers_on_host)
+        serializable_containers = [
+            container.to_dict() if hasattr(container, 'to_dict') else container.__dict__
+            for container in self.containers_on_host
+        ]
+
+        response = requests.post(url, json=serializable_containers)
 
         if response.status_code != 200:
             print(f"Failed to send dependency data to controller")
@@ -499,8 +503,9 @@ class MainWindow(QWidget):
             print("container", containers)
             response = requests.post(url, json=[containers])
         else:
-            print("containers", containers)
-            response = requests.post(url, json=containers)
+            serializable_containers = [container for container in containers]
+            print("containers", serializable_containers)
+            response = requests.post(url, json=serializable_containers)
         if response.status_code != 200:
             print(f"Failed to send dependency data to controller")
         return
