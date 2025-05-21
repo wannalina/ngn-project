@@ -486,9 +486,7 @@ class MainWindow(QWidget):
         print("container data:", containerData)
         self.containers_on_host.append(containerData)
 
-        serializable_containers = [str(container) for container in self.containers_on_host]
-        
-        response = requests.post(url, json=serializable_containers)
+        response = requests.post(url, json=self.containers_on_host)
 
         if response.status_code != 200:
             print(f"Failed to send dependency data to controller")
@@ -501,9 +499,8 @@ class MainWindow(QWidget):
             print("container", containers)
             response = requests.post(url, json=[containers])
         else:
-            serializable_containers = [container for container in containers]
-            print("containers", serializable_containers)
-            response = requests.post(url, json=serializable_containers)
+            print("containers", containers)
+            response = requests.post(url, json=containers)
         if response.status_code != 200:
             print(f"Failed to send dependency data to controller")
         return
