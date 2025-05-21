@@ -275,11 +275,11 @@ class SDNController(app_manager.RyuApp):
         def add_dependency_route():
             try:
                 request_body = request.json
-                print("request body:", request_body)
                 # check if valid format
                 if isinstance(request_body, list):
                     
                     for container in request_body:
+                        print("hello??:", container['host'], container['host_mac'])
                         self.allowed_dependencies.append(
                             {
                                 "host": container['host'],
