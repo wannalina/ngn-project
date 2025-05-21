@@ -467,6 +467,7 @@ class MainWindow(QWidget):
 
     # function to send app communication requirements to controller
     def add_host_to_controller(self, host, container):
+        #TODO: add if multiple dependencies
         url = 'http://localhost:9000/add-dependency'
         dependenciesList = []
         response = self.nm.get_host_mn_object(host)
@@ -485,15 +486,7 @@ class MainWindow(QWidget):
         print("container data:", containerData)
         self.containers_on_host.append(containerData)
 
-        serializable_containers = [
-            container.to_dict() if hasattr(container, 'to_dict') else (
-                container if isinstance(container, dict) else vars(container)
-            )
-            for container in self.containers_on_host
-        ]
-
-
-        response = requests.post(url, json=serializable_containers)
+        response = requests.post(url, json=self.containers_on_host)
 
         if response.status_code != 200:
             print(f"Failed to send dependency data to controller")
