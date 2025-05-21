@@ -276,25 +276,21 @@ class SDNController(app_manager.RyuApp):
             try:
                 request_body = request.json
                 # check if valid format
-                if isinstance(request_body, list):
-                    
-                    for container in request_body:
-                        print("CONTAINER:", container)
-                        print("hello??:", container[0])
-                        self.allowed_dependencies.append(
-                            {
-                                "host": container['host'],
-                                "host_mac": container['host_mac'],
-                                "dpid": container['dpid'],
-                                # "port": container.port,
-                                "container_name": container['container_name'],
-                                "dependencies": container['dependencies']
-                            }
-                        )
-                    print("Updated allowed_dependencies:", self.allowed_dependencies)
-                    return jsonify({"message": "Dependencies added"}), 200
-
-                return jsonify({"message": "Dependencies received in invalid format"}), 400
+                for container in request_body:
+                    print("CONTAINER:", container)
+                    print("hello??:", container["container_name"])
+                    self.allowed_dependencies.append(
+                        {
+                            "host": container['host'],
+                            "host_mac": container['host_mac'],
+                            "dpid": container['dpid'],
+                            # "port": container.port,
+                            "container_name": container['container_name'],
+                            "dependencies": container['dependencies']
+                        }
+                    )
+                print("Updated allowed_dependencies:", self.allowed_dependencies)
+                return jsonify({"message": "Dependencies added"}), 200
             except Exception as e:
                 return jsonify({"error": f"Error adding communication requirement to controller: {e}"}), 500
 
