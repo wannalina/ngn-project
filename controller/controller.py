@@ -282,12 +282,12 @@ class SDNController(app_manager.RyuApp):
                         print("container in body:", container)
                     self.allowed_dependencies = [
                         {
-                            "host": container.host,
-                            "host_mac": container.host_mac,
-                            "dpid": container.dpid,
+                            "host": container['host'],
+                            "host_mac": container['host_mac'],
+                            "dpid": container['dpid'],
                             # "port": container.port,
-                            "container_name": container.container_name,
-                            "dependencies": container.dependencies
+                            "container_name": container['container_name'],
+                            "dependencies": container['dependencies']
                         }
                         for container in request_body
                     ]
