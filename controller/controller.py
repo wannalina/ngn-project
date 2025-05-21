@@ -278,7 +278,17 @@ class SDNController(app_manager.RyuApp):
                 print("request body:", request_body)
                 # check if valid format
                 if isinstance(request_body, list): 
-                    self.allowed_dependencies = request_body
+                    self.allowed_dependencies = [
+                        {
+                            "host": container.host,
+                            "host_mac": container.host_mac,
+                            "dpid": container.dpid,
+                            # "port": container.port,
+                            "container_name": container.container_name,
+                            "dependencies": container.dependencies
+                        }
+                        for container in request_body
+                    ]
                     print("Updated allowed_dependencies:", self.allowed_dependencies)
                     return jsonify({"message": "Dependencies added"}), 200
 

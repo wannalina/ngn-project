@@ -487,20 +487,9 @@ class MainWindow(QWidget):
         self.containers_on_host.append(containerData)
 
         # convert sets into serializable
-        safe_payload = []
-        for item in self.containers_on_host:
-            if isinstance(item, dict):
-                safe_item = {}
-                for k, v in item.items():
-                    if isinstance(v, set):
-                        safe_item[k] = list(v)
-                    else:
-                        safe_item[k] = v
-                safe_payload.append(safe_item)
-            else:
-                safe_payload.append(item)
-
-            response = requests.post(url, json=safe_payload)
+        serializable_containers = [str(container) for container in self.containers_on_host]
+        
+        response = requests.post(url, json=serializable_containers)
 
         if response.status_code != 200:
             print(f"Failed to send dependency data to controller")
