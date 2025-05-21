@@ -494,11 +494,12 @@ class MainWindow(QWidget):
     # function to remove app communication requirements from controller
     def remove_dependencies_from_controller(self, containers):
         url = 'http://localhost:9000/delete-dependencies'
-        print("log")
-        if isinstance(containers, str):
+        if isinstance(containers, dict):
+            print("container", containers)
             response = requests.post(url, json=[containers])
         else:
-            serializable_containers = [str(container) for container in containers]
+            serializable_containers = [for container in containers]
+            print("containers", serializable_containers)
             response = requests.post(url, json=serializable_containers)
         if response.status_code != 200:
             print(f"Failed to send dependency data to controller")
