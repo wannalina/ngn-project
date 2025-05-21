@@ -498,7 +498,7 @@ class MainWindow(QWidget):
             print("container", containers)
             response = requests.post(url, json=[containers])
         else:
-            serializable_containers = [for container in containers]
+            serializable_containers = [container for container in containers]
             print("containers", serializable_containers)
             response = requests.post(url, json=serializable_containers)
         if response.status_code != 200:
