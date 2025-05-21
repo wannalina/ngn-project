@@ -249,12 +249,14 @@ class MainWindow(QWidget):
                 self.containerDropdown.addItem(container)
 
     def startContainer(self):
+        print("START CONTAINER INITIATED")
         host = self.hostDropdown.currentText()
         container = self.containerDropdown.currentText()
         if not container: 
             return
         self.nm.start_container(host, container, self.availableContainers[container])
         container_id = f"{container}_{host}"
+        print("container id:", container_id)
         self.runningContainers[container_id] = {"host": host, "container": container}
         self.hostContainerCounts[host] = self.hostContainerCounts.get(host,0) + 1
 
@@ -276,6 +278,7 @@ class MainWindow(QWidget):
 
     def updateMonitor(self):
         self.cleanMonitor()
+        print("UPDATE MONITOR")
         for container_id, data in self.runningContainers.items():
             container_frame = QFrame()
             container_frame.setFrameShape(QFrame.StyledPanel)
