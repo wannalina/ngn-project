@@ -486,9 +486,12 @@ class MainWindow(QWidget):
         self.containers_on_host.append(containerData)
 
         serializable_containers = [
-            container.to_dict() if hasattr(container, 'to_dict') else container.__dict__
+            container.to_dict() if hasattr(container, 'to_dict') else (
+                container if isinstance(container, dict) else vars(container)
+            )
             for container in self.containers_on_host
         ]
+
 
         response = requests.post(url, json=serializable_containers)
 
