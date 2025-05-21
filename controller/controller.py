@@ -280,7 +280,7 @@ class SDNController(app_manager.RyuApp):
                     
                     for container in request_body:
                         print("CONTAINER:", container)
-                        print("hello??:", container['host'], container['host_mac'])
+                        print("hello??:", container[0], container['host_mac'])
                         self.allowed_dependencies.append(
                             {
                                 "host": container['host'],
