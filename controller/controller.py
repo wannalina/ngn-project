@@ -279,6 +279,7 @@ class SDNController(app_manager.RyuApp):
                 if isinstance(request_body, list):
                     
                     for container in request_body:
+                        print("CONTAINER:", container)
                         print("hello??:", container['host'], container['host_mac'])
                         self.allowed_dependencies.append(
                             {
