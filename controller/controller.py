@@ -278,6 +278,7 @@ class SDNController(app_manager.RyuApp):
                 print("request body:", request_body)
                 # check if valid format
                 if isinstance(request_body, list): 
+                    print("yes??")
                     self.allowed_dependencies = [
                         {
                             "host": container.host,
