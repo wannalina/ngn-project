@@ -200,6 +200,7 @@ class SDNController(app_manager.RyuApp):
             del self.mac_to_port[dp.id]     # remove mac-to-port mapping
 
         # add flows for allowed communication after flushing
+        print("!!allowed dependencies:",self.allowed_dependencies)
         for src, allowed_dsts in self.allowed_dependencies.items():
             for dst in allowed_dsts:
                 src_port = self.mac_to_port.get(dp.id, {}).get(src)
