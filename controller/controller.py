@@ -39,7 +39,7 @@ class SDNController(app_manager.RyuApp):
         self.net = nx.Graph()
         self.running_container_names = set()    # set of regitsered (running) container names
         self.communication_reqs = set()     # application communication requirements/dependencies
-        self.allowed_dependencies = {}      # mapping of allowed src - dest MAC pairs
+        self.allowed_dependencies = []      # mapping of allowed src - dest MAC pairs
 
         # start flask server in background thread for api
         self.start_flask_server()
@@ -276,19 +276,7 @@ class SDNController(app_manager.RyuApp):
             try:
                 request_body = request.json
                 # check if valid format
-                for container in request_body:
-                    print("CONTAINER:", container)
-                    print("hello??:", container["container_name"])
-                    self.allowed_dependencies.append(
-                        {
-                            "host": container['host'],
-                            "host_mac": container['host_mac'],
-                            "dpid": container['dpid'],
-                            # "port": container.port,
-                            "container_name": container['container_name'],
-                            "dependencies": container['dependencies']
-                        }
-                    )
+                self.allowed_dependencies = request_body
                 print("Updated allowed_dependencies:", self.allowed_dependencies)
                 return jsonify({"message": "Dependencies added"}), 200
             except Exception as e:
