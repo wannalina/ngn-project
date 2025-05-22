@@ -74,8 +74,8 @@ class SDNController(app_manager.RyuApp):
     # function to set communication requirements (dependencies) between applications
     def set_communication_reqs(self, dependencies):
         self.communication_reqs = dependencies
-    
-    '''
+
+
     def add_flow(self, datapath, priority, match, actions):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -86,7 +86,6 @@ class SDNController(app_manager.RyuApp):
             match=match, instructions=inst
         )
         datapath.send_msg(mod)
-    '''
 
 
     # function to remove flows based on matched dst MAC addresses
@@ -187,7 +186,7 @@ class SDNController(app_manager.RyuApp):
         datapath.send_msg(out)
 
     # function to handle topology change (switch/link failure/reconfig)
-    @set_ev_cls(stplib.EventTopologyChange, MAIN_DISPATCHER)
+    '''@set_ev_cls(stplib.EventTopologyChange, MAIN_DISPATCHER)
     def _topology_change_handler(self, ev):
         dp = ev.dp  # datapath where topology change happened
         dpid_str = dpid_lib.dpid_to_str(dp.id)
@@ -221,7 +220,7 @@ class SDNController(app_manager.RyuApp):
                         )
 
                         # re-add flow
-                        self.add_flow(dp, 1, match, actions)
+                        self.add_flow(dp, 1, match, actions)'''
 
     # function to handle port state changes and log new state of port on a switch
     @set_ev_cls(stplib.EventPortStateChange, MAIN_DISPATCHER)
