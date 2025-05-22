@@ -472,7 +472,7 @@ class MainWindow(QWidget):
         dependenciesList = []
         response = self.nm.get_host_mn_object(host)
         print("response:", response, list(self.containerDependencies[container])[0])
-        dependenciesList.append(list(self.containerDependencies[container]))
+        dependenciesList.append(list(self.containerDependencies[container])[0])
 
         containerData = {
             "host": host,
