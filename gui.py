@@ -471,7 +471,7 @@ class MainWindow(QWidget):
         url = 'http://localhost:9000/add-dependency'
         dependenciesList = []
         response = self.nm.get_host_mn_object(host)
-        print("response:", response, self.containerDependencies[container][0])
+        print("response:", response, list(self.containerDependencies[container])[0])
         dependenciesList.append(list(self.containerDependencies[container]))
 
         containerData = {
