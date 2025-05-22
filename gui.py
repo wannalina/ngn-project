@@ -472,7 +472,7 @@ class MainWindow(QWidget):
         dependenciesList = []
         response = self.nm.get_host_mn_object(host)
         print("response:", response)
-        dependenciesList.append(self.containerDependencies[container])
+        dependenciesList.append(list(self.containerDependencies[container]))
 
         containerData = {
             "host": host,
@@ -486,7 +486,7 @@ class MainWindow(QWidget):
         print("container data:", containerData)
         self.containers_on_host.append(containerData)
 
-        response = requests.post(url, json=json.dumps(self.containers_on_host))
+        response = requests.post(url, json=self.containers_on_host)
 
         if response.status_code != 200:
             print(f"Failed to send dependency data to controller")
