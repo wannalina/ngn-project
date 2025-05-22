@@ -1,3 +1,4 @@
+import json
 import sys
 import os
 from PyQt5.QtWidgets import (
@@ -484,10 +485,8 @@ class MainWindow(QWidget):
 
         print("container data:", containerData)
         self.containers_on_host.append(containerData)
-        
-        serializable_containers = [container for container in self.containers_on_host]
 
-        response = requests.post(url, json=serializable_containers)
+        response = requests.post(url, json=json.dumps(self.containers_on_host))
 
         if response.status_code != 200:
             print(f"Failed to send dependency data to controller")
