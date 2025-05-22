@@ -201,26 +201,27 @@ class SDNController(app_manager.RyuApp):
 
         # add flows for allowed communication after flushing
         print("!!allowed dependencies:",self.allowed_dependencies)
-        for src, allowed_dsts in self.allowed_dependencies:
-            for dst in allowed_dsts:
-                src_port = self.mac_to_port.get(dp.id, {}).get(src)
-                dst_port = self.mac_to_port.get(dp.id, {}).get(dst)
-                if src_port and dst_port:
-                    match = dp.ofproto_parser.OFPMatch(in_port=src_port, eth_dst=dst)
-                    actions = [dp.ofproto_parser.OFPActionOutput(dst_port)]
+        for dependency in self.allowed_dependencies:
+            for src, allowed_dsts in dependency:
+                for dst in allowed_dsts:
+                    src_port = self.mac_to_port.get(dp.id, {}).get(src)
+                    dst_port = self.mac_to_port.get(dp.id, {}).get(dst)
+                    if src_port and dst_port:
+                        match = dp.ofproto_parser.OFPMatch(in_port=src_port, eth_dst=dst)
+                        actions = [dp.ofproto_parser.OFPActionOutput(dst_port)]
 
-                    # log addition of flow
-                    self.log_packets(
-                        dpid=dp.id,
-                        src=src,
-                        dst=dst,
-                        in_port=src_port,
-                        action="flow_reinstalled_after_topology_change",
-                        packet_type="policy"
-                    )
+                        # log addition of flow
+                        self.log_packets(
+                            dpid=dp.id,
+                            src=src,
+                            dst=dst,
+                            in_port=src_port,
+                            action="flow_reinstalled_after_topology_change",
+                            packet_type="policy"
+                        )
 
-                    # re-add flow
-                    self.add_flow(dp, 1, match, actions)
+                        # re-add flow
+                        self.add_flow(dp, 1, match, actions)
 
     # function to handle port state changes and log new state of port on a switch
     @set_ev_cls(stplib.EventPortStateChange, MAIN_DISPATCHER)
