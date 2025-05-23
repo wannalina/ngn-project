@@ -515,13 +515,13 @@ class MainWindow(QWidget):
     def get_communication_reqs(self, container):
         communication_reqs = []
         try: 
+            print("running containers:", self.runningContainers)
             # iterate over all communication requirements (dependencies) for container
             for req in self.containerDependencies[container]:
                 # if application is already running, get host and append to add flow
                 if req in self.runningContainers:
                     container_host = req['host']
                     communication_reqs.append(container_host)
-            print("requirements:", communication_reqs)
             return communication_reqs
         except Exception as e:
             print(f'Error getting communication requirements.')
@@ -530,8 +530,8 @@ class MainWindow(QWidget):
     # function to separate host and container name from container identifier
     def get_host_from_container_name(self, container):
         try:
-            container_name, host = container.rsplit('_', 2)
-            return host, container_name
+            identifier_split = container.rsplit('_', 1)
+            return identifier_split[1], identifier_split[0]
         except ValueError:
             print(f"Invalid container id format: {container}")
             return None, None

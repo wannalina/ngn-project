@@ -176,9 +176,9 @@ class SDNControllerAPI(ControllerBase):
             # Access the main controller instance
             self.controller.hosts = request_body
 
-            return {"message": 'Hosts list saved in controller successfully.'}, 200
+            return {"message": 'Hosts list saved in controller successfully.'}
         except Exception as e:
-            return {"error": f'Error saving hosts in controller: {e}'}, 500
+            return {"error": f'Error saving hosts in controller: {e}'}
 
     @route('add-flows', '/add-flow', methods=['POST'])
     def add_communication_reqs(self, req, **kwargs):
@@ -187,6 +187,6 @@ class SDNControllerAPI(ControllerBase):
             print("Request:", request_body)
 
             self.controller.allowed_communication.append(request_body)
-            return {"message": "Flows added to controller successfully."}, 200
+            return {"message": "Flows added to controller successfully."}
         except Exception as e:
-            return {"error": f'Error adding flows to controller.'}, 500
+            return {"error": f'Error adding flows to controller.'}
