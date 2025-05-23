@@ -513,7 +513,7 @@ class MainWindow(QWidget):
 
     # function to send list of active hosts to controller
     def add_hosts_to_controller(self):
-        url = 'http://localhost:9000/post-hosts'
+        url = 'http://localhost:8080/post-hosts'
         try: 
             print('Sending list of active hosts to controller...')
             response, status_code = request.post(url, json=self.hosts_list)
