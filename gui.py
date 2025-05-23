@@ -264,7 +264,7 @@ class MainWindow(QWidget):
         self.runningContainers[container_id] = {"host": host, "container": container}
         self.hostContainerCounts[host] = self.hostContainerCounts.get(host,0) + 1
 
-        self.add_host_to_controller(host, container)
+        self.add_allowed_communication(container)
         self.updateContainerDropdown()
         self.updateHostDropdown()
         self.updateMonitor()
@@ -428,7 +428,7 @@ class MainWindow(QWidget):
             self.runningContainers[container_id] = {"host": host, "container": container}
             self.hostContainerCounts[host] = self.hostContainerCounts.get(host, 0) + 1
 
-            self.add_host_to_controller(host, container)
+            self.add_allowed_communication(container)
 
         self.updateMonitor()
         self.updateHostDropdown()
@@ -511,6 +511,31 @@ class MainWindow(QWidget):
         return
     '''
 
+    # function to get communication requirements between hosts with paired apps
+    def get_communication_reqs(self, container):
+        communication_reqs = []
+        try: 
+            # iterate over all communication requirements (dependencies) for container
+            for req in self.containerDependencies[container]:
+                # if application is already running, get host and append to add flow
+                if req in self.runningContainers:
+                    container_host = req['host']
+                    communication_reqs.append(container_host)
+            print("requirements:", communication_reqs)
+            return communication_reqs
+        except Exception as e:
+            print(f'Error getting communication requirements.')
+            return None
+
+    # function to separate host and container name from container identifier
+    def get_host_from_container_name(self, container):
+        try:
+            container_name, host = container.rsplit('_', 1)
+            return host, container_name
+        except ValueError:
+            print(f"Invalid container id format: {container}")
+            return None, None
+
     # function to send list of active hosts to controller
     def add_hosts_to_controller(self):
         url = 'http://0.0.0.0:8080/post-hosts'
@@ -522,6 +547,25 @@ class MainWindow(QWidget):
             print("Hosts sent to controller successfully.")
         except Exception as e:
             print(f'Error sending hosts data to controller: {e}')
+
+    # function to send allowed communication rules to controller
+    def add_allowed_communication(self, container):
+        url = 'http://0.0.0.0:8080/add-flow'
+        try: 
+            # get hosts to add flows
+            communication_reqs = self.get_communication_reqs(container)
+            print("Adding flow between hosts...")
+            host, container_name = self.get_host_from_container_name(container)
+            
+            hosts_communication = {
+                "host": host,
+                "dependencies": communication_reqs
+            }
+            print("REQUEST:", hosts_communication)
+            response = requests.post(url, json=hosts_communication)            
+            print("Allowed host communication sent to controller successfully.")
+        except Exception as e: 
+            print(f'Error sending allowed communication to controller: {e}')
 
 def main():
     app = QApplication(sys.argv)

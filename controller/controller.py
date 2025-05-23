@@ -30,6 +30,7 @@ class SDNController(app_manager.RyuApp):
         self.wsgi = kwargs['wsgi']
         self.wsgi.register(SDNControllerAPI, {'sdn_controller': self})
         self.hosts = []     # network hosts list
+        self.allowed_communication = [] # allowed communication between hosts
 
         #??
         config = {dpid_lib.str_to_dpid('0000000000000001'):
@@ -77,38 +78,61 @@ class SDNController(app_manager.RyuApp):
         parser = datapath.ofproto_parser
         in_port = msg.match['in_port']
 
+        # parse the header
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
-
         dst = eth.dst
         src = eth.src
-
         dpid = datapath.id
-        self.mac_to_port.setdefault(dpid, {})
 
         self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
 
-        # learn a mac address to avoid FLOOD next time.
+        # learn mac address to avoid FLOOD next time
+        self.mac_to_port.setdefault(dpid, {})
         self.mac_to_port[dpid][src] = in_port
 
+        # always allow ARP packets through
+        if eth.ethertype == 0x0806:
+            self.log_packets(dpid, src, dst, in_port, "allowed", "ARP")
+            self.logger.debug("Allowing ARP packet from %s to %s", src, dst)    # log allowed packet
+        else:
+            #! only allow communication between specified hosts; else drop by default
+            allowed_dsts = self.allowed_dependencies.get(src, [])
+            self.log_packets(dpid, src, dst, in_port, "dropped", "other")   # log dropped packet
+            if dst not in allowed_dsts:
+                self.logger.info("Blocking unauthorized traffic from %s to %s", src, dst)
+                return  # drop packet
+
+        # check if output port is known
         if dst in self.mac_to_port[dpid]:
             out_port = self.mac_to_port[dpid][dst]
         else:
-            out_port = ofproto.OFPP_FLOOD
+            # drop packet if no communication requirement specified
+            self.logger.info("Destination %s unknown on dpid %s. Dropping.", dst, dpid)
+            self.log_packets(dpid, src, dst, in_port, "dropped_unknown_dst", "other")   # log dropped packet
+            return
 
+        self.log_packets(dpid, src, dst, in_port, "allowed", "other")  # log allowed packet
         actions = [parser.OFPActionOutput(out_port)]
 
-        # install a flow to avoid packet_in next time
+        #! add flow for allowed dependency (avoids packet_in occurring again)
         if out_port != ofproto.OFPP_FLOOD:
             match = parser.OFPMatch(in_port=in_port, eth_dst=dst)
             self.add_flow(datapath, 1, match, actions)
 
+        # extract packet data if no buffer ID
         data = None
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
             data = msg.data
 
-        out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
-                                in_port=in_port, actions=actions, data=data)
+        # send data packet out
+        out = parser.OFPPacketOut(
+            datapath=datapath, 
+            buffer_id=msg.buffer_id,
+            in_port=in_port, 
+            actions=actions, 
+            data=data
+        )
         datapath.send_msg(out)
 
     # function to loisten to/handle topology change
@@ -118,8 +142,6 @@ class SDNController(app_manager.RyuApp):
         dpid_str = dpid_lib.dpid_to_str(dp.id)
         msg = 'Receive topology change event. Flush MAC table.'
         self.logger.debug("[dpid=%s] %s", dpid_str, msg)
-        
-        print("hosts list:", self.hosts)
 
         if dp.id in self.mac_to_port:
             self.delete_flow(dp)
@@ -158,62 +180,13 @@ class SDNControllerAPI(ControllerBase):
         except Exception as e:
             return {"error": f'Error saving hosts in controller: {e}'}, 500
 
-    '''
-    # function to run flask app and define routes
-    def run_flask_app(self):
-        app = Flask(__name__)
+    @route('add-flows', '/add-flow', methods=['POST'])
+    def add_communication_reqs(self, req, **kwargs):
+        try:
+            request_body = json.loads(req.body.decode('utf-8')) if req.body else {}
+            print("Request:", request_body)
 
-        # base route to test controller
-        @app.route('/', methods=['GET'])
-        def default_route():
-            return "Controller is running!"
-
-        # route to save hosts list in controller upon network startup
-        @app.route('/post-hosts', methods=['POST'])
-        def add_hosts_to_controller():
-            try: 
-                request_body = request.json
-                print("Request:", request_body)
-                self.hosts = request_body
-                return jsonify({'message': 'Hosts list saved in controller successfully.'}), 200
-            except Exception as e:
-                return jsonify({'error': 'Error saving hosts in controller.'}), 500
-
-        # route to register application to controller
-        @app.route('/register', methods=['POST'])
-        def register_container_route():
-            try:
-                #TODO: implement
-                return jsonify({"message": "Application registered to controller successfully!"}), 200
-            except Exception as e:
-                return jsonify({"error": f"Error registering container to controller: {e}"}), 500
-
-        # route to add flow to controller
-        @app.route('/add-flow', methods=['POST'])
-        def add_dependency_route():
-            try:
-                request_body = request.json
-                #TODO: implement
-                return jsonify({"message": "Flow added to controller successfully."}), 200
-            except Exception as e:
-                return jsonify({"error": f"Error adding flow to controller: {e}"}), 500
-
-        # route to remove allowed communication requirements
-        @app.route('/delete-dependency', methods=['POST'])
-        def remove_dependency_route():
-            try:
-                request_body = request.json
-                #TODO: implement
-                return jsonify({'message': 'Flow deleted from controller successfully.'}), 200
-            except Exception as e:
-                return jsonify({"error": f"Error removing flow from controller: {e}"}), 500
-
-        # start Flask server
-        app.run(host='0.0.0.0', port=9000, threaded=True, use_reloader=False)
-
-    # function to launch flask app
-    def start_flask_server(self):
-        server_thread = threading.Thread(target=self.run_flask_app)
-        server_thread.daemon = True
-        server_thread.start()
-    '''
+            self.controller.allowed_communication.append(request_body)
+            return {"message": "Flows added to controller successfully."}, 200
+        except Exception as e:
+            return {"error": f'Error adding flows to controller.'}, 500
