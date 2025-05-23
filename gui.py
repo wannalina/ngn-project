@@ -515,7 +515,7 @@ class MainWindow(QWidget):
     def add_hosts_to_controller(self):
         url = 'http://0.0.0.0:8080/post-hosts'
         try: 
-            time.sleep(5)   # wait for controller to start
+            time.sleep(10)   # wait for controller to start
             print('Sending list of active hosts to controller...')
             response, status_code = request.post(url, json=self.hosts_list)
             if status_code == 200:
