@@ -1,6 +1,8 @@
 import json
 import sys
 import os
+
+from flask import request
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QSpinBox, QGridLayout, QLabel, QPushButton, QVBoxLayout,
     QGroupBox, QComboBox, QScrollArea, QFrame, QHBoxLayout, QDialog, QListWidget,
@@ -178,7 +180,7 @@ class MainWindow(QWidget):
         self.nm.start_network_process(*params)
         self.host_list = self.nm.get_hosts()
         self.nm.start_controller()
-        
+        self.add_hosts_to_controller()  # send list of active hosts to controller
 
     #ON THE FLY ADDS 
         self.updateEnables()
@@ -466,6 +468,7 @@ class MainWindow(QWidget):
         print("updated dependencies", self.containerDependencies)
         self.updateEnables()
 
+    '''
     # function to send app communication requirements to controller
     def add_host_to_controller(self, host, container):
         url = 'http://localhost:9000/add-dependency'
@@ -505,6 +508,18 @@ class MainWindow(QWidget):
         if response.status_code != 200:
             print(f"Failed to send dependency data to controller")
         return
+    '''
+
+    # function to send list of active hosts to controller
+    def add_hosts_to_controller(self):
+        url = 'http://localhost:9000/post-hosts'
+        try: 
+            print('Sending list of active hosts to controller...')
+            response, status_code = request.post(url, json=self.hosts_list)
+            if status_code == 200:
+                print("Hosts sent to controller successfully.")
+        except Exception as e:
+            print(f'Error sending hosts data to controller.')
 
 def main():
     app = QApplication(sys.argv)
