@@ -28,7 +28,7 @@ class SDNController(app_manager.RyuApp):
         self.mac_to_port = {}
         self.stp = kwargs['stplib']
         self.wsgi = kwargs['wsgi']
-        self.wsgi.register(SDNControllerAPI, {'sdn_controller_api': self})
+        self.wsgi.register(SDNControllerAPI, {'sdn_controller': self})
         self.hosts = []     # network hosts list
 
         #??
@@ -139,18 +139,20 @@ class SDNController(app_manager.RyuApp):
 
 
 # class to handle API calls for flow adding/removal
-class SDNControllerAPI(SDNController):
+class SDNControllerAPI(ControllerBase):
     def __init__(self, req, link, data, **config):
         super(SDNControllerAPI, self).__init__(req, link, data, **config)
-        self.controller = data['sdn_controller_api']
+        self.controller = data['sdn_controller']
 
     # route to save hosts list in controller
     @route('post-hosts', '/post-hosts', methods=['POST'])
     def post_hosts_list(self, req, **kwargs):
         try: 
-            request_body = req.json
+            request_body = req.json if req.body else {}
             print("Request:", request_body)
-            self.hosts = request_body
+
+            # Access the main controller instance
+            self.controller.hosts = request_body
 
             return {"message": 'Hosts list saved in controller successfully.'}, 200
         except Exception as e:
