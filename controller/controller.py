@@ -118,6 +118,8 @@ class SDNController(app_manager.RyuApp):
         dpid_str = dpid_lib.dpid_to_str(dp.id)
         msg = 'Receive topology change event. Flush MAC table.'
         self.logger.debug("[dpid=%s] %s", dpid_str, msg)
+        
+        print("hosts list:", self.hosts)
 
         if dp.id in self.mac_to_port:
             self.delete_flow(dp)
