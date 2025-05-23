@@ -10,10 +10,12 @@ from ryu.lib import dpid as dpid_lib
 from ryu.lib import stplib
 from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
+from ryu.app.wsgi import ControllerBase, route
 
 # import other libraries (logging, etc)
-from flask import Flask, request, jsonify
 import threading
+from webob import Response
+import json
 
 # class to define/handle controller functions
 class SDNController(app_manager.RyuApp):
@@ -26,7 +28,6 @@ class SDNController(app_manager.RyuApp):
         self.mac_to_port = {}
         self.stp = kwargs['stplib']
         self.wsgi = kwargs['wsgi']
-        #??
         self.wsgi.register(SDNControllerAPI, {'sdn_controller_api': self})
         self.hosts = []     # network hosts list
 
@@ -135,13 +136,28 @@ class SDNController(app_manager.RyuApp):
                         dpid_str, ev.port_no, of_state[ev.port_state])
 
 
-# class to handle API calls for flow adding/removal (flask app)
+# class to handle API calls for flow adding/removal
 class SDNControllerAPI(SDNController):
     def __init__(self, req, link, data, **config):
         super(SDNControllerAPI, self).__init__(req, link, data, **config)
-        self.sdn_controller = data['sdn_controller_api']
+        self.controller = data['sdn_controller_api']
 
-    
+    # route to save hosts list in controller
+    @route('post-hosts', '/post-hosts', methods=['POST'])
+    def post_hosts_list(self, req, **kwargs):
+        try: 
+            request_body = json.dumps({'hosts': self.controller.hosts})
+            print("Request:", request_body)
+            self.hosts = request_body
+
+            res_body = json.dumps({'message': 'Hosts list saved in controller successfully.'})
+            return Response(content_type='application/json', body=res_body, status=200)
+
+        except Exception as e:
+            res_body = 'Error saving hosts in controller.'
+            return Response(content_type='application/json', body=res_body, status=500)
+
+    '''
     # function to run flask app and define routes
     def run_flask_app(self):
         app = Flask(__name__)
@@ -199,4 +215,4 @@ class SDNControllerAPI(SDNController):
         server_thread = threading.Thread(target=self.run_flask_app)
         server_thread.daemon = True
         server_thread.start()
-
+    '''
