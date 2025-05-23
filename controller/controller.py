@@ -148,16 +148,13 @@ class SDNControllerAPI(SDNController):
     @route('post-hosts', '/post-hosts', methods=['POST'])
     def post_hosts_list(self, req, **kwargs):
         try: 
-            request_body = json.dumps({'hosts': self.controller.hosts})
+            request_body = req.json
             print("Request:", request_body)
             self.hosts = request_body
 
-            res_body = json.dumps({'message': 'Hosts list saved in controller successfully.'})
-            return Response(content_type='application/json', body=res_body, status=200)
-
+            return {"message": 'Hosts list saved in controller successfully.'}, 200
         except Exception as e:
-            res_body = 'Error saving hosts in controller.'
-            return Response(content_type='application/json', body=res_body, status=500)
+            return {"error": f'Error saving hosts in controller: {e}'}, 500
 
     '''
     # function to run flask app and define routes

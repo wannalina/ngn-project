@@ -521,7 +521,7 @@ class MainWindow(QWidget):
             if status_code == 200:
                 print("Hosts sent to controller successfully.")
         except Exception as e:
-            print(f'Error sending hosts data to controller.')
+            print(f'Error sending hosts data to controller: {e}')
 
 def main():
     app = QApplication(sys.argv)
