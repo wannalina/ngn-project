@@ -14,7 +14,7 @@ import random
 import requests
 
 class MainWindow(QWidget):
-    async def __init__(self):
+    def __init__(self):
         super().__init__()
         self.nm = NetworkManager()
         self.availableContainers = {}  # name (key) + directory
@@ -25,7 +25,6 @@ class MainWindow(QWidget):
         self.isRunning=False
         self.dependenciesConfirmed=False
         self.host_list=[]
-        await self.initUI()
 
     async def initUI(self):
         self.setWindowTitle("CONTAINER DEPLOYMENT")
@@ -522,9 +521,10 @@ class MainWindow(QWidget):
         except Exception as e:
             print(f'Error sending hosts data to controller.')
 
-def main():
+async def main():
     app = QApplication(sys.argv)
     window = MainWindow()
+    await window.initUI()
     window.show()
     sys.exit(app.exec_())
 
