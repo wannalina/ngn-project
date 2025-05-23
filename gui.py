@@ -180,15 +180,16 @@ class MainWindow(QWidget):
         self.nm.start_network_process(*params)
         self.host_list = self.nm.get_hosts()
         self.nm.start_controller()
-        self.add_hosts_to_controller()  # send list of active hosts to controller
 
-    #ON THE FLY ADDS 
+    #
         self.updateEnables()
+        self.add_hosts_to_controller()  # send list of active hosts to controller
         self.findContainers()
         self.updateContainerDropdown()
         self.updateHostDropdown()
         self.checkAutoDeploy()
-    #############
+
+
     def stop_clicked(self):
             print("STOP button clicked")
             self.isRunning=False
