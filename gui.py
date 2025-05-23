@@ -256,7 +256,6 @@ class MainWindow(QWidget):
         print("START CONTAINER INITIATED")
         host = self.hostDropdown.currentText()
         container = self.containerDropdown.currentText()
-        print("AVAILABLE CONTAINERS:", container, self.availableContainers)
         if not container: 
             return
         self.nm.start_container(host, container, self.availableContainers[container])
@@ -519,6 +518,7 @@ class MainWindow(QWidget):
             print("deps: ", self.containerDependencies)
             # iterate over all communication requirements (dependencies) for container
             for req in self.containerDependencies[container]:
+                print("REQ", req)
                 # if application is already running, get host and append to add flow
                 if req in self.runningContainers:
                     container_host = req['host']
