@@ -14,7 +14,7 @@ import random
 import requests
 
 class MainWindow(QWidget):
-    def __init__(self):
+    async def __init__(self):
         super().__init__()
         self.nm = NetworkManager()
         self.availableContainers = {}  # name (key) + directory
@@ -25,7 +25,7 @@ class MainWindow(QWidget):
         self.isRunning=False
         self.dependenciesConfirmed=False
         self.host_list=[]
-        self.initUI()
+        await self.initUI()
 
     async def initUI(self):
         self.setWindowTitle("CONTAINER DEPLOYMENT")
