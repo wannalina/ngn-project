@@ -183,11 +183,12 @@ class MainWindow(QWidget):
 
     #
         self.updateEnables()
-        self.add_hosts_to_controller()  # send list of active hosts to controller
         self.findContainers()
         self.updateContainerDropdown()
         self.updateHostDropdown()
         self.checkAutoDeploy()
+
+        self.add_hosts_to_controller()  # send list of active hosts to controller
 
 
     def stop_clicked(self):
