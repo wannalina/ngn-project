@@ -148,7 +148,7 @@ class SDNControllerAPI(ControllerBase):
     @route('post-hosts', '/post-hosts', methods=['POST'])
     def post_hosts_list(self, req, **kwargs):
         try: 
-            request_body = req.json if req.body else {}
+            request_body = json.loads(req.body.decode('utf-8')) if req.body else {}
             print("Request:", request_body)
 
             # Access the main controller instance
