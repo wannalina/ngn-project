@@ -256,11 +256,11 @@ class MainWindow(QWidget):
         print("START CONTAINER INITIATED")
         host = self.hostDropdown.currentText()
         container = self.containerDropdown.currentText()
+        print("AVAILABLE CONTAINERS:", container, self.availableContainers)
         if not container: 
             return
         self.nm.start_container(host, container, self.availableContainers[container])
         container_id = f"{container}_{host}"
-        print("container id:", container_id)
         self.runningContainers[container_id] = {"host": host, "container": container}
         self.hostContainerCounts[host] = self.hostContainerCounts.get(host,0) + 1
 
@@ -324,7 +324,7 @@ class MainWindow(QWidget):
         layout.addWidget(label)
 
         container_list = QListWidget()
-       #FETCH ALL CONTAINERS
+        #FETCH ALL CONTAINERS
         all_containers = set(self.availableContainers.keys())
         for container in all_containers:
             container_list.addItem(container)
@@ -416,7 +416,7 @@ class MainWindow(QWidget):
         #RANDOM DEPLOYMENT
         for container in available_containers: 
             valid_hosts = [h for h in available_hosts #list comprehension
-                          if self.hostContainerCounts.get(h,0) < max_containers]
+                        if self.hostContainerCounts.get(h,0) < max_containers]
         
             if not valid_hosts:
                 print("All hosts at max capacity")
