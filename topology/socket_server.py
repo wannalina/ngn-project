@@ -91,6 +91,7 @@ class SocketServer:
     # function to start docker container (docker commands)
     def start_container(self, host_name, container_name, image_path):
         host = self.net.get(host_name)
+        print("host: ", host)
         if host:
             print(f"Starting container {container_name} on host {host_name}")
             host.cmd(f'docker load -i {image_path}')

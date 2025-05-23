@@ -515,7 +515,8 @@ class MainWindow(QWidget):
     def get_communication_reqs(self, container):
         communication_reqs = []
         try: 
-            print("running containers:", self.runningContainers)
+            print("running containers:", container, self.runningContainers)
+            print("deps: ", self.containerDependencies)
             # iterate over all communication requirements (dependencies) for container
             for req in self.containerDependencies[container]:
                 # if application is already running, get host and append to add flow
