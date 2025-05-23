@@ -142,22 +142,27 @@ class NetworkManager:
         return data.split()  #Host names are space separated
 
     # function to fetch mininet host info
-    def get_host_mn_object(self, host):
+    def get_hosts_mn_objects(self, hosts_list):
         try:
-            # send request to socket server to get host info
-            request = f"GET_HOST_INFO {host}"
-            self.sock.send(request.encode())
+            hosts_info = []
 
-            # get and decode json response
-            data = self.sock.recv(4096).decode()
-            host_info = json.loads(data)
+            # iterate through hosts in list
+            for host in hosts_list:
+                # send request to socket server to get host info
+                request = f"GET_HOST_INFO {host}"
+                self.sock.send(request.encode())
+            
+                # get and decode json response
+                data = self.sock.recv(4096).decode()
+                host_info = json.loads(data)
 
-            # validate data
-            required_keys = ["host_mac", "dpid"]
-            for key in required_keys:
-                if key not in host_info:
-                    raise ValueError(f"Missing '{key}' in host info response")
-            return host_info
+                # validate data
+                required_keys = ["host_mac", "dpid"]
+                for key in required_keys:
+                    if key not in host_info:
+                        raise ValueError(f"Missing '{key}' in host info response")
+                hosts_info.append(host_info)
+            return hosts_info
 
         except Exception as e:
             print(f"Failed to get host info for {host}: {e}")

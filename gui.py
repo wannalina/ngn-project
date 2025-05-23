@@ -515,11 +515,11 @@ class MainWindow(QWidget):
     def add_hosts_to_controller(self):
         url = 'http://0.0.0.0:8080/post-hosts'
         try: 
+            hosts_info_list = self.nm.get_hosts_mn_objects(self.hosts_list)
             time.sleep(10)   # wait for controller to start
             print('Sending list of active hosts to controller...')
-            response, status_code = requests.post(url, json=self.host_list)
-            if status_code == 200:
-                print("Hosts sent to controller successfully.")
+            response = requests.post(url, json=hosts_info_list)
+            print("Hosts sent to controller successfully.")
         except Exception as e:
             print(f'Error sending hosts data to controller: {e}')
 
