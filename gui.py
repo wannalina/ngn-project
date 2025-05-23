@@ -1,7 +1,7 @@
-import asyncio
 import json
 import sys
 import os
+import time
 
 from flask import request
 from PyQt5.QtWidgets import (
@@ -26,8 +26,9 @@ class MainWindow(QWidget):
         self.isRunning=False
         self.dependenciesConfirmed=False
         self.host_list=[]
+        self.initUI()
 
-    async def initUI(self):
+    def initUI(self):
         self.setWindowTitle("CONTAINER DEPLOYMENT")
         #self.setGeometry(100, 100, 550, 650)
         self.setFixedSize(550,850)
@@ -161,7 +162,7 @@ class MainWindow(QWidget):
         self.confirmDependencyButton.setFixedSize(200, 35)
         
         # Connect signals
-        self.run.clicked.connect(await self.run_clicked)
+        self.run.clicked.connect(self.run_clicked)
         self.stop.clicked.connect(self.stop_clicked)
         self.launchButton.clicked.connect(self.startContainer)
         self.stopAllButton.clicked.connect(self.stopAllContainers)
@@ -179,7 +180,7 @@ class MainWindow(QWidget):
         print(f"Starting network with params: {params}")
         self.nm.start_network_process(*params)
         self.host_list = self.nm.get_hosts()
-        await self.nm.start_controller()
+        self.nm.start_controller()
         self.add_hosts_to_controller()  # send list of active hosts to controller
 
     #
@@ -188,7 +189,6 @@ class MainWindow(QWidget):
         self.updateContainerDropdown()
         self.updateHostDropdown()
         self.checkAutoDeploy()
-
 
     def stop_clicked(self):
             print("STOP button clicked")
@@ -515,6 +515,7 @@ class MainWindow(QWidget):
     def add_hosts_to_controller(self):
         url = 'http://0.0.0.0:8080/post-hosts'
         try: 
+            time.sleep(5)   # wait for controller to start
             print('Sending list of active hosts to controller...')
             response, status_code = request.post(url, json=self.hosts_list)
             if status_code == 200:
@@ -522,12 +523,11 @@ class MainWindow(QWidget):
         except Exception as e:
             print(f'Error sending hosts data to controller.')
 
-async def main():
+def main():
     app = QApplication(sys.argv)
     window = MainWindow()
-    await window.initUI()
     window.show()
     sys.exit(app.exec_())
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
