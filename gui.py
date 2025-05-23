@@ -169,7 +169,7 @@ class MainWindow(QWidget):
         self.autoDeployButton.clicked.connect(self.autoDeployContainers)
         self.setLayout(mainLayout)
 
-    async def run_clicked(self):
+    def run_clicked(self):
         print("RUN button clicked")
         self.isRunning=True
         params = (
