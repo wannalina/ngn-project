@@ -517,7 +517,7 @@ class MainWindow(QWidget):
         try: 
             time.sleep(10)   # wait for controller to start
             print('Sending list of active hosts to controller...')
-            response, status_code = requests.post(url, json=self.hosts_list)
+            response, status_code = requests.post(url, json=self.host_list)
             if status_code == 200:
                 print("Hosts sent to controller successfully.")
         except Exception as e:
