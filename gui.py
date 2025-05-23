@@ -518,11 +518,11 @@ class MainWindow(QWidget):
             print("deps: ", self.containerDependencies)
             # iterate over all communication requirements (dependencies) for container
             for req in self.containerDependencies[container]:
-                print("REQ", req)
-                # if application is already running, get host and append to add flow
-                if req in self.runningContainers:
-                    container_host = req['host']
-                    communication_reqs.append(container_host)
+                for identifier in self.runningContainers:
+                    if "_".join(identifier.split("_")[:-1]) == req:
+                        container_host = self.runningContainers[identifier]['host']
+                        communication_reqs.append(container_host)
+                        break
             return communication_reqs
         except Exception as e:
             print(f'Error getting communication requirements.')
