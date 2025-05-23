@@ -168,7 +168,7 @@ class MainWindow(QWidget):
         self.autoDeployButton.clicked.connect(self.autoDeployContainers)
         self.setLayout(mainLayout)
 
-    def run_clicked(self):
+    async def run_clicked(self):
         print("RUN button clicked")
         self.isRunning=True
         params = (
@@ -179,7 +179,8 @@ class MainWindow(QWidget):
         print(f"Starting network with params: {params}")
         self.nm.start_network_process(*params)
         self.host_list = self.nm.get_hosts()
-        self.nm.start_controller()
+        await self.nm.start_controller()
+        self.add_hosts_to_controller()  # send list of active hosts to controller
 
     #
         self.updateEnables()
@@ -187,8 +188,6 @@ class MainWindow(QWidget):
         self.updateContainerDropdown()
         self.updateHostDropdown()
         self.checkAutoDeploy()
-
-        self.add_hosts_to_controller()  # send list of active hosts to controller
 
 
     def stop_clicked(self):
@@ -514,7 +513,7 @@ class MainWindow(QWidget):
 
     # function to send list of active hosts to controller
     def add_hosts_to_controller(self):
-        url = 'http://localhost:8080/post-hosts'
+        url = 'http://0.0.0.0:8080/post-hosts'
         try: 
             print('Sending list of active hosts to controller...')
             response, status_code = request.post(url, json=self.hosts_list)
