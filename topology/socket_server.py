@@ -70,6 +70,7 @@ class SocketServer:
                             host_mac = host.MAC()
                             dpid = host.connectionsTo(host)[0][0].dpid if host.connectionsTo(host) else "unknown"
                             host_info = {
+                                "host": host_name,
                                 "host_mac": host_mac,
                                 "dpid": dpid
                             }

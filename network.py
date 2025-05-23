@@ -157,7 +157,7 @@ class NetworkManager:
                 host_info = json.loads(data)
 
                 # validate data
-                required_keys = ["host_mac", "dpid"]
+                required_keys = ["host", "host_mac", "dpid"]
                 for key in required_keys:
                     if key not in host_info:
                         raise ValueError(f"Missing '{key}' in host info response")
