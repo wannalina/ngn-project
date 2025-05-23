@@ -10,7 +10,7 @@ from ryu.lib import dpid as dpid_lib
 from ryu.lib import stplib
 from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
-from ryu.app.wsgi import ControllerBase, route
+from ryu.app.wsgi import ControllerBase, route,  WSGIApplication
 
 # import other libraries (logging, etc)
 import threading
@@ -20,7 +20,7 @@ import json
 # class to define/handle controller functions
 class SDNController(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]   # use OpenFlow 1.3
-    _CONTEXTS = {'stplib': stplib.Stp}
+    _CONTEXTS = {'stplib': stplib.Stp, 'wsgi':  WSGIApplication}
 
     # intialize SDN controller
     def __init__(self, *args, **kwargs):
