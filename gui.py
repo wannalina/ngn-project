@@ -27,7 +27,7 @@ class MainWindow(QWidget):
         self.host_list=[]
         self.initUI()
 
-    def initUI(self):
+    async def initUI(self):
         self.setWindowTitle("CONTAINER DEPLOYMENT")
         #self.setGeometry(100, 100, 550, 650)
         self.setFixedSize(550,850)
@@ -161,7 +161,7 @@ class MainWindow(QWidget):
         self.confirmDependencyButton.setFixedSize(200, 35)
         
         # Connect signals
-        self.run.clicked.connect(self.run_clicked)
+        self.run.clicked.connect(await self.run_clicked)
         self.stop.clicked.connect(self.stop_clicked)
         self.launchButton.clicked.connect(self.startContainer)
         self.stopAllButton.clicked.connect(self.stopAllContainers)
