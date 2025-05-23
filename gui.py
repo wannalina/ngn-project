@@ -530,7 +530,7 @@ class MainWindow(QWidget):
     # function to separate host and container name from container identifier
     def get_host_from_container_name(self, container):
         try:
-            container_name, host = container.rsplit('_', 1)
+            container_name, host = container.rsplit('_', 2)
             return host, container_name
         except ValueError:
             print(f"Invalid container id format: {container}")
