@@ -263,7 +263,7 @@ class MainWindow(QWidget):
         self.runningContainers[container_id] = {"host": host, "container": container}
         self.hostContainerCounts[host] = self.hostContainerCounts.get(host,0) + 1
 
-        self.add_allowed_communication(container)
+        self.add_allowed_communication(host, container)
         self.updateContainerDropdown()
         self.updateHostDropdown()
         self.updateMonitor()
@@ -427,7 +427,7 @@ class MainWindow(QWidget):
             self.runningContainers[container_id] = {"host": host, "container": container}
             self.hostContainerCounts[host] = self.hostContainerCounts.get(host, 0) + 1
 
-            self.add_allowed_communication(container)
+            self.add_allowed_communication(host, container)
 
         self.updateMonitor()
         self.updateHostDropdown()
@@ -511,32 +511,22 @@ class MainWindow(QWidget):
     '''
 
     # function to get communication requirements between hosts with paired apps
-    def get_communication_reqs(self, container):
+    def get_communication_reqs(self, container, host):
         communication_reqs = []
+        container_id = f'{container}_{host}'
         try: 
-            print("running containers:", container, self.runningContainers)
+            print("running containers:", container_id, self.runningContainers)
             print("deps: ", self.containerDependencies)
             # iterate over all communication requirements (dependencies) for container
             for req in self.containerDependencies[container]:
-                for identifier in self.runningContainers:
-                    print("sdgfh,", "_".join(identifier.split("_")[:-1]))
-                    if "_".join(identifier.split("_")[:-1]) == req:
-                        container_host = self.runningContainers[identifier]['host']
-                        communication_reqs.append(container_host)
-                        break
+                if container_id == req:
+                    container_host = self.runningContainers[req]['host']
+                    communication_reqs.append(container_host)
+                    break
             return communication_reqs
         except Exception as e:
             print(f'Error getting communication requirements.')
             return None
-
-    # function to separate host and container name from container identifier
-    def get_host_from_container_name(self, container):
-        try:
-            identifier_split = container.rsplit('_', 1)
-            return identifier_split[1], identifier_split[0]
-        except ValueError:
-            print(f"Invalid container id format: {container}")
-            return None, None
 
     # function to send list of active hosts to controller
     def add_hosts_to_controller(self):
@@ -551,13 +541,12 @@ class MainWindow(QWidget):
             print(f'Error sending hosts data to controller: {e}')
 
     # function to send allowed communication rules to controller
-    def add_allowed_communication(self, container):
+    def add_allowed_communication(self, host, container):
         url = 'http://0.0.0.0:8080/add-flow'
         try: 
             # get hosts to add flows
-            communication_reqs = self.get_communication_reqs(container)
+            communication_reqs = self.get_communication_reqs(container, host)
             print("Adding flow between hosts...")
-            host, container_name = self.get_host_from_container_name(container)
             
             hosts_communication = {
                 "host": host,
