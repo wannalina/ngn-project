@@ -513,17 +513,17 @@ class MainWindow(QWidget):
     # function to get communication requirements between hosts with paired apps
     def get_communication_reqs(self, container, host):
         communication_reqs = []
-        container_id = f'{container}_{host}'
         try: 
-            print("running containers:", container_id, self.runningContainers)
+            print("running containers:", self.runningContainers)
             print("deps: ", self.containerDependencies)
             # iterate over all communication requirements (dependencies) for container
             for req in self.containerDependencies[container]:
-                print("req, container_id:", req, container_id)
-                if container_id == req:
-                    container_host = self.runningContainers[req]['host']
-                    communication_reqs.append(container_host)
-                    break
+                for item in self.runningContainers:
+                    print("req, container_id:", req, item)
+                    if req in item:
+                        container_host = self.runningContainers[req]['host']
+                        communication_reqs.append(container_host)
+                        break
             return communication_reqs
         except Exception as e:
             print(f'Error getting communication requirements.')
