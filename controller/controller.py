@@ -95,7 +95,7 @@ class SDNController(app_manager.RyuApp):
             self.logger.debug("Allowing ARP packet from %s to %s", src, dst)    # log allowed packet
         else:
             #! only allow communication between specified hosts; else drop by default
-            allowed_dsts = self.allowed_dependencies.get(src, [])
+            allowed_dsts = self.allowed_communication.get(src, [])
             self.log_packets(dpid, src, dst, in_port, "dropped", "other")   # log dropped packet
             if dst not in allowed_dsts:
                 self.logger.info("Blocking unauthorized traffic from %s to %s", src, dst)
