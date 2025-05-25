@@ -169,12 +169,12 @@ class SDNControllerAPI(ControllerBase):
         reqs_mac = [], host_mac = ""
         for host in self.controller.hosts:
             print("HOST IN LOOP:", host)
-            if host.get["host"] == request_body["host"]: 
-                host_mac = host.get["host_mac"]
+            if host["host"] == request_body["host"]: 
+                host_mac = host["host_mac"]
                 print("HOST MAC:", host_mac)
             for host_req in request_body["dependencies"]:
-                if host.get["host"] == host_req:
-                    host_req_mac = host_req.get["host_mac"]
+                if host["host"] == host_req:
+                    host_req_mac = host_req["host_mac"]
                     reqs_mac.append(host_req_mac)
                     print("REQ MAC:", host_req_mac)
             req_object = {
