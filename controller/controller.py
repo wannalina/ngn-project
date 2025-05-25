@@ -196,6 +196,7 @@ class SDNControllerAPI(ControllerBase):
 
             # Access the main controller instance
             self.controller.hosts = request_body
+            print("logging")
 
             return {"message": 'Hosts list saved in controller successfully.'}
         except Exception as e:
