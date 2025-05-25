@@ -519,8 +519,8 @@ class MainWindow(QWidget):
             # iterate over all communication requirements (dependencies) for container
             for req in self.containerDependencies[container]:
                 for item in self.runningContainers:
-                    print("req, container_id:", req, item)
-                    if req in "_".join(item.split("_")[:2]):
+                    print("req, container_id:", req, "_".join(item.split("_")[:2]))
+                    if req in ("_".join(item.split("_")[:2])):
                         container_host = self.runningContainers[req]['host']
                         communication_reqs.append(container_host)
                         break
