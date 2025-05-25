@@ -198,9 +198,9 @@ class SDNControllerAPI(ControllerBase):
             self.controller.hosts = request_body
             print("logging")
 
-            return {"message": 'Hosts list saved in controller successfully.'}
+            return 'Hosts list saved in controller successfully.'
         except Exception as e:
-            return {"error": f'Error saving hosts in controller: {e}'}
+            return f'Error saving hosts in controller: {e}'
 
     @route('add-flows', '/add-flow', methods=['POST'])
     def add_communication_reqs(self, req, **kwargs):
