@@ -191,8 +191,8 @@ class SDNControllerAPI(ControllerBase):
     @route('post-hosts', '/post-hosts', methods=['POST'])
     def post_hosts_list(self, req, **kwargs):
         try: 
-            request_body = json.loads(req.body.decode('utf-8')) if req.body else []
-            print("Request:", request_body)
+            request_body = req.json
+            print("Request:", request_body, json)
 
             # Access the main controller instance
             self.controller.hosts = request_body
@@ -204,7 +204,7 @@ class SDNControllerAPI(ControllerBase):
     @route('add-flows', '/add-flow', methods=['POST'])
     def add_communication_reqs(self, req, **kwargs):
         try:
-            request_body = json.loads(req.body.decode('utf-8')) if req.body else {}
+            request_body = req.json
             print("Request:", request_body)
             if request_body['dependencies']:
                 self.get_host_to_mac(request_body)
