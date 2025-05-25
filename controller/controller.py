@@ -177,7 +177,8 @@ class SDNControllerAPI(ControllerBase):
                 if host["host"] == host_req:
                     host_req_mac = host["host_mac"]
                     reqs_mac.append(host_req_mac)
-                    print("REQ MAC:", host_req_mac)
+                print("REQ MAC:", host_req_mac)
+            print("hello")
             req_object = {
                 "host": host_mac,
                 "dependencies": reqs_mac
