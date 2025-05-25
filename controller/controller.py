@@ -206,8 +206,8 @@ class SDNControllerAPI(ControllerBase):
         try:
             request_body = json.loads(req.body.decode('utf-8')) if req.body else {}
             print("Request:", request_body)
-
-            self.get_host_to_mac(request_body)
+            if request_body['dependencies']:
+                self.get_host_to_mac(request_body)
             return {"message": "Flows added to controller successfully."}
         except Exception as e:
             return {"error": f'Error adding flows to controller.'}

@@ -513,9 +513,7 @@ class MainWindow(QWidget):
     # function to get communication requirements between hosts with paired apps
     def get_communication_reqs(self, container):
         communication_reqs = []
-        try: 
-            print("running containers:", self.runningContainers)
-            print("deps: ", self.containerDependencies)
+        try:
             # iterate over all communication requirements (dependencies) for container
             for req in self.containerDependencies[container]:
                 for item in self.runningContainers:
@@ -552,7 +550,6 @@ class MainWindow(QWidget):
                 "host": host,
                 "dependencies": communication_reqs
             }
-            print("REQUEST:", hosts_communication)
             response = requests.post(url, json=hosts_communication)            
             print("Allowed host communication sent to controller successfully.")
         except Exception as e: 
