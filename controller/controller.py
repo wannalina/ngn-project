@@ -67,6 +67,14 @@ class SDNController(app_manager.RyuApp):
                 priority=1, match=match)
             datapath.send_msg(mod)
 
+    # function to check allowed destinations
+    def check_allowed_dsts(self, src):
+        allowed_dsts = []
+        for entry in self.allowed_communication:
+            if entry['host'] == src:
+                allowed_dsts.extend(entry['dependencies'])
+        return allowed_dsts
+
     # function to handle packets with no existing flow
     @set_ev_cls(stplib.EventPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
@@ -91,12 +99,10 @@ class SDNController(app_manager.RyuApp):
 
         # always allow ARP packets through
         if eth.ethertype == 0x0806:
-            self.log_packets(dpid, src, dst, in_port, "allowed", "ARP")
             self.logger.debug("Allowing ARP packet from %s to %s", src, dst)    # log allowed packet
         else:
             #! only allow communication between specified hosts; else drop by default
-            allowed_dsts = [entry['dst'] for entry in self.allowed_communication if entry['src'] == src]
-            self.log_packets(dpid, src, dst, in_port, "dropped", "other")   # log dropped packet
+            allowed_dsts = self.check_allowed_dsts(src)
             if dst not in allowed_dsts:
                 self.logger.info("Blocking unauthorized traffic from %s to %s", src, dst)
                 return  # drop packet
@@ -107,10 +113,8 @@ class SDNController(app_manager.RyuApp):
         else:
             # drop packet if no communication requirement specified
             self.logger.info("Destination %s unknown on dpid %s. Dropping.", dst, dpid)
-            self.log_packets(dpid, src, dst, in_port, "dropped_unknown_dst", "other")   # log dropped packet
             return
 
-        self.log_packets(dpid, src, dst, in_port, "allowed", "other")  # log allowed packet
         actions = [parser.OFPActionOutput(out_port)]
 
         #! add flow for allowed dependency (avoids packet_in occurring again)
