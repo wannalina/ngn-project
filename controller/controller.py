@@ -13,8 +13,6 @@ from ryu.lib.packet import ethernet
 from ryu.app.wsgi import ControllerBase, route,  WSGIApplication
 
 # import other libraries (logging, etc)
-import threading
-from webob import Response
 import json
 
 # class to define/handle controller functions
@@ -170,11 +168,11 @@ class SDNControllerAPI(ControllerBase):
     @route('post-hosts', '/post-hosts', methods=['POST'])
     def post_hosts_list(self, req, **kwargs):
         try: 
-            request_body = json.loads(req.body.decode('utf-8')) if req.body else {}
+            request_body = json.loads(req.body.decode('utf-8')) if req.body else []
             print("Request:", request_body)
 
             # Access the main controller instance
-            (self.controller.hosts).append(request_body)
+            self.controller.hosts = request_body
 
             return {"message": 'Hosts list saved in controller successfully.'}
         except Exception as e:
