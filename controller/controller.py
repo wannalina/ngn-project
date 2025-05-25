@@ -166,7 +166,8 @@ class SDNControllerAPI(ControllerBase):
 
     # function to get communication requirements as MAC addresses
     def get_host_to_mac(self, request_body):
-        reqs_mac = [], host_mac = ""
+        reqs_mac = []
+        host_mac = ""
         for host in self.controller.hosts:
             print("HOST IN LOOP:", host)
             if host["host"] == request_body["host"]: 
@@ -174,7 +175,7 @@ class SDNControllerAPI(ControllerBase):
                 print("HOST MAC:", host_mac)
             for host_req in request_body["dependencies"]:
                 if host["host"] == host_req:
-                    host_req_mac = host_req["host_mac"]
+                    host_req_mac = host["host_mac"]
                     reqs_mac.append(host_req_mac)
                     print("REQ MAC:", host_req_mac)
             req_object = {
