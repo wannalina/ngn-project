@@ -186,21 +186,19 @@ class SDNControllerAPI(ControllerBase):
     def post_hosts_list(self, req, **kwargs):
         try: 
             request_body = req.json
-            print("Request:", request_body, json)
 
             # Access the main controller instance
             self.controller.hosts = request_body
-            print("logging")
 
             return 'Hosts list saved in controller successfully.'
         except Exception as e:
             return f'Error saving hosts in controller: {e}'
 
+    # route to add flows between started containers
     @route('add-flows', '/add-flow', methods=['POST'])
     def add_communication_reqs(self, req, **kwargs):
         try:
             request_body = req.json
-            print("Request:", request_body)
             if request_body['dependencies']:
                 self.get_host_to_mac(request_body)
             return "Flows added to controller successfully."
