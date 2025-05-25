@@ -169,23 +169,17 @@ class SDNControllerAPI(ControllerBase):
         reqs_mac = []
         host_mac = ""
         for host in self.controller.hosts:
-            print("HOST IN LOOP:", host)
             if host["host"] == request_body["host"]: 
                 host_mac = host["host_mac"]
-                print("HOST MAC:", host_mac)
             for host_req in request_body["dependencies"]:
                 if host["host"] == host_req:
                     host_req_mac = host["host_mac"]
                     reqs_mac.append(host_req_mac)
-                print("REQ MAC:", host_req_mac)
-            print("hello")
             req_object = {
                 "host": host_mac,
                 "dependencies": reqs_mac
             }
-            print("REQ OBJECT:", req_object)
             self.controller.allowed_communication.append(req_object)
-            print("ALLOWED:", self.controller.allowed_communication)
 
     # route to save hosts list in controller
     @route('post-hosts', '/post-hosts', methods=['POST'])
@@ -209,6 +203,6 @@ class SDNControllerAPI(ControllerBase):
             print("Request:", request_body)
             if request_body['dependencies']:
                 self.get_host_to_mac(request_body)
-            return {"message": "Flows added to controller successfully."}
+            return "Flows added to controller successfully."
         except Exception as e:
-            return {"error": f'Error adding flows to controller.'}
+            return f'Error adding flows to controller.'
