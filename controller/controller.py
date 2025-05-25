@@ -95,7 +95,7 @@ class SDNController(app_manager.RyuApp):
             self.logger.debug("Allowing ARP packet from %s to %s", src, dst)    # log allowed packet
         else:
             #! only allow communication between specified hosts; else drop by default
-            allowed_dsts = self.allowed_communication.get(src, [])
+            allowed_dsts = [entry['dst'] for entry in self.allowed_communication if entry['src'] == src]
             self.log_packets(dpid, src, dst, in_port, "dropped", "other")   # log dropped packet
             if dst not in allowed_dsts:
                 self.logger.info("Blocking unauthorized traffic from %s to %s", src, dst)
@@ -164,6 +164,27 @@ class SDNControllerAPI(ControllerBase):
         super(SDNControllerAPI, self).__init__(req, link, data, **config)
         self.controller = data['sdn_controller']
 
+    # function to get communication requirements as MAC addresses
+    def get_host_to_mac(self, request_body):
+        reqs_mac = [], host_mac = ""
+        for host in self.controller.hosts:
+            print("HOST IN LOOP:", host)
+            if host.get("host") == request_body["host"]: 
+                host_mac = host.get("host_mac")
+                print("HOST MAC:", host_mac)
+            for host_req in request_body["dependencies"]:
+                if host.get("host") == host_req:
+                    host_req_mac = host_req.get("host_mac")
+                    reqs_mac.append(host_req_mac)
+                    print("REQ MAC:", host_req_mac)
+            req_object = {
+                "host": host_mac,
+                "dependencies": reqs_mac
+            }
+            print("REQ OBJECT:", req_object)
+            self.controller.allowed_communication.append(req_object)
+            print("ALLOWED:", self.controller.allowed_communication)
+
     # route to save hosts list in controller
     @route('post-hosts', '/post-hosts', methods=['POST'])
     def post_hosts_list(self, req, **kwargs):
@@ -184,7 +205,7 @@ class SDNControllerAPI(ControllerBase):
             request_body = json.loads(req.body.decode('utf-8')) if req.body else {}
             print("Request:", request_body)
 
-            self.controller.allowed_communication.append(request_body)
+            self.get_host_to_mac(request_body)
             return {"message": "Flows added to controller successfully."}
         except Exception as e:
             return {"error": f'Error adding flows to controller.'}

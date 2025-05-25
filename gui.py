@@ -511,7 +511,7 @@ class MainWindow(QWidget):
     '''
 
     # function to get communication requirements between hosts with paired apps
-    def get_communication_reqs(self, container, host):
+    def get_communication_reqs(self, container):
         communication_reqs = []
         try: 
             print("running containers:", self.runningContainers)
@@ -546,7 +546,7 @@ class MainWindow(QWidget):
         url = 'http://0.0.0.0:8080/add-flow'
         try: 
             # get hosts to add flows
-            communication_reqs = self.get_communication_reqs(container, host)
+            communication_reqs = self.get_communication_reqs(container)
             print("Adding flow between hosts...")
             
             hosts_communication = {
