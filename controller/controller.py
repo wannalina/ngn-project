@@ -103,6 +103,7 @@ class SDNController(app_manager.RyuApp):
         else:
             #! only allow communication between specified hosts; else drop by default
             allowed_dsts = self.check_allowed_dsts(src)
+            print("allowed dsts:", allowed_dsts)
             if dst not in allowed_dsts:
                 self.logger.info("Blocking unauthorized traffic from %s to %s", src, dst)
                 return  # drop packet
