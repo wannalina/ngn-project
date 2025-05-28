@@ -53,9 +53,9 @@ def get_cities():
 
 def loop_get_cities():
     while True: 
-        time.sleep(10)
+        time.sleep(5)
         # call route function directly
-        print("Calling get_cities() from background loop")
+        print("Calling get_cities() from background loop", flush=True)
         get_cities()
 
 if __name__ == "__main__":
