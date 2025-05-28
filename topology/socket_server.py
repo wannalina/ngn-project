@@ -11,6 +11,7 @@ import json
 
 class SocketServer:
     def __init__(self, net):
+        self.running_containers = {}
         self.net = net
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
