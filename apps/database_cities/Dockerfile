@@ -2,7 +2,6 @@
 # Dockerfile: For PostgreSQL database container
 
 FROM postgres:13
-RUN pip install psycopg2-binary
 
 # Set environment variables for PostgreSQL
 ENV POSTGRES_USER=postgres \
