@@ -83,6 +83,8 @@ class SDNController(app_manager.RyuApp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         in_port = msg.match['in_port']
+        
+        print("logging??")
 
         # parse the header
         pkt = packet.Packet(msg.data)
