@@ -146,7 +146,6 @@ class NetworkManager:
         data = self.sock.recv(4096).decode()
         return json.loads(data)
 
-    '''
     # function to fetch mininet host info
     def get_hosts_mn_objects(self, hosts_list):
         try:
@@ -172,4 +171,4 @@ class NetworkManager:
 
         except Exception as e:
             print(f"Failed to get host info for {host}: {e}")
-            return None'''
+            return None

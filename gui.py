@@ -546,18 +546,19 @@ class MainWindow(QWidget):
         url = 'http://0.0.0.0:8080/add-flow'
         try:
             communication_reqs = self.get_communication_reqs(container)
-            if communication_reqs is None:
+            if not communication_reqs:
+                print("No communication dependencies found.")
                 return
 
             host_info = self.nm.get_host_info(host)
-            if "error" in host_info:
-                raise ValueError(f"Host info error: {host_info['error']}")
+            if not host_info or "host" not in host_info:
+                raise ValueError(f"Host info missing or invalid for {host}")
 
             dep_infos = []
             for dep_host in communication_reqs:
                 dep_info = self.nm.get_host_info(dep_host)
-                if "error" in dep_info:
-                    raise ValueError(f"Dependency host info error: {dep_info['error']}")
+                if not dep_info or "host" not in dep_info:
+                    raise ValueError(f"Dependency host info invalid: {dep_host}")
                 dep_infos.append(dep_info)
 
             hosts_communication = {
@@ -567,6 +568,7 @@ class MainWindow(QWidget):
 
             response = requests.post(url, json=hosts_communication)
             print("Allowed communication sent to controller successfully.")
+
         except Exception as e:
             print(f"Error sending communication: {e}")
 
