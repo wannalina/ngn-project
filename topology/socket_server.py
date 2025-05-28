@@ -69,7 +69,6 @@ class SocketServer:
                         try:
                             host_mac = host.MAC()
                             dpid = host.connectionsTo(host)[0][0].dpid
-                            print("dpid", dpid)
                             host_info = {
                                 "host": host_name,
                                 "host_mac": host_mac,

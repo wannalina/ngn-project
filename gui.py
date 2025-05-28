@@ -531,6 +531,7 @@ class MainWindow(QWidget):
         url = 'http://0.0.0.0:8080/post-hosts'
         try: 
             hosts_info_list = self.nm.get_hosts_mn_objects(self.host_list)
+            print('host info', hosts_info_list)
             time.sleep(10)   # wait for controller to start
             print('Sending list of active hosts to controller...')
             response = requests.post(url, json=hosts_info_list)
