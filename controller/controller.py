@@ -200,12 +200,13 @@ class SDNControllerAPI(ControllerBase):
             return f'Error saving hosts in controller: {e}'
 
     # route to add flows between started containers
-    @route('add-flows', '/add-flow', methods=['POST'])
+    @route('add-flow', '/add-flow', methods=['POST'])
     def add_communication_reqs(self, req, **kwargs):
         try:
             request_body = req.json
             if request_body['dependencies']:
                 self.get_host_to_mac(request_body)
+            #self.controller.self.add_flow(datapath, 1, match, actions)
             return "Flows added to controller successfully."
         except Exception as e:
             return f'Error adding flows to controller.'
