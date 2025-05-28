@@ -550,16 +550,26 @@ class MainWindow(QWidget):
                 return
 
             host_info = self.nm.get_host_info(host)
-            dep_infos = [self.nm.get_host_info(dep_host) for dep_host in communication_reqs]
+            if "error" in host_info:
+                raise ValueError(f"Host info error: {host_info['error']}")
+
+            dep_infos = []
+            for dep_host in communication_reqs:
+                dep_info = self.nm.get_host_info(dep_host)
+                if "error" in dep_info:
+                    raise ValueError(f"Dependency host info error: {dep_info['error']}")
+                dep_infos.append(dep_info)
 
             hosts_communication = {
                 "host": host_info["host"],
                 "dependencies": [d["host"] for d in dep_infos]
             }
+
             response = requests.post(url, json=hosts_communication)
-            print("Allowed communication sent to controller")
+            print("Allowed communication sent to controller successfully.")
         except Exception as e:
             print(f"Error sending communication: {e}")
+
 
 def main():
     app = QApplication(sys.argv)
