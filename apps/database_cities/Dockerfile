@@ -4,9 +4,12 @@
 FROM postgres:13
 
 # Set environment variables for PostgreSQL
-ENV POSTGRES_USER=postgres \
-    POSTGRES_PASSWORD=secret \
-    POSTGRES_DB=mockdb
+set postgres env variables
+ENV DB_NAME=cities
+ENV DB_USER=postgres
+ENV DB_PASSWORD=newpassword
+ENV DB_HOST=localhost
+ENV DB_PORT=5432
 
 # Copy DB init script(s) or application logic into container
 COPY . /docker-entrypoint-initdb.d/

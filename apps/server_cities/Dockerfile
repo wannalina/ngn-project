@@ -19,13 +19,11 @@ COPY . /app
 # Install Python dependencies
 RUN pip install psycopg2-binary flask requests
 
-# Default environment variables (override at runtime)
-ENV DB_NAME=mockdb \
-    DB_USER=postgres \
-    DB_PASSWORD=secret \
-    DB_HOST=127.0.0.1 \
-    DB_PORT=5432 \
-    GENERIC_DB_NAME=postgres
+ENV DB_NAME=cities
+ENV DB_USER=postgres
+ENV DB_PASSWORD=newpassword
+ENV DB_HOST=localhost
+ENV DB_PORT=5432
 
 # Expose Flask default port (for web server)
 EXPOSE 5000
