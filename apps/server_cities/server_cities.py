@@ -4,6 +4,8 @@ import psycopg2
 from flask import Flask, jsonify
 import os
 
+import requests
+
 # initialize flask app
 app = Flask(__name__)
 
@@ -52,11 +54,13 @@ def get_cities():
         return f"An error occurred: {e}"
 
 def loop_get_cities():
-    while True: 
-        time.sleep(5)
-        # call route function directly
-        print("Calling get_cities() from background loop", flush=True)
-        get_cities()
+    while True:
+        time.sleep(10)
+        try:
+            r = requests.get("http://localhost:5000/cities")
+            print(f"Response: {r.json()}")
+        except Exception as e:
+            print(f"Error: {e}")
 
 if __name__ == "__main__":
     # background loop in a separate thread

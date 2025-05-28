@@ -204,10 +204,16 @@ class SDNControllerAPI(ControllerBase):
     # route to add flows between started containers
     @route('add-flow', '/add-flow', methods=['POST'])
     def add_communication_reqs(self, req, **kwargs):
+        host = {}
         try:
             request_body = req.json
+            for h in self.controller.hosts:
+                if h['host'] == request_body['host']:
+                    host = h
+            print('h:', host)
             if request_body['dependencies']:
                 self.get_host_to_mac(request_body)
+            self.controller.add_flow(host['dpid'], 1, match, actions)
             #self.controller.self.add_flow(datapath, 1, match, actions)
             return "Flows added to controller successfully."
         except Exception as e:

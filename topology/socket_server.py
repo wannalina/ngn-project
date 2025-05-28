@@ -68,6 +68,7 @@ class SocketServer:
                     if host:
                         try:
                             host_mac = host.MAC()
+                            print("host", host)
                             dpid = host.connectionsTo(host)[0][0].dpid if host.connectionsTo(host) else "unknown"
                             host_info = {
                                 "host": host_name,
