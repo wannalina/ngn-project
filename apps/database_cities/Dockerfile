@@ -8,6 +8,8 @@ ENV POSTGRES_USER=postgres \
     POSTGRES_PASSWORD=secret \
     POSTGRES_DB=mockdb
 
+    pip install psycopg2-binary
+
 # Copy DB init script(s) or application logic into container
 COPY . /docker-entrypoint-initdb.d/
 

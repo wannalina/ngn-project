@@ -17,7 +17,7 @@ WORKDIR /app
 COPY . /app
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install psycopg2-binary flask
 
 # Default environment variables (override at runtime)
 ENV DB_NAME=mockdb \
