@@ -87,18 +87,86 @@ class SocketServer:
     def start_container(self, host_name, container_name, image_path):
         host = self.net.get(host_name)
         if host:
-            print(f"Deploying container {container_name} on {host_name}")
-            host.cmd(f'docker load -i {image_path}')
-            host.cmd(f'docker run -d --name {container_name}_{host_name} --network none --privileged {container_name}')
-            pid = host.cmd(f"docker inspect -f '{{{{.State.Pid}}}}' {container_name}_{host_name}").strip()
-            host.cmd(f'mkdir -p /var/run/netns')
-            host.cmd(f'ln -sf /proc/{pid}/ns/net /var/run/netns/{pid}')
-            host.cmd(f'ip link add veth_{pid} type veth peer name veth_{host_name}')
-            host.cmd(f'ip link set veth_{pid} netns {pid}')
-            host.cmd(f'ip netns exec {pid} ip link set veth_{pid} up')
-            host.cmd(f'ip netns exec {pid} ip addr add 10.0.0.{host.IP().split(".")[-1]}/24 dev veth_{pid}')
-            host.cmd(f'ip link set veth_{host_name} up')
-            host.cmd(f'brctl addif {host.name}-eth0 veth_{host_name}')
+            print(f"Starting container {container_name} on host {host_name}")
+            
+            # Load the Docker image
+            load_result = host.cmd(f'docker load -i {image_path}')
+            print(f"Docker load result: {load_result}")
+            
+            # Get the host's network namespace PID
+            host_pid = host.cmd('echo $$').strip()
+            
+            # Method 1: Use docker run with network namespace sharing
+            container_full_name = f"{container_name}_{host_name}"
+            
+            # First, try to remove any existing container with the same name
+            host.cmd(f'docker rm -f {container_full_name} 2>/dev/null')
+            
+            # Start container in the host's network namespace
+            # Option A: Share network namespace with a process running in the mininet host
+            run_cmd = f'docker run -d --name {container_full_name} --network container:$(docker run -d --rm --net=none alpine sleep 3600) {container_name}'
+            
+            # Option B: Better approach - use nsenter to run docker in the correct namespace
+            # This requires the container to be started from within the mininet host's context
+            run_cmd = f'docker run -d --name {container_full_name} --network=none {container_name}'
+            
+            result = host.cmd(run_cmd)
+            print(f"Docker run result: {result}")
+            
+            # Configure networking manually to integrate with Mininet
+            # Get container PID
+            container_id = result.strip()
+            if container_id:
+                # Move container to host's network namespace
+                host_netns_cmd = f'docker exec {container_full_name} ip link set dev eth0 netns 1 2>/dev/null || echo "No eth0 to move"'
+                host.cmd(host_netns_cmd)
+                
+                # Alternative: Create veth pair and connect container to host
+                self._setup_container_networking(host, container_full_name, host_name)
+            
+            # Track running container
+            if host_name not in self.running_containers:
+                self.running_containers[host_name] = set()
+            self.running_containers[host_name].add(container_name)
+            
+            # Verify container is running
+            check_cmd = f'docker ps --filter name={container_full_name} --format "table {{{{.Names}}}}\t{{{{.Status}}}}"'
+            status = host.cmd(check_cmd)
+            print(f"Container status: {status}")
+    def _setup_container_networking(self, host, container_name, host_name):
+        """Setup networking between container and mininet host"""
+        try:
+            # Get container PID
+            pid_cmd = f'docker inspect -f "{{{{.State.Pid}}}}" {container_name}'
+            container_pid = host.cmd(pid_cmd).strip()
+            
+            if container_pid and container_pid != "0":
+                # Create veth pair
+                veth_host = f"veth-{host_name}"
+                veth_container = f"veth-c-{host_name}"
+                
+                # Create veth pair
+                host.cmd(f'ip link add {veth_host} type veth peer name {veth_container}')
+                
+                # Move container end to container namespace
+                host.cmd(f'ip link set {veth_container} netns {container_pid}')
+                
+                # Configure host end
+                host.cmd(f'ip link set {veth_host} up')
+                
+                # Configure container end (run in container's namespace)
+                host.cmd(f'nsenter -t {container_pid} -n ip link set {veth_container} name eth0')
+                host.cmd(f'nsenter -t {container_pid} -n ip link set eth0 up')
+                
+                # Assign IP to container (simple scheme: 10.0.hostnum.2)
+                host_num = host_name.replace('h', '')
+                container_ip = f"10.0.{host_num}.2/24"
+                host.cmd(f'nsenter -t {container_pid} -n ip addr add {container_ip} dev eth0')
+                
+                print(f"Configured networking for container {container_name}: {container_ip}")
+        
+        except Exception as e:
+            print(f"Error setting up container networking: {e}")
 
     def stop_container(self, host_name, container_name):
         host = self.net.get(host_name)
