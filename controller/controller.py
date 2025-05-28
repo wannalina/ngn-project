@@ -100,7 +100,7 @@ class SDNController(app_manager.RyuApp):
         self.mac_to_port[dpid][src] = in_port
 
         # always allow ARP packets through
-        if eth.ethertype == 0x0806:
+        '''if eth.ethertype == 0x0806:
             self.logger.debug("Allowing ARP packet from %s to %s", src, dst)    # log allowed packet
         else:
             #! only allow communication between specified hosts; else drop by default
@@ -108,7 +108,7 @@ class SDNController(app_manager.RyuApp):
             print("allowed dsts:", allowed_dsts)
             if dst not in allowed_dsts:
                 self.logger.info("Blocking unauthorized traffic from %s to %s", src, dst)
-                return  # drop packet
+                return  # drop packet '''
 
         # check if output port is known
         if dst in self.mac_to_port[dpid]:
