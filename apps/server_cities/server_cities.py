@@ -1,3 +1,5 @@
+import threading
+import time
 import psycopg2
 from flask import Flask, jsonify
 import os
@@ -49,5 +51,15 @@ def get_cities():
     except Exception as e: 
         return f"An error occurred: {e}"
 
+def loop_get_cities():
+    while True: 
+        time.sleep(10)
+        # call route function directly
+        print("Calling get_cities() from background loop")
+        get_cities()
+
 if __name__ == "__main__":
+    # background loop in a separate thread
+    thread = threading.Thread(target=loop_get_cities, daemon=True)
+    thread.start()
     app.run(debug=True, host="0.0.0.0", port=5000)
