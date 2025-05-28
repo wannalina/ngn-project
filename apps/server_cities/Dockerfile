@@ -1,16 +1,35 @@
+# Use official Python base image
 FROM python:3.9-slim
 
-# set postgres env variables
-ENV DB_NAME=cities
-ENV DB_USER=postgres
-ENV DB_PASSWORD=newpassword
-ENV DB_HOST=localhost
-ENV DB_PORT=5432
+# Set environment variables to avoid interactive prompts
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-# copy app files
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y gcc libpq-dev iproute2 iputils-ping net-tools curl && \
+    apt-get clean
+
+# Create working directory
 WORKDIR /app
+
+# Copy application files
 COPY . /app
 
-RUN pip install psycopg2-binary flask
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["python3","server_cities.py"]
+# Default environment variables (override at runtime)
+ENV DB_NAME=mockdb \
+    DB_USER=postgres \
+    DB_PASSWORD=secret \
+    DB_HOST=127.0.0.1 \
+    DB_PORT=5432 \
+    GENERIC_DB_NAME=postgres
+
+# Expose Flask default port (for web server)
+EXPOSE 5000
+
+# Choose default command for flexibility
+# Override via docker run command (e.g., entrypoint python3 server_cities.py)
+CMD ["python3", "server_cities.py"]

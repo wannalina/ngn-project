@@ -140,7 +140,13 @@ class NetworkManager:
         self.sock.send("GET_HOSTS".encode())
         data = self.sock.recv(4096).decode()
         return data.split()  #Host names are space separated
+    
+    def get_host_info(self, host_name):
+        self.sock.send(f"GET_HOST_INFO {host_name}".encode())
+        data = self.sock.recv(4096).decode()
+        return json.loads(data)
 
+    '''
     # function to fetch mininet host info
     def get_hosts_mn_objects(self, hosts_list):
         try:
@@ -162,7 +168,7 @@ class NetworkManager:
                     if key not in host_info:
                         raise ValueError(f"Missing '{key}' in host info response")
                 hosts_info.append(host_info)
-            return hosts_info
+            return hosts_info '''
 
         except Exception as e:
             print(f"Failed to get host info for {host}: {e}")

@@ -5,26 +5,19 @@ What is this used for?
 3. Performs actions on Mininet hosts / containers according to commands
 '''
 
-# import libraries
 import socket
 import sys
 import json
 
-# class to expose TCP socket interface for managing containers on mininet hosts
 class SocketServer:
     def __init__(self, net):
         self.net = net
-
-        # create TCP socket
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # allow re-use of socket address
-
-        # bind to localhost port 9999; listen to one connection at a time
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind(('localhost', 9999))
         self.sock.listen(1)
-        print("Socket server is now listening on localhost:9999")
+        print("Socket server listening on localhost:9999")
 
-    # function to handle commands received over the socket
     def handle_commands(self, conn):
         while True:
             try:
@@ -32,36 +25,34 @@ class SocketServer:
                 if not data:
                     break
 
-                # start docker container
                 if data.startswith("START_CONTAINER"):
                     _, host, container, image = data.split()
                     self.start_container(host, container, image)
                     conn.send("CONTAINER_STARTED".encode())
 
-                # stop docker container
                 elif data.startswith("STOP_CONTAINER"):
                     _, host, container = data.split()
                     self.stop_container(host, container)
 
-                # stop all docker containers
                 elif data == "STOP_ALL":
                     self.stop_all_containers()
 
-                # shut down mininet network
+
+                elif data == "STOP_ALL":
+                    self.stop_all_containers()
+
                 elif data == "SHUTDOWN":
-                    print("Received shutdown command")
-                    self.stop_all_containers()  # stop all docker containers
-                    conn.close()                # close socket
-                    self.sock.close()           # stop mininet
-                    self.net.stop()             # exit gracefully 
+                    print("Shutdown signal received")
+                    self.stop_all_containers()
+                    conn.close()
+                    self.sock.close()
+                    self.net.stop()
                     sys.exit(0)
 
-                # get mininet hosts
                 elif data == "GET_HOSTS":
                     host_names = " ".join([host.name for host in self.net.hosts])
                     conn.send(host_names.encode())
 
-                # get information about a specific host
                 elif data.startswith("GET_HOST_INFO"):
                     _, host_name = data.split()
                     host = self.net.get(host_name)
@@ -74,39 +65,42 @@ class SocketServer:
                                 "host_mac": host_mac,
                                 "dpid": dpid
                             }
-                            response = json.dumps(host)
+                            response = json.dumps(host_info)
                             conn.send(response.encode())
                         except Exception as e:
-                            error_msg = json.dumps({"error": f"Failed to get host info: {e}"})
+                            error_msg = json.dumps({"error": f"Host info error: {e}"})
                             conn.send(error_msg.encode())
                     else:
-                        error_msg = json.dumps({"error": f"Host {host_name} not found"})
-                        conn.send(error_msg.encode())
-
+                        conn.send(json.dumps({"error": "Host not found"}).encode())
 
             except Exception as e:
-                print(f"Error handling command: {e}")
+                print(f"Socket command error: {e}")
                 break
         conn.close()
 
-    # function to start docker container (docker commands)
     def start_container(self, host_name, container_name, image_path):
         host = self.net.get(host_name)
-        print("host: ", host)
         if host:
-            print(f"Starting container {container_name} on host {host_name}")
+            print(f"Deploying container {container_name} on {host_name}")
             host.cmd(f'docker load -i {image_path}')
-            host.cmd(f'docker run -d --name {container_name}_{host_name} --net=host -e CONTAINER_NAME={container_name}_{host_name} {container_name}')
+            host.cmd(f'docker run -d --name {container_name}_{host_name} --network none --privileged {container_name}')
+            pid = host.cmd(f"docker inspect -f '{{{{.State.Pid}}}}' {container_name}_{host_name}").strip()
+            host.cmd(f'mkdir -p /var/run/netns')
+            host.cmd(f'ln -sf /proc/{pid}/ns/net /var/run/netns/{pid}')
+            host.cmd(f'ip link add veth_{pid} type veth peer name veth_{host_name}')
+            host.cmd(f'ip link set veth_{pid} netns {pid}')
+            host.cmd(f'ip netns exec {pid} ip link set veth_{pid} up')
+            host.cmd(f'ip netns exec {pid} ip addr add 10.0.0.{host.IP().split(".")[-1]}/24 dev veth_{pid}')
+            host.cmd(f'ip link set veth_{host_name} up')
+            host.cmd(f'brctl addif {host.name}-eth0 veth_{host_name}')
 
-    # function to stop docker container (docker commands)
     def stop_container(self, host_name, container_name):
         host = self.net.get(host_name)
-        if host:
-            print(f"Stopping container {container_name} on host {host_name}")
-            host.cmd(f'docker rm -f {container_name}_{host_name}')
+        pid = host.cmd(f"docker inspect -f '{{{{.State.Pid}}}}' {container_name}_{host_name}").strip()
+        host.cmd(f'rm -f /var/run/netns/{pid}')
+        host.cmd(f'docker rm -f {container_name}_{host_name}')
 
-    # function to stop all docker containers (docker commands)
     def stop_all_containers(self):
-        print("Stopping all containers")
+        print("Stopping all Docker containers on all hosts")
         for host in self.net.hosts:
-            host.cmd('docker rm -f $(docker ps -a -q)')
+            host.cmd('docker rm -f $(docker ps -aq)')

@@ -453,19 +453,11 @@ class MainWindow(QWidget):
 
     def confirmDependency(self):
         self.dependenciesConfirmed = True
-        print("raw dependencies", self.containerDependencies)
-
-        updated_dependencies = {} #FILL UP COPY OTHERWISE "DICTIONARY CHANGED SIZE WHILE ITERATING"
         updated_dependencies = self.containerDependencies.copy()
-    
         for container, deps in self.containerDependencies.items():
-            for dependency in deps:
-                #if dependency not in updated_dependencies:
-                updated_dependencies[dependency] = set()
-                updated_dependencies[dependency].add(container)
-    
+            for dep in deps:
+                updated_dependencies.setdefault(dep, set()).add(container)
         self.containerDependencies = updated_dependencies
-        print("updated dependencies", self.containerDependencies)
         self.updateEnables()
 
     '''
@@ -526,6 +518,16 @@ class MainWindow(QWidget):
             print(f'Error getting communication requirements.')
             return None
 
+    def get_host_info(self, host):
+        try:
+            request = f"GET_HOST_INFO {host}"
+            self.nm.sock.send(request.encode())
+            data = self.nm.sock.recv(4096).decode()
+            return json.loads(data)
+        except Exception as e:
+            print(f"Error fetching host info: {e}")
+            return {}
+
     # function to send list of active hosts to controller
     def add_hosts_to_controller(self):
         url = 'http://0.0.0.0:8080/post-hosts'
@@ -542,19 +544,22 @@ class MainWindow(QWidget):
     # function to send allowed communication rules to controller
     def add_allowed_communication(self, host, container):
         url = 'http://0.0.0.0:8080/add-flow'
-        try: 
-            # get hosts to add flows
+        try:
             communication_reqs = self.get_communication_reqs(container)
-            print("Adding flow between hosts...")
-            
+            if communication_reqs is None:
+                return
+
+            host_info = self.nm.get_host_info(host)
+            dep_infos = [self.nm.get_host_info(dep_host) for dep_host in communication_reqs]
+
             hosts_communication = {
-                "host": host,
-                "dependencies": communication_reqs
+                "host": host_info["host"],
+                "dependencies": [d["host"] for d in dep_infos]
             }
-            response = requests.post(url, json=hosts_communication)            
-            print("Allowed host communication sent to controller successfully.")
-        except Exception as e: 
-            print(f'Error sending allowed communication to controller: {e}')
+            response = requests.post(url, json=hosts_communication)
+            print("Allowed communication sent to controller")
+        except Exception as e:
+            print(f"Error sending communication: {e}")
 
 def main():
     app = QApplication(sys.argv)
