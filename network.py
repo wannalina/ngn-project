@@ -168,8 +168,8 @@ class NetworkManager:
                     if key not in host_info:
                         raise ValueError(f"Missing '{key}' in host info response")
                 hosts_info.append(host_info)
-            return hosts_info '''
+            return hosts_info
 
         except Exception as e:
             print(f"Failed to get host info for {host}: {e}")
-            return None
+            return None'''
