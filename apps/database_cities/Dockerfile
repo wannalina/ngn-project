@@ -2,13 +2,12 @@
 # Dockerfile: For PostgreSQL database container
 
 FROM postgres:13
+RUN pip install psycopg2-binary
 
 # Set environment variables for PostgreSQL
 ENV POSTGRES_USER=postgres \
     POSTGRES_PASSWORD=secret \
     POSTGRES_DB=mockdb
-
-pip install psycopg2-binary
 
 # Copy DB init script(s) or application logic into container
 COPY . /docker-entrypoint-initdb.d/
