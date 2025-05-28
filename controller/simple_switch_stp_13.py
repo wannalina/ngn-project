@@ -1,18 +1,3 @@
-# Copyright (C) 2016 Nippon Telegraph and Telephone Corporation.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-# implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from ryu.base import app_manager
 from ryu.controller import ofp_event
 from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER
@@ -23,50 +8,49 @@ from ryu.lib import stplib
 from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
 from ryu.app import simple_switch_13
-
+from ryu.app.wsgi import ControllerBase, WSGIApplication, route
+from webob import Response
+import json
 
 class SimpleSwitch13(simple_switch_13.SimpleSwitch13):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
-    _CONTEXTS = {'stplib': stplib.Stp}
+    _CONTEXTS = {'stplib': stplib.Stp, 'wsgi': WSGIApplication}
 
     def __init__(self, *args, **kwargs):
         super(SimpleSwitch13, self).__init__(*args, **kwargs)
         self.mac_to_port = {}
         self.stp = kwargs['stplib']
+        self.datapaths = {}
+        self.hosts_info = {}
 
-        # Sample of stplib config.
-        #  please refer to stplib.Stp.set_config() for details.
-        config = {dpid_lib.str_to_dpid('0000000000000001'):
-                  {'bridge': {'priority': 0x8000}},
-                  dpid_lib.str_to_dpid('0000000000000002'):
-                  {'bridge': {'priority': 0x9000}},
-                  dpid_lib.str_to_dpid('0000000000000003'):
-                  {'bridge': {'priority': 0xa000}}}
+        config = {
+            dpid_lib.str_to_dpid('0000000000000001'): {'bridge': {'priority': 0x8000}},
+            dpid_lib.str_to_dpid('0000000000000002'): {'bridge': {'priority': 0x9000}},
+            dpid_lib.str_to_dpid('0000000000000003'): {'bridge': {'priority': 0xa000}}
+        }
         self.stp.set_config(config)
 
-    def delete_flow(self, datapath):
+        self.wsgi = kwargs['wsgi']
+        self.wsgi.register(SimpleSwitch13RestController, {'switch_app': self})
+
+    def add_flow(self, datapath, priority, match, actions):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
+        mod = parser.OFPFlowMod(datapath=datapath, priority=priority, match=match, instructions=inst)
+        datapath.send_msg(mod)
 
-        for dst in self.mac_to_port[datapath.id].keys():
-            match = parser.OFPMatch(eth_dst=dst)
-            mod = parser.OFPFlowMod(
-                datapath, command=ofproto.OFPFC_DELETE,
-                out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY,
-                priority=1, match=match)
-            datapath.send_msg(mod)
-
-    @set_ev_cls(stplib.EventPacketIn, MAIN_DISPATCHER)
+    @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
         msg = ev.msg
         datapath = msg.datapath
+        self.datapaths[datapath.id] = datapath
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         in_port = msg.match['in_port']
 
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
-
         dst = eth.dst
         src = eth.src
 
@@ -75,7 +59,6 @@ class SimpleSwitch13(simple_switch_13.SimpleSwitch13):
 
         self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
 
-        # learn a mac address to avoid FLOOD next time.
         self.mac_to_port[dpid][src] = in_port
 
         if dst in self.mac_to_port[dpid]:
@@ -85,37 +68,62 @@ class SimpleSwitch13(simple_switch_13.SimpleSwitch13):
 
         actions = [parser.OFPActionOutput(out_port)]
 
-        # install a flow to avoid packet_in next time
         if out_port != ofproto.OFPP_FLOOD:
             match = parser.OFPMatch(in_port=in_port, eth_dst=dst)
             self.add_flow(datapath, 1, match, actions)
 
-        data = None
-        if msg.buffer_id == ofproto.OFP_NO_BUFFER:
-            data = msg.data
-
-        out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
-                                  in_port=in_port, actions=actions, data=data)
+        out = parser.OFPPacketOut(
+            datapath=datapath, buffer_id=msg.buffer_id,
+            in_port=in_port, actions=actions, data=msg.data)
         datapath.send_msg(out)
 
-    @set_ev_cls(stplib.EventTopologyChange, MAIN_DISPATCHER)
-    def _topology_change_handler(self, ev):
-        dp = ev.dp
-        dpid_str = dpid_lib.dpid_to_str(dp.id)
-        msg = 'Receive topology change event. Flush MAC table.'
-        self.logger.debug("[dpid=%s] %s", dpid_str, msg)
+    def _install_flow_between(self, src_host, dst_host):
+        src_info = self.hosts_info[src_host]
+        dst_info = self.hosts_info[dst_host]
 
-        if dp.id in self.mac_to_port:
-            self.delete_flow(dp)
-            del self.mac_to_port[dp.id]
+        for s_info, d_info in [(src_info, dst_info), (dst_info, src_info)]:
+            dpid = s_info['dpid']
+            datapath = self.datapaths.get(dpid)
+            if not datapath:
+                self.logger.warning(f"No datapath for DPID {dpid}")
+                continue
 
-    @set_ev_cls(stplib.EventPortStateChange, MAIN_DISPATCHER)
-    def _port_state_change_handler(self, ev):
-        dpid_str = dpid_lib.dpid_to_str(ev.dp.id)
-        of_state = {stplib.PORT_STATE_DISABLE: 'DISABLE',
-                    stplib.PORT_STATE_BLOCK: 'BLOCK',
-                    stplib.PORT_STATE_LISTEN: 'LISTEN',
-                    stplib.PORT_STATE_LEARN: 'LEARN',
-                    stplib.PORT_STATE_FORWARD: 'FORWARD'}
-        self.logger.debug("[dpid=%s][port=%d] state=%s",
-                          dpid_str, ev.port_no, of_state[ev.port_state])
+            parser = datapath.ofproto_parser
+            ofproto = datapath.ofproto
+            match = parser.OFPMatch(eth_src=s_info['mac'], eth_dst=d_info['mac'])
+            actions = [parser.OFPActionOutput(ofproto.OFPP_FLOOD)]
+
+            self.logger.info(f"Installing flow: {s_info['mac']} -> {d_info['mac']} on DPID {dpid}")
+            self.add_flow(datapath, 100, match, actions)
+
+class SimpleSwitch13RestController(ControllerBase):
+    def __init__(self, req, link, data, **config):
+        super(SimpleSwitch13RestController, self).__init__(req, link, data, **config)
+        self.switch_app = data['switch_app']
+
+    @route('simple_switch', '/post-hosts', methods=['POST'])
+    def post_hosts(self, req, **kwargs):
+        body = req.json if req.body else {}
+        for host in body:
+            name = host['host']
+            self.switch_app.hosts_info[name] = {
+                'mac': host['host_mac'],
+                'dpid': int(host['dpid'])
+            }
+        return Response(status=200, body="Hosts stored")
+
+    @route('simple_switch', '/add-flow', methods=['POST'])
+    def add_flow_route(self, req, **kwargs):
+        body = req.json if req.body else {}
+        src_host = body.get("host")
+        dst_hosts = body.get("dependencies", [])
+
+        if src_host not in self.switch_app.hosts_info:
+            return Response(status=400, body=f"Unknown host: {src_host}")
+
+        for dst in dst_hosts:
+            if dst not in self.switch_app.hosts_info:
+                continue
+            self.switch_app._install_flow_between(src_host, dst)
+
+        return Response(status=200, body="Flows added")
