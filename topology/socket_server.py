@@ -59,7 +59,13 @@ class SocketServer:
                     if host:
                         try:
                             host_mac = host.MAC()
-                            dpid = host.connectionsTo(host)[0][0].dpid
+
+                            # get the first switch the host is connected to
+                            if host.intf().link:
+                                dpid = host.intf().link.intf2.node.dpid
+                            else:
+                                dpid = 0
+
                             host_info = {
                                 "host": host_name,
                                 "host_mac": host_mac,
