@@ -74,7 +74,7 @@ class SocketServer:
                                 "host_mac": host_mac,
                                 "dpid": dpid
                             }
-                            response = json.dumps(host_info)
+                            response = json.dumps(host)
                             conn.send(response.encode())
                         except Exception as e:
                             error_msg = json.dumps({"error": f"Failed to get host info: {e}"})
