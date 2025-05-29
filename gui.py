@@ -14,6 +14,9 @@ from network import NetworkManager
 import random
 import requests
 
+CONTROLLER_URL = os.getenv('CONTROLLER_URL')
+
+
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -271,7 +274,7 @@ class MainWindow(QWidget):
 
     def stopAllContainers(self):
         self.nm.stop_all_containers()
-        self.remove_dependencies_from_controller(self.runningContainers)
+        self.delete_allowed_communication(self. host_list, self.runningContainers)
         self.runningContainers = {}
         self.hostContainerCounts = {host: 0 for host in self.hostContainerCounts}
         self.updateMonitor()
@@ -307,7 +310,7 @@ class MainWindow(QWidget):
         if container_id in self.runningContainers:
             del self.runningContainers[container_id]
             self.hostContainerCounts[host] = self.hostContainerCounts.get(host) - 1
-            self.remove_dependencies_from_controller(container)
+            self.delete_allowed_communication(host, container)
             self.updateContainerDropdown()
             self.updateHostDropdown()
             self.updateMonitor()
@@ -530,20 +533,18 @@ class MainWindow(QWidget):
 
     # function to send list of active hosts to controller
     def add_hosts_to_controller(self):
-        url = 'http://0.0.0.0:8080/post-hosts'
         try: 
             hosts_info_list = self.nm.get_hosts_mn_objects(self.host_list)
             print('host info', hosts_info_list)
             time.sleep(10)   # wait for controller to start
             print('Sending list of active hosts to controller...')
-            response = requests.post(url, json=hosts_info_list)
+            response = requests.post(f"{CONTROLLER_URL}/post-hosts", json=hosts_info_list)
             print("Hosts sent to controller successfully.")
         except Exception as e:
             print(f'Error sending hosts data to controller: {e}')
 
     # function to send allowed communication rules to controller
     def add_allowed_communication(self, host, container):
-        url = 'http://0.0.0.0:8080/add-flow'
         try:
             communication_reqs = self.get_communication_reqs(container)
             if not communication_reqs:
@@ -566,12 +567,33 @@ class MainWindow(QWidget):
                 "dependencies": [d["host"] for d in dep_infos]
             }
 
-            response = requests.post(url, json=hosts_communication)
+            response = requests.post(f"{CONTROLLER_URL}/add-flow", json=hosts_communication)
             print("Allowed communication sent to controller successfully.")
 
         except Exception as e:
             print(f"Error sending communication: {e}")
 
+    # function to delete flows upon application shutdown
+    def delete_allowed_communication(self, host, dependencies):
+        payload_for_all = []
+        try:
+            if not isinstance(host, list): 
+                payload = {
+                    "host": host,
+                    "dependencies": dependencies
+                }
+                headers = {"Content-Type": "application/json"}
+                response = requests.post(f"{CONTROLLER_URL}/delete-flows", json=payload, headers=headers)
+                if response.status_code == 200:
+                    print("Deleted communication flows successfully.")
+
+            # delete all flows if host is type list
+            response = requests.post(f"{CONTROLLER_URL}/delete-all-flows", headers=headers)
+            if response.status_code == 200:
+                print("Deleted communication flows successfully.")
+
+        except Exception as e:
+            print(f"Error deleting communication: {e}")
 
 def main():
     app = QApplication(sys.argv)
