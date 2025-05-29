@@ -14,7 +14,7 @@ from network import NetworkManager
 import random
 import requests
 
-CONTROLLER_URL = os.getenv('CONTROLLER_URL')
+CONTROLLER_URL = 'http://localhost:8080'
 
 
 class MainWindow(QWidget):

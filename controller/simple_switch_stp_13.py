@@ -93,18 +93,21 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 
         self.mac_to_port[dpid][src] = in_port   # learn source MAC address
 
-        # determine output port
+        # if 
         if dst in self.mac_to_port[dpid]:
             out_port = self.mac_to_port[dpid][dst]
-        else:
-            out_port = ofproto.OFPP_FLOOD
-
-        actions = [parser.OFPActionOutput(out_port)]
-
-        # install OpenFlow rule to avoid same packet in event again
-        if out_port != ofproto.OFPP_FLOOD:
-            match = parser.OFPMatch(in_port=in_port, eth_dst=dst)
+            actions = [parser.OFPActionOutput(out_port)]
+            match = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
             self.add_flow(datapath, 1, match, actions)
+            
+            out = parser.OFPPacketOut(
+                datapath=datapath, buffer_id=msg.buffer_id,
+                in_port=in_port, actions=actions, data=msg.data)
+            datapath.send_msg(out)
+        else:
+            # drop packet
+            self.logger.info(f"Dropping packet from {src} to {dst} — not allowed")
+
 
         # send the allowed packet out
         out = parser.OFPPacketOut(
@@ -185,20 +188,32 @@ class SDNRestController(ControllerBase):
             src_host = body.get("host")
             dst_hosts = body.get("dependencies", [])
 
-            # if the src host is not regsistered to controller
-            if src_host not in self.switch_app.hosts_info:
-                return Response(status=400, body=f"Unknown host: {src_host}")
-
-            # loop thprugh communication requirements and delete each flow
             for dst in dst_hosts:
-                if dst not in self.switch_app.hosts_info:
-                    continue
-                self.switch_app._delete_flow_between(src_host, dst)
+                for s_info, d_info in [
+                    (self.switch_app.hosts_info.get(src_host), self.switch_app.hosts_info.get(dst)),
+                    (self.switch_app.hosts_info.get(dst), self.switch_app.hosts_info.get(src_host))
+                ]:
+                    if not s_info or not d_info:
+                        continue
+                    datapath = self.switch_app.datapaths.get(s_info['dpid'])
+                    if not datapath:
+                        continue
 
-            return Response(body="Flows deleted", status=200)
+                    parser = datapath.ofproto_parser
+                    ofproto = datapath.ofproto
+                    match = parser.OFPMatch(eth_src=s_info['mac'], eth_dst=d_info['mac'])
+
+                    mod = parser.OFPFlowMod(
+                        datapath=datapath, match=match,
+                        command=ofproto.OFPFC_DELETE,
+                        out_port=ofproto.OFPP_ANY,
+                        out_group=ofproto.OFPG_ANY
+                    )
+                    datapath.send_msg(mod)
+
+            return Response(status=200, body="Flows deleted")
         except Exception as e:
-            print(f"Error deleting flow: {e}")
-            return Response(body="Error deleting flows", status=500)
+            return Response(status=500, body=f"Error deleting flows: {e}")
 
     # route to delete all flows from controller upon all containers stopped
     @route('simple_switch', '/delete-all-flows', methods=['POST'])
