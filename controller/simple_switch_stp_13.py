@@ -93,21 +93,20 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 
         self.mac_to_port[dpid][src] = in_port   # learn source MAC address
 
-        # if 
         if dst in self.mac_to_port[dpid]:
             out_port = self.mac_to_port[dpid][dst]
             actions = [parser.OFPActionOutput(out_port)]
             match = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
             self.add_flow(datapath, 1, match, actions)
-            
+
             out = parser.OFPPacketOut(
                 datapath=datapath, buffer_id=msg.buffer_id,
                 in_port=in_port, actions=actions, data=msg.data)
             datapath.send_msg(out)
         else:
-            # drop packet
+            # Drop packet silently (do NOT try to use `actions` here)
             self.logger.info(f"Dropping packet from {src} to {dst} — not allowed")
-
+            return
 
         # send the allowed packet out
         out = parser.OFPPacketOut(
