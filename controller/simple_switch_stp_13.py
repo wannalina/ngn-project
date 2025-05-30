@@ -12,8 +12,6 @@ from ryu.controller import ofp_event
 from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_3
-from ryu.lib import dpid as dpid_lib
-from ryu.lib import stplib
 from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
 from ryu.app import simple_switch_13
@@ -26,22 +24,13 @@ import json
 # class for SDN controller; extends SimpleSwitch13
 class SDNController(simple_switch_13.SimpleSwitch13):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]   # use OpenFlow version 1.3
-    _CONTEXTS = {'stplib': stplib.Stp, 'wsgi': WSGIApplication}     # specify required contexts; spanning tree and wsgi (REST API)
+    _CONTEXTS = {'wsgi': WSGIApplication}     # specify required context; only wsgi (REST API)
 
     def __init__(self, *args, **kwargs):
         super(SDNController, self).__init__(*args, **kwargs)
         self.mac_to_port = {}   # MAC learning table for each switch
-        self.stp = kwargs['stplib']     # spanning tree protocol (prevents loops)
         self.datapaths = {}     # track active switches
         self.hosts_info = {}    # hosts info received from gui.py
-
-        # assign bridge priorities for stp
-        config = {
-            dpid_lib.str_to_dpid('0000000000000001'): {'bridge': {'priority': 0x8000}},
-            dpid_lib.str_to_dpid('0000000000000002'): {'bridge': {'priority': 0x9000}},
-            dpid_lib.str_to_dpid('0000000000000003'): {'bridge': {'priority': 0xa000}}
-        }
-        self.stp.set_config(config)
 
         # register REST API class to handle requests (HTTP)
         self.wsgi = kwargs['wsgi']
@@ -60,12 +49,12 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         try:
             for dst in dst_hosts:
                 for s_info, d_info in [
-                    (self.switch_app.hosts_info.get(src_host), self.switch_app.hosts_info.get(dst)),
-                    (self.switch_app.hosts_info.get(dst), self.switch_app.hosts_info.get(src_host))
+                    (self.hosts_info.get(src_host), self.hosts_info.get(dst)),
+                    (self.hosts_info.get(dst), self.hosts_info.get(src_host))
                 ]:
                     if not s_info or not d_info:
                         continue
-                    datapath = self.switch_app.datapaths.get(s_info['dpid'])
+                    datapath = self.datapaths.get(s_info['dpid'])
                     if not datapath:
                         continue
 
@@ -136,18 +125,11 @@ class SDNController(simple_switch_13.SimpleSwitch13):
             self.logger.info(f"Dropping packet from {src} to {dst} — not allowed")
             return
 
-        # send the allowed packet out
-        out = parser.OFPPacketOut(
-            datapath=datapath, buffer_id=msg.buffer_id,
-            in_port=in_port, actions=actions, data=msg.data)
-        datapath.send_msg(out)
-
     # function to install flow between allowed applications
     def _install_flow_between(self, src_host, dst_host):
         src_info = self.hosts_info[src_host]
         dst_info = self.hosts_info[dst_host]
 
-        # add new flow in both directions (src --> dst AND dst --> src)
         for s_info, d_info in [(src_info, dst_info), (dst_info, src_info)]:
             dpid = s_info['dpid']
             datapath = self.datapaths.get(dpid)
@@ -157,14 +139,16 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 
             parser = datapath.ofproto_parser
             ofproto = datapath.ofproto
-            match = parser.OFPMatch(eth_src=s_info['mac'], eth_dst=d_info['mac'])
 
-            out_port = self.mac_to_port[s_info['dpid']][d_info['mac']]
+            # Install flow for IPv4 traffic
+            match_ip = parser.OFPMatch(eth_src=s_info['mac'], eth_dst=d_info['mac'], eth_type=0x0800)
+            out_port = self.mac_to_port.get(dpid, {}).get(d_info['mac'], ofproto.OFPP_FLOOD)
             actions = [parser.OFPActionOutput(out_port)]
+            self.add_flow(datapath, 100, match_ip, actions)
 
-
-            self.logger.info(f"Installing flow: {s_info['mac']} -> {d_info['mac']} on DPID {dpid}")
-            self.add_flow(datapath, 100, match, actions)
+            # Install flow for ARP traffic
+            match_arp = parser.OFPMatch(eth_src=s_info['mac'], eth_dst=d_info['mac'], eth_type=0x0806)
+            self.add_flow(datapath, 100, match_arp, actions)
 
 # class for REST API communication between gui.py and SDN controller
 class SDNRestController(ControllerBase):
@@ -218,8 +202,7 @@ class SDNRestController(ControllerBase):
             src_host = body.get("host")
             dst_hosts = body.get("dependencies", [])
 
-            # delete flow between closed container and communication requirements
-            self.controller.delete_flows(src_host, dst_hosts)
+            self.switch_app.delete_flow(src_host, dst_hosts)
 
             return Response(status=200, body="Flows deleted")
         except Exception as e:
@@ -233,4 +216,3 @@ class SDNRestController(ControllerBase):
             return Response(body="All flows deleted", status=200)
         except Exception as e:
             return Response(body=f"Error deleting all flows: {e}", status=500)
-
