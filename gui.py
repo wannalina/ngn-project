@@ -47,7 +47,7 @@ class MainWindow(QWidget):
         # Switches box
         switchesLayout = QHBoxLayout()
         self.switchesBox = QSpinBox()
-        self.switchesBox.setRange(2,10)
+        self.switchesBox.setRange(1,10)
         switchesLayout.addWidget(QLabel("Switches: "))
         switchesLayout.addWidget(self.switchesBox)
         switchesLayout.setContentsMargins(5, 0, 5, 0)
