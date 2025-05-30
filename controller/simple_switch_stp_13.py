@@ -140,15 +140,16 @@ class SDNController(simple_switch_13.SimpleSwitch13):
             parser = datapath.ofproto_parser
             ofproto = datapath.ofproto
 
-            # Install flow for IPv4 traffic
+            # ip traffic
             match_ip = parser.OFPMatch(eth_src=s_info['mac'], eth_dst=d_info['mac'], eth_type=0x0800)
-            out_port = self.mac_to_port.get(dpid, {}).get(d_info['mac'], ofproto.OFPP_FLOOD)
-            actions = [parser.OFPActionOutput(out_port)]
+            actions = [parser.OFPActionOutput(ofproto.OFPP_FLOOD)]
             self.add_flow(datapath, 100, match_ip, actions)
 
-            # Install flow for ARP traffic
+            # arp traffic
             match_arp = parser.OFPMatch(eth_src=s_info['mac'], eth_dst=d_info['mac'], eth_type=0x0806)
             self.add_flow(datapath, 100, match_arp, actions)
+
+            self.logger.info(f"[Flow] {s_info['mac']} -> {d_info['mac']} added on switch {dpid}")
 
 # class for REST API communication between gui.py and SDN controller
 class SDNRestController(ControllerBase):
