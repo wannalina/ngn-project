@@ -83,7 +83,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         except Exception as e:
             print(f"Error deleting flow in controller: {e}")
 
-    # function to delete all flows when all containers shut down
+    # function to delete all flows when all containers shut down 
     def delete_all_flows(self):
         for dpid, datapath in self.datapaths.items():
             parser = datapath.ofproto_parser
@@ -158,7 +158,10 @@ class SDNController(simple_switch_13.SimpleSwitch13):
             parser = datapath.ofproto_parser
             ofproto = datapath.ofproto
             match = parser.OFPMatch(eth_src=s_info['mac'], eth_dst=d_info['mac'])
-            actions = [parser.OFPActionOutput(ofproto.OFPP_FLOOD)]
+
+            out_port = self.mac_to_port[s_info['dpid']][d_info['mac']]
+            actions = [parser.OFPActionOutput(out_port)]
+
 
             self.logger.info(f"Installing flow: {s_info['mac']} -> {d_info['mac']} on DPID {dpid}")
             self.add_flow(datapath, 100, match, actions)
