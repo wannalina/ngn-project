@@ -55,7 +55,35 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         mod = parser.OFPFlowMod(datapath=datapath, priority=priority, match=match, instructions=inst)
         datapath.send_msg(mod)
 
-    # function to delete all flows
+    # function to delete flow when one container is shut down
+    def delete_flow(self, src_host, dst_hosts):
+        try:
+            for dst in dst_hosts:
+                for s_info, d_info in [
+                    (self.switch_app.hosts_info.get(src_host), self.switch_app.hosts_info.get(dst)),
+                    (self.switch_app.hosts_info.get(dst), self.switch_app.hosts_info.get(src_host))
+                ]:
+                    if not s_info or not d_info:
+                        continue
+                    datapath = self.switch_app.datapaths.get(s_info['dpid'])
+                    if not datapath:
+                        continue
+
+                    parser = datapath.ofproto_parser
+                    ofproto = datapath.ofproto
+                    match = parser.OFPMatch(eth_src=s_info['mac'], eth_dst=d_info['mac'])
+
+                    mod = parser.OFPFlowMod(
+                        datapath=datapath, match=match,
+                        command=ofproto.OFPFC_DELETE,
+                        out_port=ofproto.OFPP_ANY,
+                        out_group=ofproto.OFPG_ANY
+                    )
+                    datapath.send_msg(mod)
+        except Exception as e:
+            print(f"Error deleting flow in controller: {e}")
+
+    # function to delete all flows when all containers shut down
     def delete_all_flows(self):
         for dpid, datapath in self.datapaths.items():
             parser = datapath.ofproto_parser
@@ -180,35 +208,15 @@ class SDNRestController(ControllerBase):
             return Response(body="Error adding flows", status=500)
 
     # route to delete flows when applications shut down
-    @route('simple_switch', '/delete-flows', methods=['POST'])
+    @route('simple_switch', '/delete-flow', methods=['POST'])
     def delete_flow_route(self, req, **kwargs):
         try:
             body = req.json if req.body else {}
             src_host = body.get("host")
             dst_hosts = body.get("dependencies", [])
 
-            for dst in dst_hosts:
-                for s_info, d_info in [
-                    (self.switch_app.hosts_info.get(src_host), self.switch_app.hosts_info.get(dst)),
-                    (self.switch_app.hosts_info.get(dst), self.switch_app.hosts_info.get(src_host))
-                ]:
-                    if not s_info or not d_info:
-                        continue
-                    datapath = self.switch_app.datapaths.get(s_info['dpid'])
-                    if not datapath:
-                        continue
-
-                    parser = datapath.ofproto_parser
-                    ofproto = datapath.ofproto
-                    match = parser.OFPMatch(eth_src=s_info['mac'], eth_dst=d_info['mac'])
-
-                    mod = parser.OFPFlowMod(
-                        datapath=datapath, match=match,
-                        command=ofproto.OFPFC_DELETE,
-                        out_port=ofproto.OFPP_ANY,
-                        out_group=ofproto.OFPG_ANY
-                    )
-                    datapath.send_msg(mod)
+            # delete flow between closed container and communication requirements
+            self.controller.delete_flows(src_host, dst_hosts)
 
             return Response(status=200, body="Flows deleted")
         except Exception as e:
