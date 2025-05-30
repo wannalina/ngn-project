@@ -586,11 +586,11 @@ class MainWindow(QWidget):
                 response = requests.post(f"{CONTROLLER_URL}/delete-flows", json=payload, headers=headers)
                 if response.status_code == 200:
                     print("Deleted communication flows successfully.")
-
-            # delete all flows if host is type list
-            response = requests.post(f"{CONTROLLER_URL}/delete-all-flows", headers=headers)
-            if response.status_code == 200:
-                print("Deleted communication flows successfully.")
+            else:
+                # delete all flows if host is type list
+                response = requests.post(f"{CONTROLLER_URL}/delete-all-flows", headers=headers)
+                if response.status_code == 200:
+                    print("Deleted communication flows successfully.")
 
         except Exception as e:
             print(f"Error deleting communication: {e}")
