@@ -75,26 +75,26 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 
         self.mac_to_port[dpid][src] = in_port
 
-        # Only allow if explicitly authorized
-        if (src, dst) in self.allowed_pairs:
+        self.mac_to_port[dpid][src] = in_port
+
+        eth_type = eth.ethertype
+        # Only forward if it's IPv4 or ARP AND the src-dst pair is allowed
+        if (eth_type == 0x0800 or eth_type == 0x0806) and (src, dst) in self.allowed_pairs:
             if dst in self.mac_to_port[dpid]:
                 out_port = self.mac_to_port[dpid][dst]
-                actions = [parser.OFPActionOutput(out_port)]
-                match = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
-                self.add_flow(datapath, 1, match, actions)
-                out = parser.OFPPacketOut(
-                    datapath=datapath, buffer_id=msg.buffer_id,
-                    in_port=in_port, actions=actions, data=msg.data)
-                datapath.send_msg(out)
             else:
-                # Flood to discover unknown MAC
-                actions = [parser.OFPActionOutput(ofproto.OFPP_FLOOD)]
-                out = parser.OFPPacketOut(
-                    datapath=datapath, buffer_id=msg.buffer_id,
-                    in_port=in_port, actions=actions, data=msg.data)
-                datapath.send_msg(out)
+                out_port = ofproto.OFPP_FLOOD
+
+            actions = [parser.OFPActionOutput(out_port)]
+            match = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
+            self.add_flow(datapath, 1, match, actions)
+
+            out = parser.OFPPacketOut(
+                datapath=datapath, buffer_id=msg.buffer_id,
+                in_port=in_port, actions=actions, data=msg.data)
+            datapath.send_msg(out)
         else:
-            self.logger.info(f"Dropping packet from {src} to {dst} — not allowed")
+            self.logger.info(f"Dropping unauthorized packet: {src} -> {dst} (type: {hex(eth_type)})")
 
     def _install_flow_between(self, src_host, dst_host):
         src_info = self.hosts_info[src_host]
