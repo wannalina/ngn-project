@@ -28,6 +28,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         self.mac_to_port = {}
         self.datapaths = {}
         self.hosts_info = {}
+        self.allowed_pairs = set()  # Track allowed (src_mac, dst_mac)
         self.wsgi = kwargs['wsgi']
         self.wsgi.register(SDNRestController, {'switch_app': self})
 
@@ -74,18 +75,26 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 
         self.mac_to_port[dpid][src] = in_port
 
-        if dst in self.mac_to_port[dpid]:
-            out_port = self.mac_to_port[dpid][dst]
-            actions = [parser.OFPActionOutput(out_port)]
-            match = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
-            self.add_flow(datapath, 1, match, actions)
-            out = parser.OFPPacketOut(
-                datapath=datapath, buffer_id=msg.buffer_id,
-                in_port=in_port, actions=actions, data=msg.data)
-            datapath.send_msg(out)
+        # Only allow if explicitly authorized
+        if (src, dst) in self.allowed_pairs:
+            if dst in self.mac_to_port[dpid]:
+                out_port = self.mac_to_port[dpid][dst]
+                actions = [parser.OFPActionOutput(out_port)]
+                match = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
+                self.add_flow(datapath, 1, match, actions)
+                out = parser.OFPPacketOut(
+                    datapath=datapath, buffer_id=msg.buffer_id,
+                    in_port=in_port, actions=actions, data=msg.data)
+                datapath.send_msg(out)
+            else:
+                # Flood to discover unknown MAC
+                actions = [parser.OFPActionOutput(ofproto.OFPP_FLOOD)]
+                out = parser.OFPPacketOut(
+                    datapath=datapath, buffer_id=msg.buffer_id,
+                    in_port=in_port, actions=actions, data=msg.data)
+                datapath.send_msg(out)
         else:
             self.logger.info(f"Dropping packet from {src} to {dst} — not allowed")
-            return
 
     def _install_flow_between(self, src_host, dst_host):
         src_info = self.hosts_info[src_host]
@@ -113,6 +122,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
             actions_ip = [parser.OFPActionOutput(ofproto.OFPP_FLOOD)]
             self.add_flow(datapath, 20, match_ip, actions_ip)
 
+            self.allowed_pairs.add((s_info['mac'], d_info['mac']))
             self.logger.info(f"Installed ARP and IP flow: {s_info['mac']} -> {d_info['mac']} on DPID {dpid}")
 
 class SDNRestController(ControllerBase):
