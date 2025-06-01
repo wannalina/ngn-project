@@ -119,7 +119,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
             if info["mac"] == dst:
                 dst_host_name = host_name
 
-        self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
+        self.logger.info("packet in %s %s %s %s %s", dpid, src, dst, in_port, self.communication_reqs)
         
         for dep in self.communication_reqs:
             if dep["host"] == src_host_name:
