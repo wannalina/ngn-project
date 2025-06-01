@@ -114,12 +114,11 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         self.logger.info("SER AND DST %s %s %s", src, dst, self.hosts_info)
 
         # get src/dst host name from hosts_info based on MAC address
-        for host in self.hosts_info:
-            self.logger.info("HOST %s", host)
-            if host['host_mac'] == src:
-                src_host_name = host['host']
-            if host['host_mac'] == dst: 
-                dst_host_name = host['host']
+        for host_name, info in self.hosts_info.items():
+            if info["mac"] == src:
+                src_host_name = host_name
+            if info["mac"] == dst:
+                dst_host_name = host_name
 
         self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
 
