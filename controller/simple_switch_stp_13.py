@@ -110,8 +110,6 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         src = eth.src
         dpid = datapath.id
         self.mac_to_port.setdefault(dpid, {})
-        
-        self.logger.info("SER AND DST %s %s %s", src, dst, self.hosts_info)
 
         # get src/dst host name from hosts_info based on MAC address
         for host_name, info in self.hosts_info.items():
@@ -143,6 +141,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
             self.logger.info(f"Dropping packet from {src} to {dst} — not allowed")
             return
 
+    '''
     # event handler to handle topology changes
     @set_ev_cls(stplib.EventTopologyChange, MAIN_DISPATCHER)
     def _topology_change_handler(self, ev):
@@ -154,6 +153,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         if datapath.id in self.mac_to_port:
             self.delete_flow(datapath)
             del self.mac_to_port[datapath.id]
+    '''
 
 
 # class for REST API communication between gui.py and SDN controller
