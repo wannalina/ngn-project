@@ -4,7 +4,6 @@
 FROM postgres:13
 
 # Set environment variables for PostgreSQL
-set postgres env variables
 ENV DB_NAME=cities
 ENV DB_USER=postgres
 ENV DB_PASSWORD=newpassword
