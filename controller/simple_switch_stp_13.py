@@ -7,19 +7,17 @@ IMPORTANT ADDITIONS:
 '''
 
 # import ryu libraries
-from ryu.base import app_manager
 from ryu.controller import ofp_event
-from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER
+from ryu.controller.handler import MAIN_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
 from ryu.app import simple_switch_13
 from ryu.app.wsgi import ControllerBase, WSGIApplication, route
-from webob import Response
 
 # import other libraries
-import json
+from webob import Response
 
 # class for SDN controller; extends SimpleSwitch13
 class SDNController(simple_switch_13.SimpleSwitch13):
@@ -35,14 +33,6 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         # register REST API class to handle requests (HTTP)
         self.wsgi = kwargs['wsgi']
         self.wsgi.register(SDNRestController, {'switch_app': self})
-
-    # function to add new OpenFlow rule to switch
-    def add_flow(self, datapath, priority, match, actions):
-        ofproto = datapath.ofproto
-        parser = datapath.ofproto_parser
-        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
-        mod = parser.OFPFlowMod(datapath=datapath, priority=priority, match=match, instructions=inst)
-        datapath.send_msg(mod)
 
     # function to delete flow when one container is shut down
     def delete_flow(self, src_host, dst_hosts):
@@ -91,6 +81,8 @@ class SDNController(simple_switch_13.SimpleSwitch13):
     # event handler for packet in events (learn MAC addresses)
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
+        actions = ''
+
         msg = ev.msg
         datapath = msg.datapath
         self.datapaths[datapath.id] = datapath  # track datapath
@@ -108,11 +100,13 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 
         self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
 
-        self.mac_to_port[dpid][src] = in_port   # learn source MAC address
-
+        # check if dst is in allowed dependencies
         if dst in self.mac_to_port[dpid]:
             out_port = self.mac_to_port[dpid][dst]
-            actions = [parser.OFPActionOutput(out_port)]
+            if out_port is not None: 
+                actions = [parser.OFPActionOutput(out_port)]    # if dst port, send packet to port
+            else:
+                actions = [parser.OFPActionOutput(ofproto.OFPP_FLOOD)]      # if no dst port, FLOOD
             match = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
             self.add_flow(datapath, 1, match, actions)
 
