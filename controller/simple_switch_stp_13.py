@@ -185,7 +185,7 @@ class SDNRestController(ControllerBase):
     def post_app_reqs_route(self, req, **kwargs):
         try: 
             request_body = req.json if req.body else {}
-            print("request body: ", request_body)
+            self.logger.info("REQ BODY %s", request_body)
 
             self.switch_app.communication_reqs = request_body
             return Response(body="Communication requirements posted successfully", status=200)
