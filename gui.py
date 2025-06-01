@@ -547,11 +547,11 @@ class MainWindow(QWidget):
     def post_container_dependencies(self):
         try:
             communication_reqs = [
-                { "host": host, "dependency": dep }
+                { "container": host, "dependencies": dep }
                 for host, deps in self.containerDependencies.items()
                 for dep in deps
             ]
-            print("container dependencies: ", communication_reqs)
+
             response = requests.post(f"{CONTROLLER_URL}/post-apps", json=communication_reqs)
             print("Allowed communication sent to controller successfully.")
         except Exception as e: 

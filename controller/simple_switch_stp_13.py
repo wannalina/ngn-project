@@ -12,6 +12,8 @@ from ryu.controller.handler import MAIN_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet
+from ryu.lib import stplib
+from ryu.lib import dpid as dpid_lib
 from ryu.lib.packet import ethernet
 from ryu.app import simple_switch_13
 from ryu.app.wsgi import ControllerBase, WSGIApplication, route
@@ -27,13 +29,22 @@ class SDNController(simple_switch_13.SimpleSwitch13):
     def __init__(self, *args, **kwargs):
         super(SDNController, self).__init__(*args, **kwargs)
         self.mac_to_port = {}   # MAC learning table for each switch
+        self.stp = kwargs['stplib']
         self.datapaths = {}     # track active switches
         self.hosts_info = {}    # hosts info received from gui.py
-        self.communication_res = {} # application communication requirements
+        self.communication_reqs = {} # application communication requirements
 
         # register REST API class to handle requests (HTTP)
         self.wsgi = kwargs['wsgi']
         self.wsgi.register(SDNRestController, {'switch_app': self})
+
+        config = {dpid_lib.str_to_dpid('0000000000000001'):
+            {'bridge': {'priority': 0x8000}},
+            dpid_lib.str_to_dpid('0000000000000002'):
+            {'bridge': {'priority': 0x9000}},
+            dpid_lib.str_to_dpid('0000000000000003'):
+            {'bridge': {'priority': 0xa000}}}
+        self.stp.set_config(config)
 
     # function to delete flow when one container is shut down
     def delete_flow(self, src_host, dst_hosts):
@@ -96,13 +107,18 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         dst = eth.dst
         src = eth.src
 
+        src_host_name = next((host['host'] for host in self.hosts_info if host['host_mac'] == src), None)    # get host name from hosts_info based on MAC address
+        dst_host_name = next((host['host'] for host in self.hosts_info if host['host_mac'] == dst), None)    # get host name from hosts_info based on MAC address
+
         dpid = datapath.id
         self.mac_to_port.setdefault(dpid, {})
 
         self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
 
-        # check if dst is in allowed dependencies
-        if dst in self.mac_to_port[dpid]:
+        host_dependencies = [entry for entry in self.communication_reqs if entry.get("host") == src_host_name]
+
+        # check if dst is in allowed dependencies for src host
+        if dst_host_name in host_dependencies:
             out_port = self.mac_to_port[dpid][dst]
             if out_port is not None: 
                 actions = [parser.OFPActionOutput(out_port)]    # if dst port, send packet to port
@@ -116,35 +132,22 @@ class SDNController(simple_switch_13.SimpleSwitch13):
                 in_port=in_port, actions=actions, data=msg.data)
             datapath.send_msg(out)
         else:
-            # Drop packet silently (do NOT try to use `actions` here)
+            # drop packet
             self.logger.info(f"Dropping packet from {src} to {dst} — not allowed")
             return
 
-    # function to install flow between allowed applications
-    def _install_flow_between(self, src_host, dst_host):
-        src_info = self.hosts_info[src_host]
-        dst_info = self.hosts_info[dst_host]
+    # event handler to handle topology changes
+    @set_ev_cls(stplib.EventTopologyChange, MAIN_DISPATCHER)
+    def _topology_change_handler(self, ev):
+        datapath = ev.dp
+        dpid_str = dpid_lib.dpid_to_str(datapath.id)
+        msg = 'Receive topology change event. Flush MAC table.'
+        self.logger.debug("[dpid=%s] %s", dpid_str, msg)
 
-        for s_info, d_info in [(src_info, dst_info), (dst_info, src_info)]:
-            dpid = s_info['dpid']
-            datapath = self.datapaths.get(dpid)
-            if not datapath:
-                self.logger.warning(f"No datapath for DPID {dpid}")
-                continue
+        if datapath.id in self.mac_to_port:
+            self.delete_flow(datapath)
+            del self.mac_to_port[datapath.id]
 
-            parser = datapath.ofproto_parser
-            ofproto = datapath.ofproto
-
-            # ip traffic
-            match_ip = parser.OFPMatch(eth_src=s_info['mac'], eth_dst=d_info['mac'], eth_type=0x0800)
-            actions = [parser.OFPActionOutput(ofproto.OFPP_FLOOD)]
-            self.add_flow(datapath, 100, match_ip, actions)
-
-            # arp traffic
-            match_arp = parser.OFPMatch(eth_src=s_info['mac'], eth_dst=d_info['mac'], eth_type=0x0806)
-            self.add_flow(datapath, 100, match_arp, actions)
-
-            self.logger.info(f"[Flow] {s_info['mac']} -> {d_info['mac']} added on switch {dpid}")
 
 # class for REST API communication between gui.py and SDN controller
 class SDNRestController(ControllerBase):
@@ -174,7 +177,8 @@ class SDNRestController(ControllerBase):
     def post_app_reqs_route(self, req, **kwargs):
         try: 
             request_body = req.json if req.body else {}
-            
+
+            self.switch_app.communication_reqs = request_body
             return Response(body="Communication requirements posted successfully", status=200)
         except Exception as e: 
             print(f"Error posting application requirements: {e}")
@@ -183,10 +187,32 @@ class SDNRestController(ControllerBase):
     # route to add flows between allowed hosts
     @route('simple_switch', '/add-flow', methods=['POST'])
     def add_flow_route(self, req, **kwargs):
+        dep_pairs = []
         try: 
             request_body = req.json if req.body else {}
-            src_host = request_body.get("host")
+            '''src_host = request_body.get("host")
             dst_hosts = request_body.get("dependencies", [])
+
+            # check if host name in known hosts
+            if src_host not in self.switch_app.hosts_info:
+                return Response(body=f"Unknown host: {src_host}", status=400)
+
+            # iterate over dependency hosts and check if in known hosts
+            for dst in dst_hosts:
+                if dst not in self.switch_app.hosts_info:
+                    continue
+                dst_hosts.append(dst)
+                dep_pair = (src_host, dst_hosts)
+                dep_pairs.append(dep_pair)
+            
+            self.switch_app.communication_reqs = dep_pairs'''
+            
+            self.switch_app.communication_reqs = request_body
+            
+            print("PAIRS: ", self.switch_app.communication_reqs)
+            
+            '''
+            print("PRINT2", src_host, dst_hosts)
 
             if src_host not in self.switch_app.hosts_info:
                 return Response(body=f"Unknown host: {src_host}", status=400)
@@ -195,6 +221,7 @@ class SDNRestController(ControllerBase):
                 if dst not in self.switch_app.hosts_info:
                     continue
                 self.switch_app._install_flow_between(src_host, dst)
+            '''
 
             return Response(body="Flows added",status=200)
         except Exception as e: 
