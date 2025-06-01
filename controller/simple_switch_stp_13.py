@@ -96,6 +96,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         actions = ''
         src_host_name = ''
         dst_host_name = ''
+        host_dependencies = []
 
         msg = ev.msg
         datapath = msg.datapath
@@ -119,8 +120,10 @@ class SDNController(simple_switch_13.SimpleSwitch13):
                 dst_host_name = host_name
 
         self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
-
-        host_dependencies = [entry for entry in self.communication_reqs if entry.get("host") == src_host_name]
+        
+        for dep in self.communication_reqs.items():
+            if dep["host"] == src_host_name:
+                host_dependencies = dep["dependencies"]
 
         # check if dst is in allowed dependencies for src host
         if dst_host_name in host_dependencies:
@@ -194,42 +197,10 @@ class SDNRestController(ControllerBase):
     # route to add flows between allowed hosts
     @route('simple_switch', '/add-flow', methods=['POST'])
     def add_flow_route(self, req, **kwargs):
-        dep_pairs = []
         try: 
             request_body = req.json if req.body else {}
-            '''src_host = request_body.get("host")
-            dst_hosts = request_body.get("dependencies", [])
-
-            # check if host name in known hosts
-            if src_host not in self.switch_app.hosts_info:
-                return Response(body=f"Unknown host: {src_host}", status=400)
-
-            # iterate over dependency hosts and check if in known hosts
-            for dst in dst_hosts:
-                if dst not in self.switch_app.hosts_info:
-                    continue
-                dst_hosts.append(dst)
-                dep_pair = (src_host, dst_hosts)
-                dep_pairs.append(dep_pair)
-            
-            self.switch_app.communication_reqs = dep_pairs'''
             
             self.switch_app.communication_reqs = request_body
-            
-            print("PAIRS: ", self.switch_app.communication_reqs)
-            
-            '''
-            print("PRINT2", src_host, dst_hosts)
-
-            if src_host not in self.switch_app.hosts_info:
-                return Response(body=f"Unknown host: {src_host}", status=400)
-
-            for dst in dst_hosts:
-                if dst not in self.switch_app.hosts_info:
-                    continue
-                self.switch_app._install_flow_between(src_host, dst)
-            '''
-
             return Response(body="Flows added",status=200)
         except Exception as e: 
             print(f"Error adding flow from communication requirements: {e}")
