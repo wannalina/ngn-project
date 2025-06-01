@@ -24,7 +24,7 @@ from webob import Response
 # class for SDN controller; extends SimpleSwitch13
 class SDNController(simple_switch_13.SimpleSwitch13):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]   # use OpenFlow version 1.3
-    _CONTEXTS = {'wsgi': WSGIApplication}     # specify required context; only wsgi (REST API)
+    _CONTEXTS = {'stplib': stplib.Stp, 'wsgi': WSGIApplication}     # specify required context; only wsgi (REST API)
 
     def __init__(self, *args, **kwargs):
         super(SDNController, self).__init__(*args, **kwargs)
