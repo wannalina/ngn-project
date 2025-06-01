@@ -111,15 +111,15 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         dpid = datapath.id
         self.mac_to_port.setdefault(dpid, {})
         
-        self.logger.info("SER AND DST %s %s", src, dst)
+        self.logger.info("SER AND DST %s %s %s", src, dst, self.hosts_info)
 
         # get src/dst host name from hosts_info based on MAC address
-        for host_name, info in self.hosts_info:
-            self.logger.info("HOST %s %s", host_name, info)
-            if info["host_mac"] == src:
-                src_host_name = host_name
-            if info["host_mac"] == dst: 
-                dst_host_name = host_name
+        for host in self.hosts_info:
+            self.logger.info("HOST %s", host)
+            if host['host_mac'] == src:
+                src_host_name = host['host']
+            if host['host_mac'] == dst: 
+                dst_host_name = host['host']
 
         self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
 
@@ -185,7 +185,6 @@ class SDNRestController(ControllerBase):
     def post_app_reqs_route(self, req, **kwargs):
         try: 
             request_body = req.json if req.body else {}
-            self.logger.info("REQ BODY %s", request_body)
 
             self.switch_app.communication_reqs = request_body
             return Response(body="Communication requirements posted successfully", status=200)
