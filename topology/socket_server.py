@@ -142,9 +142,9 @@ class SocketServer:
                 host.cmd(f'nsenter -t {container_pid} -n ip link set {veth_container} name eth0')
                 host.cmd(f'nsenter -t {container_pid} -n ip link set eth0 up')
                 
-                # Assign IP to container (simple scheme: 10.0.hostnum.2)
+                # Assign IP to container (simple scheme: 10.0.0.{host_num})
                 host_num = host_name.replace('h', '')
-                container_ip = f"10.0.{host_num}.2/24"
+                container_ip = f"10.0.0.{host_num}"
                 host.cmd(f'nsenter -t {container_pid} -n ip addr add {container_ip} dev eth0')
                 
                 print(f"Configured networking for container {container_name}: {container_ip}")
