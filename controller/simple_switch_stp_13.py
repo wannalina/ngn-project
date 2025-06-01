@@ -120,13 +120,9 @@ class SDNController(simple_switch_13.SimpleSwitch13):
                 dst_host_name = host_name
 
         self.logger.info("packet in %s %s %s %s %s", dpid, src, dst, in_port, self.communication_reqs)
-        
-        for dep in self.communication_reqs:
-            if dep["host"] == src_host_name:
-                host_dependencies = dep["dependencies"]
 
         # check if dst is in allowed dependencies for src host
-        if dst_host_name in host_dependencies:
+        if dst_host_name in self.communication_reqs["dependencies"]:
             out_port = self.mac_to_port[dpid][dst]
             if out_port is not None: 
                 actions = [parser.OFPActionOutput(out_port)]    # if dst port, send packet to port
