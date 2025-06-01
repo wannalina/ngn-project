@@ -89,51 +89,34 @@ class SocketServer:
         host = self.net.get(host_name)
         if host:
             print(f"Starting container {container_name} on host {host_name}")
-            
+
             # Load the Docker image
             load_result = host.cmd(f'docker load -i {image_path}')
             print(f"Docker load result: {load_result}")
-            
-            # Get the host's network namespace PID
-            host_pid = host.cmd('echo $$').strip()
-            
-            # Method 1: Use docker run with network namespace sharing
+
             container_full_name = f"{container_name}_{host_name}"
-            
-            # First, try to remove any existing container with the same name
+
+            # Remove any existing container with the same name
             host.cmd(f'docker rm -f {container_full_name} 2>/dev/null')
-            
-            # Start container in the host's network namespace
-            # Option A: Share network namespace with a process running in the mininet host
-            run_cmd = f'docker run -d --name {container_full_name} --network container:$(docker run -d --rm --net=none alpine sleep 3600) {container_name}'
-            
-            # Option B: Better approach - use nsenter to run docker in the correct namespace
-            # This requires the container to be started from within the mininet host's context
+
+            # Run the container with no network so we can connect manually
             run_cmd = f'docker run -d --name {container_full_name} --network=none {container_name}'
-            
             result = host.cmd(run_cmd)
             print(f"Docker run result: {result}")
-            
-            # Configure networking manually to integrate with Mininet
-            # Get container PID
-            container_id = result.strip()
-            if container_id:
-                # Move container to host's network namespace
-                host_netns_cmd = f'docker exec {container_full_name} ip link set dev eth0 netns 1 2>/dev/null || echo "No eth0 to move"'
-                host.cmd(host_netns_cmd)
-                
-                # Alternative: Create veth pair and connect container to host
-                self._setup_container_networking(host, container_full_name, host_name)
-            
+
+            # Setup veth connection to the Mininet host
+            self._setup_container_networking(host, container_full_name, host_name)
+
             # Track running container
             if host_name not in self.running_containers:
                 self.running_containers[host_name] = set()
             self.running_containers[host_name].add(container_name)
-            
+
             # Verify container is running
             check_cmd = f'docker ps --filter name={container_full_name} --format "table {{{{.Names}}}}\t{{{{.Status}}}}"'
             status = host.cmd(check_cmd)
             print(f"Container status: {status}")
+
     def _setup_container_networking(self, host, container_name, host_name):
         """Setup networking between container and mininet host"""
         try:
