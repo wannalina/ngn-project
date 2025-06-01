@@ -121,7 +121,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 
         self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
         
-        for dep in self.communication_reqs.items():
+        for dep in self.communication_reqs:
             if dep["host"] == src_host_name:
                 host_dependencies = dep["dependencies"]
 
