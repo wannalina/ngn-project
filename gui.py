@@ -460,7 +460,7 @@ class MainWindow(QWidget):
             for dep in deps:
                 updated_dependencies.setdefault(dep, set()).add(container)
         self.containerDependencies = updated_dependencies
-        self.post_container_dependencies()
+        #self.post_container_dependencies()
         self.updateEnables()
 
     '''
