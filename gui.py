@@ -401,7 +401,7 @@ class MainWindow(QWidget):
                 print(f"Error updating host dropdown: {e}")
 
 
-    def autoDeployContainers(self):
+    async def autoDeployContainers(self):
         print(self.hostContainerCounts)
         available_hosts = [] #ALL CONTAINERS NOT AT MAX
         max_containers = self.maxContainersBox.value()
@@ -428,9 +428,8 @@ class MainWindow(QWidget):
             self.nm.start_container(host, container, self.availableContainers[container])
             container_id = f"{container}_{host}"
             self.runningContainers[container_id] = {"host": host, "container": container}
-            self.hostContainerCounts[host] = self.hostContainerCounts.get(host, 0) + 1
-
             self.add_allowed_communication(host, container)
+            self.hostContainerCounts[host] = self.hostContainerCounts.get(host, 0) + 1
 
         self.updateMonitor()
         self.updateHostDropdown()
@@ -461,6 +460,7 @@ class MainWindow(QWidget):
             for dep in deps:
                 updated_dependencies.setdefault(dep, set()).add(container)
         self.containerDependencies = updated_dependencies
+        self.post_container_dependencies()
         self.updateEnables()
 
     '''
@@ -542,6 +542,15 @@ class MainWindow(QWidget):
             print("Hosts sent to controller successfully.")
         except Exception as e:
             print(f'Error sending hosts data to controller: {e}')
+    
+    # function to send containers to controller
+    def post_container_dependencies(self):
+        try:
+            print("container dependencies: ", self.containerDependencies)
+            response = requests.post(f"{CONTROLLER_URL}/post-apps", json=self.containerDependencies)
+            print("Allowed communication sent to controller successfully.")
+        except Exception as e: 
+            print(f"Error posting communication requirements: {e}")
 
     # function to send allowed communication rules to controller
     def add_allowed_communication(self, host, container):

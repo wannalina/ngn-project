@@ -29,6 +29,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         self.mac_to_port = {}   # MAC learning table for each switch
         self.datapaths = {}     # track active switches
         self.hosts_info = {}    # hosts info received from gui.py
+        self.communication_res = {} # application communication requirements
 
         # register REST API class to handle requests (HTTP)
         self.wsgi = kwargs['wsgi']
@@ -167,6 +168,17 @@ class SDNRestController(ControllerBase):
         except Exception as e: 
             print(f"Error sending host data to controller: {e}")
             return Response(body="Error storing hosts", status=500)
+    
+    # route to send application communication requirements to controller
+    @route('simple_switch', '/post-apps', methods=['POST'])
+    def post_app_reqs_route(self, req, **kwargs):
+        try: 
+            request_body = req.json if req.body else {}
+            
+            return Response(body="Communication requirements posted successfully", status=200)
+        except Exception as e: 
+            print(f"Error posting application requirements: {e}")
+            return Response(body="Error posting communication requirements", status=500)
 
     # route to add flows between allowed hosts
     @route('simple_switch', '/add-flow', methods=['POST'])
