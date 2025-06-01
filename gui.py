@@ -546,8 +546,13 @@ class MainWindow(QWidget):
     # function to send containers to controller
     def post_container_dependencies(self):
         try:
-            print("container dependencies: ", self.containerDependencies)
-            response = requests.post(f"{CONTROLLER_URL}/post-apps", json=self.containerDependencies)
+            communication_reqs = [
+                { "host": host, "dependency": dep }
+                for host, deps in self.containerDependencies.items()
+                for dep in deps
+            ]
+            print("container dependencies: ", communication_reqs)
+            response = requests.post(f"{CONTROLLER_URL}/post-apps", json=communication_reqs)
             print("Allowed communication sent to controller successfully.")
         except Exception as e: 
             print(f"Error posting communication requirements: {e}")
