@@ -94,6 +94,8 @@ class SDNController(simple_switch_13.SimpleSwitch13):
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
         actions = ''
+        src_host_name = ''
+        dst_host_name = ''
 
         msg = ev.msg
         datapath = msg.datapath
@@ -106,14 +108,17 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         eth = pkt.get_protocols(ethernet.ethernet)[0]
         dst = eth.dst
         src = eth.src
+        dpid = datapath.id
+        self.mac_to_port.setdefault(dpid, {})
         
         self.logger.info("SER AND DST %s %s", src, dst)
 
-        src_host_name = next((host['host'] for host in self.hosts_info if host['host_mac'] == src), None)    # get host name from hosts_info based on MAC address
-        dst_host_name = next((host['host'] for host in self.hosts_info if host['host_mac'] == dst), None)    # get host name from hosts_info based on MAC address
-
-        dpid = datapath.id
-        self.mac_to_port.setdefault(dpid, {})
+        # get src/dst host name from hosts_info based on MAC address
+        for host in self.hosts_info:
+            if host["host_mac"] == src:
+                src_host_name = host["host"]
+            if host["host_mac"] == dst: 
+                dst_host_name = host["host"]
 
         self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
 
