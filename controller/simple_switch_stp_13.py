@@ -106,6 +106,8 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         eth = pkt.get_protocols(ethernet.ethernet)[0]
         dst = eth.dst
         src = eth.src
+        
+        self.logger.info("SER AND DST %s %s", src, dst)
 
         src_host_name = next((host['host'] for host in self.hosts_info if host['host_mac'] == src), None)    # get host name from hosts_info based on MAC address
         dst_host_name = next((host['host'] for host in self.hosts_info if host['host_mac'] == dst), None)    # get host name from hosts_info based on MAC address
