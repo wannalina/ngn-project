@@ -50,18 +50,17 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         self.stp.set_config(config)
 
     # function to delete flow when one container is shut down
-    def delete_flow(self, datapath):
+    def delete_flow(self, datapath, host_mac):
         try:
             ofproto = datapath.ofproto
             parser = datapath.ofproto_parser
 
-            for dst in self.mac_to_port[datapath.id].keys():
-                match = parser.OFPMatch(eth_dst=dst)
-                mod = parser.OFPFlowMod(
-                    datapath, command=ofproto.OFPFC_DELETE,
-                    out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY,
-                    priority=1, match=match)
-                datapath.send_msg(mod)
+            match = parser.OFPMatch(eth_dst=host_mac)
+            mod = parser.OFPFlowMod(
+                datapath, command=ofproto.OFPFC_DELETE,
+                out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY,
+                priority=1, match=match)
+            datapath.send_msg(mod)
 
             self.logger.info(f"Flow deleted on switch DPID {datapath}")
         except Exception as e:
@@ -241,17 +240,19 @@ class SDNRestController(ControllerBase):
     # route to delete flows when applications shut down
     @route('simple_switch', '/delete-flow', methods=['POST'])
     def delete_flow_route(self, req, **kwargs):
-        host_pairs = []
         try:
             body = req.json if req.body else {}
             host_del = body.get("host")
 
-            self.controller_app.logger.info(f"request: {host_del}")
-
             # get datapath and delete flow
-            datapath = self.datapaths.get(host_del['dpid'])
+            datapath = self.controller_app.datapaths.get(host_del['dpid'])
             self.controller_app.logger.info(f"datapath: {datapath}")
-            self.controller_app.delete_flow(datapath)
+
+            for host_name, info in self.controller_app.hosts_info.items():
+                if host_name == host_del:
+                    self.controller_app.logger.info(f"host: {host_name}, {info}")
+                    self.controller_app.delete_flow(datapath, info["mac"])
+                    break
             self.controller_app.logger.info(f"flow deleted!")
 
             # remove hosts from communication requirements
