@@ -34,7 +34,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         self.datapaths = {}     # track active switches
         self.hosts_info = {}    # hosts info received from gui.py
         self.hosts_mac_list = []
-        self.communication_reqs = {} # application communication requirements
+        self.communication_reqs = [] # application communication requirements
 
         # register REST API class to handle requests (HTTP)
         self.wsgi = kwargs['wsgi']
@@ -86,6 +86,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
+        # initialize variables for later
         is_allowed = False
         actions = ''
         src_host_name = ''
@@ -104,14 +105,13 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         dst = eth.dst
         dpid = datapath.id
         self.mac_to_port.setdefault(dpid, {})
+        eth_type = eth.ethertype    # get packet type
 
-        # MAC learning
+        # learn MAC to port
         self.mac_to_port[dpid][src] = in_port
-        # eth header to see packet type
-        eth_type = eth.ethertype
-        
+
         # allow ARP packets through
-        if eth_type == 0x0806:  # ARP header
+        if eth_type == 0x0806:  # ARP header code
             self.logger.info("Allowing ARP packet")
             out_port = ofproto.OFPP_FLOOD
             actions = [parser.OFPActionOutput(out_port)]
@@ -124,9 +124,6 @@ class SDNController(simple_switch_13.SimpleSwitch13):
             )
             datapath.send_msg(out)
             return
-
-        # learn MAC to port
-        self.mac_to_port[dpid][src] = in_port
 
         # get src/dst MAC addresses
         for host in self.hosts_mac_list:
@@ -205,12 +202,19 @@ class SDNRestController(ControllerBase):
                     'dpid': int(host['dpid'])
                 }
 
+            # iterate over all known hosts
             for host in request_body:
-                h = {
+                # add host info to hosts list
+                host_for_mac_list = {
                     "host_name": host["host"],
                     "mac": host["host_mac"]
                 }
-                self.controller_app.hosts_mac_list.append(h)
+                self.controller_app.hosts_mac_list.append(host_for_mac_list)
+
+                # add host to communication requirements list
+                host_for_reqs = { "host": host["host"], "dependencies": [] }
+                self.controller_app.communication_reqs.append(host_for_reqs)
+
             return Response(body="Hosts stored", status=200)
         except Exception as e: 
             print(f"Error sending host data to controller: {e}")
@@ -221,8 +225,12 @@ class SDNRestController(ControllerBase):
     def add_flow_route(self, req, **kwargs):
         try: 
             request_body = req.json if req.body else {}
-            
-            self.controller_app.communication_reqs = request_body
+
+            # populate communication_reqs dependencies
+            for host in self.controller_app.communication_reqs:
+                if host["host"] == request_body["host"]:
+                    host["dependencies"] = request_body["dependencies"]
+
             return Response(body="Flows added",status=200)
         except Exception as e: 
             print(f"Error adding flow from communication requirements: {e}")
@@ -249,6 +257,10 @@ class SDNRestController(ControllerBase):
                     if s_info and d_info:
                         datapath = self.datapaths.get(s_info['dpid'])
                         self.controller_app.delete_flow(datapath)
+
+            # remove hosts from communication requirements
+            for host in self.controller_app.communication_reqs.items():
+                if host["host"] 
 
             return Response(status=200, body="Flows deleted")
         except Exception as e:
