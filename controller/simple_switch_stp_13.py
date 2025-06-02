@@ -151,7 +151,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 class SDNRestController(ControllerBase):
     def __init__(self, req, link, data, **config):
         super(SDNRestController, self).__init__(req, link, data, **config)
-        self.sdn_controller = data['sdn_controller']
+        self.controller_app = data['controller_app']
 
     # route to post hosts info (host MAC address, dpid)
     @route('simple_switch', '/post-hosts', methods=['POST'])
@@ -161,7 +161,7 @@ class SDNRestController(ControllerBase):
 
             for host in request_body:
                 host_name = host['host']
-                self.sdn_controller.hosts_info[host_name] = {
+                self.controller_app.hosts_info[host_name] = {
                     'mac': host['host_mac'],
                     'dpid': int(host['dpid'])
                 }
@@ -176,7 +176,7 @@ class SDNRestController(ControllerBase):
         try: 
             request_body = req.json if req.body else {}
             
-            self.sdn_controller.communication_reqs = request_body
+            self.controller_app.communication_reqs = request_body
             return Response(body="Flows added",status=200)
         except Exception as e: 
             print(f"Error adding flow from communication requirements: {e}")
@@ -190,7 +190,7 @@ class SDNRestController(ControllerBase):
             src_host = body.get("host")
             dst_hosts = body.get("dependencies", [])
 
-            self.sdn_controller.delete_flow(src_host, dst_hosts)
+            self.controller_app.delete_flow(src_host, dst_hosts)
 
             return Response(status=200, body="Flows deleted")
         except Exception as e:
@@ -200,7 +200,7 @@ class SDNRestController(ControllerBase):
     @route('simple_switch', '/delete-all-flows', methods=['POST'])
     def delete_all_flows_route(self, req, **kwargs):
         try:
-            self.sdn_controller.delete_all_flows()
+            self.controller_app.delete_all_flows()
             return Response(body="All flows deleted", status=200)
         except Exception as e:
             return Response(body=f"Error deleting all flows: {e}", status=500)
