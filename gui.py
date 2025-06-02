@@ -607,7 +607,7 @@ class MainWindow(QWidget):
             # delete flow from one host
             if not isinstance(host, list):
                 response = requests.post(f"{CONTROLLER_URL}/delete-flow", json={"host": host}, headers=headers)
-                print("res: ", response)
+                print("res: ", response.body)
                 if response.status_code == 200:
                     print("Deleted communication flows successfully.")
             else:
