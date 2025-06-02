@@ -84,6 +84,8 @@ class SDNController(simple_switch_13.SimpleSwitch13):
     def _packet_in_handler(self, ev):
         is_allowed = False
         actions = ''
+        src_host_name = ''
+        dst_host_name = ''
 
         msg = ev.msg
         datapath = msg.datapath
