@@ -33,6 +33,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         self.stp = kwargs['stplib']
         self.datapaths = {}     # track active switches
         self.hosts_info = {}    # hosts info received from gui.py
+        self.hosts_mac_list = []
         self.communication_reqs = {} # application communication requirements
 
         # register REST API class to handle requests (HTTP)
@@ -83,7 +84,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
     def _packet_in_handler(self, ev):
         is_allowed = False
         actions = ''
-        
+
         msg = ev.msg
         datapath = msg.datapath
         self.datapaths[datapath.id] = datapath  # track datapath
@@ -101,18 +102,25 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         # learn MAC to port
         self.mac_to_port[dpid][src] = in_port
 
-        # get hostnames for source and destination MACs
-        src_host_name = next((name for name, info in self.hosts_info.items() if info['mac'] == src), None)
-        dst_host_name = next((name for name, info in self.hosts_info.items() if info['mac'] == dst), None)
+        self.logger.info("src and dst: %s, %s", src, dst)
 
-        self.logger.info("Packet in %s: %s (%s) -> %s (%s)", dpid, src_host_name, src, dst_host_name, dst)
+        # get src/dst MAC addresses
+        for host in self.hosts_mac_list:
+            if host["mac"] == src:
+                src_host_name = host["host_name"]
+            if host["mac"] == dst: 
+                dst_host_name = host["host_name"]
+
+        self.logger.info("Packet in: %s -> %s ", src_host_name, dst_host_name)
+        
+        # only allow packet if it's in the communication requirements (bidireactional)
+        if self.communication_reqs:
+            if self.communication_reqs["host"] == src_host_name and dst_host_name in self.communication_reqs["dependencies"]:
+                is_allowed = True
+            if self.communication_reqs["host"] == dst_host_name and src_host_name in self.communication_reqs["dependencies"]
+                is_allowed = True
 
         self.logger.info("IS ALLOWED: %s, %s", is_allowed, self.communication_reqs)
-
-        # only allow packet if it's in the communication requirements
-        if self.communication_reqs and self.communication_reqs["host"] == src_host_name and dst_host_name in self.communication_reqs["dependencies"]:
-            is_allowed = True
-
 
         # if communication is allowed, add flow
         if is_allowed:
@@ -126,22 +134,6 @@ class SDNController(simple_switch_13.SimpleSwitch13):
             self.add_flow(datapath, 1, match, actions)
             self.logger.info("Flow added: %s <--> %s", src_host_name, dst_host_name)
 
-            '''
-            # add forward flow
-            match_forward = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
-            self.add_flow(datapath, 1, match_forward, actions)
-
-            # reverse flow to make it bidirectional
-            reverse_port = self.mac_to_port[dpid].get(src, ofproto.OFPP_FLOOD)
-            match_reverse = parser.OFPMatch(eth_src=dst, eth_dst=src)
-            actions_reverse = [parser.OFPActionOutput(reverse_port)]
-            self.add_flow(datapath, 1, match_reverse, actions_reverse)
-
-            out = parser.OFPPacketOut(
-                datapath=datapath, buffer_id=msg.buffer_id,
-                in_port=in_port, actions=actions, data=msg.data
-            )
-            datapath.send_msg(out) '''
         else:
             self.logger.info("Packet dropped: %s -> %s (not in allowed dependencies)", src_host_name, dst_host_name)
 
@@ -189,6 +181,13 @@ class SDNRestController(ControllerBase):
                     'mac': host['host_mac'],
                     'dpid': int(host['dpid'])
                 }
+
+            for host in request_body:
+                h = {
+                    "host_name": host["host"],
+                    "mac": host["host_mac"]
+                }
+                self.controller_app.hosts_mac_list.append(h)
             return Response(body="Hosts stored", status=200)
         except Exception as e: 
             print(f"Error sending host data to controller: {e}")
