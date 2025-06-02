@@ -274,7 +274,7 @@ class MainWindow(QWidget):
 
     def stopAllContainers(self):
         self.nm.stop_all_containers()
-        self.delete_allowed_communication(self. host_list, self.runningContainers)
+        self.delete_allowed_communication(self.host_list)
         self.runningContainers = {}
         self.hostContainerCounts = {host: 0 for host in self.hostContainerCounts}
         self.updateMonitor()
@@ -307,10 +307,10 @@ class MainWindow(QWidget):
     def stop_container(self, host, container):
         self.nm.stop_container(host, container)
         container_id = f"{container}_{host}"
-        self.delete_allowed_communication(host, container)
         if container_id in self.runningContainers:
             del self.runningContainers[container_id]
             self.hostContainerCounts[host] = self.hostContainerCounts.get(host) - 1
+            self.delete_allowed_communication(host)
             self.updateContainerDropdown()
             self.updateHostDropdown()
             self.updateMonitor()
@@ -601,19 +601,12 @@ class MainWindow(QWidget):
             print(f"Error sending communication: {e}")
 
     # function to delete flows upon application shutdown
-    def delete_allowed_communication(self, host, containers):
+    def delete_allowed_communication(self, host):
         headers = {"Content-Type": "application/json"}
         try:
-            if not isinstance(host, list): 
-                # get container host
-                container_host = self.get_container_host(containers)
-                print("container host:", container_host)
-
-                payload = {
-                    "host": host,
-                    "dependencies": container_host
-                }
-                response = requests.post(f"{CONTROLLER_URL}/delete-flow", json=payload, headers=headers)
+            # delete flow from one host
+            if not isinstance(host, list):
+                response = requests.post(f"{CONTROLLER_URL}/delete-flow", json={"host": host}, headers=headers)
                 if response.status_code == 200:
                     print("Deleted communication flows successfully.")
             else:

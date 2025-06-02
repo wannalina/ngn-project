@@ -241,38 +241,45 @@ class SDNRestController(ControllerBase):
     # route to delete flows when applications shut down
     @route('simple_switch', '/delete-flow', methods=['POST'])
     def delete_flow_route(self, req, **kwargs):
+        host_pairs = []
         try:
             body = req.json if req.body else {}
-            src_host = body.get("host")
-            dst_host = body.get("dependencies")
-            
-            self.controller_app.logger.info(f"src {src_host}, dst {dst_host}")
+            host_del = body.get("host")
 
+            '''
             # get host info (bidirectional)
-            host_pairs = [
-                (self.hosts_info.get(src_host), self.hosts_info.get(dst_host)),
-                (self.hosts_info.get(dst_host), self.hosts_info.get(src_host))
-            ]
+            for item in self.controller_app.communication_reqs:
+                if item["host"] == host_del:
+                    for req in item["dependencies"]:
+                        pair = (self.hosts_info.get(item["host"]), req)
+                        pair_reverse = (req, self.hosts_info.get(item["host"]))
+                        host_pairs.append(pair)
+                        host_pairs.append(pair_reverse)
 
             self.controller_app.logger.info(f"host_pairs: {host_pairs}")
 
             # get dpids for host pairings
-            for s_info, d_info in host_pairs:
-                if s_info and d_info:
-                    datapath = self.datapaths.get(s_info['dpid'])
+            for src, dst in host_pairs:
+                if src and dst:
+                    datapath = self.datapaths.get(src['dpid'])
                     self.controller_app.logger.info(f"datapath: {datapath}")
                     self.controller_app.delete_flow(datapath)
-                    self.controller_app.logger.info(f"flow deleted!")
+                    self.controller_app.logger.info(f"flow deleted!") '''
+
+            datapath = self.datapaths.get(host_del['dpid'])
+            self.controller_app.logger.info(f"datapath: {datapath}")
+            self.controller_app.delete_flow(datapath)
+            self.controller_app.logger.info(f"flow deleted!")
 
             # remove hosts from communication requirements
             for req in self.controller_app.communication_reqs:
                 # remove communication reqs from host
-                if req["host"] == src_host:
+                if req["host"] == host_del:
                     req["dependencies"] = []
                 
                 # remove host from communication reqs
-                if src_host in req["dependencies"]:
-                    (req["dependencies"]).remove(src_host)
+                if host_del in req["dependencies"]:
+                    (req["dependencies"]).remove(host_del)
             self.controller_app.logger.info(f"reqs: {self.controller_app.communication_reqs}")
 
             return Response(status=200, body="Flows deleted")
