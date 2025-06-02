@@ -246,26 +246,9 @@ class SDNRestController(ControllerBase):
             body = req.json if req.body else {}
             host_del = body.get("host")
 
-            '''
-            # get host info (bidirectional)
-            for item in self.controller_app.communication_reqs:
-                if item["host"] == host_del:
-                    for req in item["dependencies"]:
-                        pair = (self.hosts_info.get(item["host"]), req)
-                        pair_reverse = (req, self.hosts_info.get(item["host"]))
-                        host_pairs.append(pair)
-                        host_pairs.append(pair_reverse)
+            self.controller_app.logger.info(f"request: {host_del}")
 
-            self.controller_app.logger.info(f"host_pairs: {host_pairs}")
-
-            # get dpids for host pairings
-            for src, dst in host_pairs:
-                if src and dst:
-                    datapath = self.datapaths.get(src['dpid'])
-                    self.controller_app.logger.info(f"datapath: {datapath}")
-                    self.controller_app.delete_flow(datapath)
-                    self.controller_app.logger.info(f"flow deleted!") '''
-
+            # get datapath and delete flow
             datapath = self.datapaths.get(host_del['dpid'])
             self.controller_app.logger.info(f"datapath: {datapath}")
             self.controller_app.delete_flow(datapath)
