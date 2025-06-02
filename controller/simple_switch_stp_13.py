@@ -82,6 +82,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
 def _packet_in_handler(self, ev):
     is_allowed = False
+    actions = ''
     
     msg = ev.msg
     datapath = msg.datapath
@@ -112,10 +113,21 @@ def _packet_in_handler(self, ev):
             is_allowed = True
             break
 
-    if is_allowed:
-        out_port = self.mac_to_port[dpid].get(dst, ofproto.OFPP_FLOOD)
-        actions = [parser.OFPActionOutput(out_port)]
+    self.logger.info("IS ALLOWED: %s", is_allowed)
 
+    # if communication is allowed, add flow
+    if is_allowed:
+        out_port = self.mac_to_port[dpid].get(dst)
+        match = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
+
+        if out_port is not None:
+            actions = [parser.OFPActionOutput(out_port)]
+        else:
+            actions = [parser.OFPActionOutput(ofproto.OFPP_FLOOD)]
+        self.add_flow(datapath, 1, match, actions)
+        self.logger.info("Flow added: %s <--> %s", src_host_name, dst_host_name)
+
+        '''
         # add forward flow
         match_forward = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
         self.add_flow(datapath, 1, match_forward, actions)
@@ -130,9 +142,7 @@ def _packet_in_handler(self, ev):
             datapath=datapath, buffer_id=msg.buffer_id,
             in_port=in_port, actions=actions, data=msg.data
         )
-        datapath.send_msg(out)
-
-        self.logger.info("Flow added: %s <--> %s", src_host_name, dst_host_name)
+        datapath.send_msg(out) '''
     else:
         self.logger.info("Packet dropped: %s -> %s (not in allowed dependencies)", src_host_name, dst_host_name)
 
