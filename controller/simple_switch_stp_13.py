@@ -247,6 +247,7 @@ class SDNRestController(ControllerBase):
 
             for host_name, info in self.controller_app.hosts_info.items():
                 if host_name == host_del:
+                    self.controller_app.logger(f"host name and stuff: {host_name}, {info["dpid"]}")
                     dpid = info["dpid"]
                     dpid_str = dpid_lib.dpid_to_str(dpid)
                     msg = 'Receive topology change event. Flush MAC table.'
