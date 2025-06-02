@@ -163,7 +163,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
             self.logger.info("Packet dropped: %s -> %s (not in allowed dependencies)", src_host_name, dst_host_name)
 
 
-    # event handler to handle topology change
+    '''# event handler to handle topology change
     @set_ev_cls(stplib.EventTopologyChange, MAIN_DISPATCHER)
     def _topology_change_handler(self, ev):
         dp = ev.dp
@@ -173,7 +173,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 
         if dp.id in self.mac_to_port:
             self.delete_flow(dp)
-            del self.mac_to_port[dp.id]
+            del self.mac_to_port[dp.id]'''
 
     # event handler to handle port change
     @set_ev_cls(stplib.EventPortStateChange, MAIN_DISPATCHER)
