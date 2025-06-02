@@ -102,7 +102,6 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 
         # get src/dst host name from hosts_info based on MAC address
         for host_name, info in self.hosts_info.items():
-            self.logger.info("DST INFOS (%s %s), %s", dst, host_name, info)
             if info["mac"] == src:
                 src_host_name = host_name
             if info["mac"] == dst:
@@ -110,8 +109,9 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 
         self.logger.info("packet in (%s %s), (%s %s), %s", src, src_host_name, dst, dst_host_name, self.communication_reqs)
 
-        # check if dst is in communication requirements list
+        # check if dst is in communication requirements
         for req in self.communication_reqs["dependencies"]:
+            self.logger.info("p %s %s", req, dst_host_name)
             if req == dst_host_name:
                 is_dst_in_reqs = True
                 break
