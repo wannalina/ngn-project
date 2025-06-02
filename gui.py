@@ -307,10 +307,10 @@ class MainWindow(QWidget):
     def stop_container(self, host, container):
         self.nm.stop_container(host, container)
         container_id = f"{container}_{host}"
+        self.delete_allowed_communication(host, container)
         if container_id in self.runningContainers:
             del self.runningContainers[container_id]
             self.hostContainerCounts[host] = self.hostContainerCounts.get(host) - 1
-            self.delete_allowed_communication(host, container)
             self.updateContainerDropdown()
             self.updateHostDropdown()
             self.updateMonitor()
