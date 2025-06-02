@@ -50,18 +50,32 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         self.stp.set_config(config)
 
     # function to delete flow when one container is shut down
-    def delete_flow(self, datapath):
-        ofproto = datapath.ofproto
-        parser = datapath.ofproto_parser
+    def delete_flow(self, src_host, dst_hosts):
+        try:
+            for dst in dst_hosts:
+                for s_info, d_info in [
+                    (self.hosts_info.get(src_host), self.hosts_info.get(dst)),
+                    (self.hosts_info.get(dst), self.hosts_info.get(src_host))
+                ]:
+                    if not s_info or not d_info:
+                        continue
+                    datapath = self.datapaths.get(s_info['dpid'])
+                    if not datapath:
+                        continue
 
-        # iterate over dsts in table to delete specified flow
-        for dst in self.mac_to_port[datapath.id].keys():
-            match = parser.OFPMatch(eth_dst=dst)
-            mod = parser.OFPFlowMod(
-                datapath, command=ofproto.OFPFC_DELETE,
-                out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY,
-                priority=1, match=match)
-            datapath.send_msg(mod)
+                    parser = datapath.ofproto_parser
+                    ofproto = datapath.ofproto
+                    match = parser.OFPMatch(eth_src=s_info['mac'], eth_dst=d_info['mac'])
+
+                    mod = parser.OFPFlowMod(
+                        datapath=datapath, match=match,
+                        command=ofproto.OFPFC_DELETE,
+                        out_port=ofproto.OFPP_ANY,
+                        out_group=ofproto.OFPG_ANY
+                    )
+                    datapath.send_msg(mod)
+        except Exception as e:
+            print(f"Error deleting flow in controller: {e}")
 
     # function to delete all flows
     def delete_all_flows(self):
