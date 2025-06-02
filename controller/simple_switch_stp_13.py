@@ -104,8 +104,6 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         dst = eth.dst
         dpid = datapath.id
         self.mac_to_port.setdefault(dpid, {})
-        
-        self.logger.info(f" src {src} --> dst {dst}")
 
         # MAC learning
         self.mac_to_port[dpid][src] = in_port
@@ -250,8 +248,7 @@ class SDNRestController(ControllerBase):
                 for s_info, d_info in host_pairs:
                     if s_info and d_info:
                         datapath = self.datapaths.get(s_info['dpid'])
-
-                self.controller_app.delete_flow(datapath)
+                        self.controller_app.delete_flow(datapath)
 
             return Response(status=200, body="Flows deleted")
         except Exception as e:
