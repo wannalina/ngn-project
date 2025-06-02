@@ -133,11 +133,13 @@ class SDNController(simple_switch_13.SimpleSwitch13):
                 dst_host_name = host["host_name"]
         
         # only allow packet if it's in the communication requirements (bidireactional)
-        if self.communication_reqs:
-            if self.communication_reqs["host"] == src_host_name and dst_host_name in self.communication_reqs["dependencies"]:
+        for req in self.communication_reqs:
+            if req["host"] == src_host_name and dst_host_name in req["dependencies"]:
                 is_allowed = True
-            if self.communication_reqs["host"] == dst_host_name and src_host_name in self.communication_reqs["dependencies"]:
+                break
+            if req["host"] == dst_host_name and src_host_name in req["dependencies"]:
                 is_allowed = True
+                break
 
         # if communication is allowed, add flow
         if is_allowed:
