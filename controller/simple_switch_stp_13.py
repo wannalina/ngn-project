@@ -259,8 +259,14 @@ class SDNRestController(ControllerBase):
                         self.controller_app.delete_flow(datapath)
 
             # remove hosts from communication requirements
-            for host in self.controller_app.communication_reqs.items():
-                if host["host"] 
+            for req in self.controller_app.communication_reqs:
+                # remove communication reqs from host
+                if req["host"] == src_host:
+                    req["dependencies"] = []
+                
+                # remove host from communication reqs
+                if src_host in req["dependencies"]:
+                    (req["dependencies"]).remove(src_host)
 
             return Response(status=200, body="Flows deleted")
         except Exception as e:
@@ -271,6 +277,11 @@ class SDNRestController(ControllerBase):
     def delete_all_flows_route(self, req, **kwargs):
         try:
             self.controller_app.delete_all_flows()
+            
+            # remove communication reqs from all hosts
+            for req in self.controller_app.communication_reqs:
+                req["dependencies"] = []
+
             return Response(body="All flows deleted", status=200)
         except Exception as e:
             return Response(body=f"Error deleting all flows: {e}", status=500)
