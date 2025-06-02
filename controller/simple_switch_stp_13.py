@@ -52,21 +52,25 @@ class SDNController(simple_switch_13.SimpleSwitch13):
     # function to delete flow when one container is shut down
     def delete_flow(self, src_host, dst_hosts):
         try:
+            # iterate over dst hosts (deoendencies)
             for dst in dst_hosts:
-                for s_info, d_info in [
+                # get host info (bidirectional)
+                host_pairs = [
                     (self.hosts_info.get(src_host), self.hosts_info.get(dst)),
                     (self.hosts_info.get(dst), self.hosts_info.get(src_host))
-                ]:
-                    if not s_info or not d_info:
-                        continue
-                    datapath = self.datapaths.get(s_info['dpid'])
-                    if not datapath:
-                        continue
+                ]
 
+                # get dpids for host pairings
+                for s_info, d_info in host_pairs:
+                    if s_info and d_info:
+                        datapath = self.datapaths.get(s_info['dpid'])
+                        if not datapath:
+                            continue
                     parser = datapath.ofproto_parser
                     ofproto = datapath.ofproto
                     match = parser.OFPMatch(eth_src=s_info['mac'], eth_dst=d_info['mac'])
 
+                    # delete flows
                     mod = parser.OFPFlowMod(
                         datapath=datapath, match=match,
                         command=ofproto.OFPFC_DELETE,
