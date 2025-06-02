@@ -79,72 +79,72 @@ class SDNController(simple_switch_13.SimpleSwitch13):
             datapath.send_msg(mod)
             self.logger.info(f"Deleted all flows on switch DPID {dpid}")
 
-@set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
-def _packet_in_handler(self, ev):
-    is_allowed = False
-    actions = ''
-    
-    msg = ev.msg
-    datapath = msg.datapath
-    self.datapaths[datapath.id] = datapath  # track datapath
-    ofproto = datapath.ofproto
-    parser = datapath.ofproto_parser
-    in_port = msg.match['in_port']
+    @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
+    def _packet_in_handler(self, ev):
+        is_allowed = False
+        actions = ''
+        
+        msg = ev.msg
+        datapath = msg.datapath
+        self.datapaths[datapath.id] = datapath  # track datapath
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+        in_port = msg.match['in_port']
 
-    pkt = packet.Packet(msg.data)
-    eth = pkt.get_protocols(ethernet.ethernet)[0]
-    src = eth.src
-    dst = eth.dst
-    dpid = datapath.id
-    self.mac_to_port.setdefault(dpid, {})
+        pkt = packet.Packet(msg.data)
+        eth = pkt.get_protocols(ethernet.ethernet)[0]
+        src = eth.src
+        dst = eth.dst
+        dpid = datapath.id
+        self.mac_to_port.setdefault(dpid, {})
 
-    # learn MAC to port
-    self.mac_to_port[dpid][src] = in_port
+        # learn MAC to port
+        self.mac_to_port[dpid][src] = in_port
 
-    # get hostnames for source and destination MACs
-    src_host_name = next((name for name, info in self.hosts_info.items() if info['mac'] == src), None)
-    dst_host_name = next((name for name, info in self.hosts_info.items() if info['mac'] == dst), None)
+        # get hostnames for source and destination MACs
+        src_host_name = next((name for name, info in self.hosts_info.items() if info['mac'] == src), None)
+        dst_host_name = next((name for name, info in self.hosts_info.items() if info['mac'] == dst), None)
 
-    self.logger.info("Packet in %s: %s (%s) -> %s (%s)", dpid, src_host_name, src, dst_host_name, dst)
+        self.logger.info("Packet in %s: %s (%s) -> %s (%s)", dpid, src_host_name, src, dst_host_name, dst)
 
-    # only allow packet if it's in the communication requirements
-    for entry in self.communication_reqs:
-        if entry.get("host") == src_host_name and dst_host_name in entry.get("dependencies", []):
-            is_allowed = True
-            break
+        # only allow packet if it's in the communication requirements
+        for entry in self.communication_reqs:
+            if entry.get("host") == src_host_name and dst_host_name in entry.get("dependencies", []):
+                is_allowed = True
+                break
 
-    self.logger.info("IS ALLOWED: %s", is_allowed)
+        self.logger.info("IS ALLOWED: %s", is_allowed)
 
-    # if communication is allowed, add flow
-    if is_allowed:
-        out_port = self.mac_to_port[dpid].get(dst)
-        match = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
+        # if communication is allowed, add flow
+        if is_allowed:
+            out_port = self.mac_to_port[dpid].get(dst)
+            match = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
 
-        if out_port is not None:
-            actions = [parser.OFPActionOutput(out_port)]
+            if out_port is not None:
+                actions = [parser.OFPActionOutput(out_port)]
+            else:
+                actions = [parser.OFPActionOutput(ofproto.OFPP_FLOOD)]
+            self.add_flow(datapath, 1, match, actions)
+            self.logger.info("Flow added: %s <--> %s", src_host_name, dst_host_name)
+
+            '''
+            # add forward flow
+            match_forward = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
+            self.add_flow(datapath, 1, match_forward, actions)
+
+            # reverse flow to make it bidirectional
+            reverse_port = self.mac_to_port[dpid].get(src, ofproto.OFPP_FLOOD)
+            match_reverse = parser.OFPMatch(eth_src=dst, eth_dst=src)
+            actions_reverse = [parser.OFPActionOutput(reverse_port)]
+            self.add_flow(datapath, 1, match_reverse, actions_reverse)
+
+            out = parser.OFPPacketOut(
+                datapath=datapath, buffer_id=msg.buffer_id,
+                in_port=in_port, actions=actions, data=msg.data
+            )
+            datapath.send_msg(out) '''
         else:
-            actions = [parser.OFPActionOutput(ofproto.OFPP_FLOOD)]
-        self.add_flow(datapath, 1, match, actions)
-        self.logger.info("Flow added: %s <--> %s", src_host_name, dst_host_name)
-
-        '''
-        # add forward flow
-        match_forward = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
-        self.add_flow(datapath, 1, match_forward, actions)
-
-        # reverse flow to make it bidirectional
-        reverse_port = self.mac_to_port[dpid].get(src, ofproto.OFPP_FLOOD)
-        match_reverse = parser.OFPMatch(eth_src=dst, eth_dst=src)
-        actions_reverse = [parser.OFPActionOutput(reverse_port)]
-        self.add_flow(datapath, 1, match_reverse, actions_reverse)
-
-        out = parser.OFPPacketOut(
-            datapath=datapath, buffer_id=msg.buffer_id,
-            in_port=in_port, actions=actions, data=msg.data
-        )
-        datapath.send_msg(out) '''
-    else:
-        self.logger.info("Packet dropped: %s -> %s (not in allowed dependencies)", src_host_name, dst_host_name)
+            self.logger.info("Packet dropped: %s -> %s (not in allowed dependencies)", src_host_name, dst_host_name)
 
 
     # event handler to handle topology change
