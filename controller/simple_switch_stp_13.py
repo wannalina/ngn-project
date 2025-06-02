@@ -117,7 +117,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         if self.communication_reqs:
             if self.communication_reqs["host"] == src_host_name and dst_host_name in self.communication_reqs["dependencies"]:
                 is_allowed = True
-            if self.communication_reqs["host"] == dst_host_name and src_host_name in self.communication_reqs["dependencies"]
+            if self.communication_reqs["host"] == dst_host_name and src_host_name in self.communication_reqs["dependencies"]:
                 is_allowed = True
 
         self.logger.info("IS ALLOWED: %s, %s", is_allowed, self.communication_reqs)
