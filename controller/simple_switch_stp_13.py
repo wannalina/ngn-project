@@ -62,8 +62,10 @@ class SDNController(simple_switch_13.SimpleSwitch13):
                     out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY,
                     priority=1, match=match)
                 datapath.send_msg(mod)
+
+            self.logger.info(f"Flow deleted on switch DPID {datapath}")
         except Exception as e:
-            print(f"Error deleting flow in controller: {e}")
+            self.logger.info(f"Error deleting flow in controller: {e}")
 
     # function to delete all flows
     def delete_all_flows(self):
@@ -102,12 +104,13 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         dst = eth.dst
         dpid = datapath.id
         self.mac_to_port.setdefault(dpid, {})
+        
+        self.logger.info(f" src {src} --> dst {dst}")
 
         # MAC learning
         self.mac_to_port[dpid][src] = in_port
-
+        # eth header to see packet type
         eth_type = eth.ethertype
-        self.logger.info("Ethernet type: %#06x", eth_type)
         
         # allow ARP packets through
         if eth_type == 0x0806:  # ARP header
@@ -133,8 +136,6 @@ class SDNController(simple_switch_13.SimpleSwitch13):
                 src_host_name = host["host_name"]
             if host["mac"] == dst: 
                 dst_host_name = host["host_name"]
-
-        self.logger.info("Packet in: %s -> %s ", src_host_name, dst_host_name)
         
         # only allow packet if it's in the communication requirements (bidireactional)
         if self.communication_reqs:
@@ -145,6 +146,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 
         # if communication is allowed, add flow
         if is_allowed:
+            self.logger.info("Packet in: %s -> %s ", src_host_name, dst_host_name)
             out_port = self.mac_to_port[dpid].get(dst)
             match = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
             
