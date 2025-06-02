@@ -109,7 +109,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 
         # only allow packet if it's in the communication requirements
         for entry in self.communication_reqs:
-            if entry.get("host") == src_host_name and dst_host_name in entry["dependencies"]:
+            if entry["host"] == src_host_name and dst_host_name in entry["dependencies"]:
                 is_allowed = True
                 break
 
