@@ -603,19 +603,15 @@ class MainWindow(QWidget):
     # function to delete flows upon application shutdown
     def delete_allowed_communication(self, host, containers):
         headers = {"Content-Type": "application/json"}
-        dependencies = []
-
         try:
             if not isinstance(host, list): 
-                # get hosts of containers
-                for container in containers:
-                    container_host = self.get_container_host(container)
-                    print("container host:", container_host)
-                    dependencies.append(container_host)
+                # get container host
+                container_host = self.get_container_host(containers)
+                print("container host:", container_host)
 
                 payload = {
                     "host": host,
-                    "dependencies": dependencies
+                    "dependencies": container_host
                 }
                 response = requests.post(f"{CONTROLLER_URL}/delete-flow", json=payload, headers=headers)
                 if response.status_code == 200:
