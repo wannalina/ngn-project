@@ -85,6 +85,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         actions = ''
         src_host_name = ''
         dst_host_name = ''
+        is_dst_in_reqs = False
 
         msg = ev.msg
         datapath = msg.datapath
@@ -98,8 +99,6 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         src = eth.src
         dpid = datapath.id
         self.mac_to_port.setdefault(dpid, {})
-        
-        self.logger.info("packet in %s", self.hosts_info)
 
         # get src/dst host name from hosts_info based on MAC address
         for host_name, info in self.hosts_info.items():
@@ -111,8 +110,14 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 
         self.logger.info("packet in (%s %s), (%s %s), %s", src, src_host_name, dst, dst_host_name, self.communication_reqs)
 
+        # check if dst is in communication requirements list
+        for req in self.communication_reqs["dependencies"]:
+            if req == dst_host_name:
+                is_dst_in_reqs = True
+                break
+
         # check if dst is in allowed dependencies for src host
-        if self.communication_reqs and dst_host_name in self.communication_reqs["dependencies"]:
+        if ((src_host_name == self.communication_reqs["host"]) and (is_dst_in_reqs is True)):
             self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
 
             # create match for data transmission between hosts and find correct port
