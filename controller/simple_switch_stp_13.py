@@ -103,7 +103,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 
         # get src/dst host name from hosts_info based on MAC address
         for host_name, info in self.hosts_info.items():
-            self.logger.info("DST INFOS (%s %s)", dst, host_name, info)
+            self.logger.info("DST INFOS (%s %s), %s", dst, host_name, info)
             if info["mac"] == src:
                 src_host_name = host_name
             if info["mac"] == dst:
