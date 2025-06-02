@@ -82,6 +82,11 @@ class SDNController(simple_switch_13.SimpleSwitch13):
     # event handler for packet in events (learn MAC addresses)
     @set_ev_cls(stplib.EventPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
+        actions = ''
+        src_host_name = ''
+        dst_host_name = ''
+        host_dependencies = []
+
         msg = ev.msg
         datapath = msg.datapath
         ofproto = datapath.ofproto
@@ -90,37 +95,35 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
-
         dst = eth.dst
         src = eth.src
-
         dpid = datapath.id
         self.mac_to_port.setdefault(dpid, {})
 
-        self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
+        # get src/dst host name from hosts_info based on MAC address
+        for host_name, info in self.hosts_info.items():
+            if info["mac"] == src:
+                src_host_name = host_name
+            if info["mac"] == dst:
+                dst_host_name = host_name
 
-        # learn a mac address to avoid FLOOD next time.
-        self.mac_to_port[dpid][src] = in_port
+        # check if dst is in allowed dependencies for src host
+        if self.communication_reqs and dst_host_name in self.communication_reqs["dependencies"]:
+            self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
 
-        if dst in self.mac_to_port[dpid]:
+            # create match for data transmission between hosts and find correct port
+            match = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
             out_port = self.mac_to_port[dpid][dst]
-        else:
-            out_port = ofproto.OFPP_FLOOD
 
-        actions = [parser.OFPActionOutput(out_port)]
+            # check if out_port found (if yes, send packet to port; if not, FLOOD)
+            if out_port is not None: 
+                actions = [parser.OFPActionOutput(out_port)]
+            else:
+                actions = [parser.OFPActionOutput(ofproto.OFPP_FLOOD)]
 
-        # install a flow to avoid packet_in next time
-        if out_port != ofproto.OFPP_FLOOD:
-            match = parser.OFPMatch(in_port=in_port, eth_dst=dst)
+            # add flow between hosts
             self.add_flow(datapath, 1, match, actions)
-
-        data = None
-        if msg.buffer_id == ofproto.OFP_NO_BUFFER:
-            data = msg.data
-
-        out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
-                                in_port=in_port, actions=actions, data=data)
-        datapath.send_msg(out)
+            self.logger.info(f"Adding flow between {src_host_name} <--> {dst_host_name}")
 
     # event handler to handle topology change
     @set_ev_cls(stplib.EventTopologyChange, MAIN_DISPATCHER)
