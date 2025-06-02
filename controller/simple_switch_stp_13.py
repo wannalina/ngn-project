@@ -106,7 +106,21 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 
         eth_type = eth.ethertype
         self.logger.info("Ethernet type: %#06x", eth_type)
-
+        
+        # allow ARP packets through
+        if eth_type == 0x0806:  # ARP header
+            self.logger.info("Allowing ARP packet")
+            out_port = ofproto.OFPP_FLOOD
+            actions = [parser.OFPActionOutput(out_port)]
+            out = parser.OFPPacketOut(
+                datapath=datapath,
+                buffer_id=msg.buffer_id,
+                in_port=in_port,
+                actions=actions,
+                data=msg.data
+            )
+            datapath.send_msg(out)
+            return
 
         # learn MAC to port
         self.mac_to_port[dpid][src] = in_port
