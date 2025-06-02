@@ -244,14 +244,10 @@ class SDNRestController(ControllerBase):
             body = req.json if req.body else {}
             host_del = body.get("host")
 
-            # get datapath and delete flow
-            datapath = self.controller_app.datapaths.get(host_del['dpid'])
-            self.controller_app.logger.info(f"datapath: {datapath}")
-
             for host_name, info in self.controller_app.hosts_info.items():
                 if host_name == host_del:
                     self.controller_app.logger.info(f"host: {host_name}, {info}")
-                    self.controller_app.delete_flow(datapath, info["mac"])
+                    self.controller_app.delete_flow(info["dpid"], info["mac"])
                     break
             self.controller_app.logger.info(f"flow deleted!")
 
