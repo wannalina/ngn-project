@@ -505,17 +505,25 @@ class MainWindow(QWidget):
         return
     '''
 
+    # function to get host of container
+    def get_container_host(self, container):
+        try: 
+            for item in self.runningContainers:
+                if ("_".join(item.split("_")[:2])) == container:
+                    container_host = self.runningContainers[item]['host']
+                    return container_host
+        except Exception as e:
+            print(f"Error getting container host: {e}")
+
     # function to get communication requirements between hosts with paired apps
     def get_communication_reqs(self, container):
         communication_reqs = []
         try:
             # iterate over all communication requirements (dependencies) for container
             for req in self.containerDependencies[container]:
-                for item in self.runningContainers:
-                    if ("_".join(item.split("_")[:2])) == req:
-                        container_host = self.runningContainers[item]['host']
-                        communication_reqs.append(container_host)
-                        break
+                container_host = self.get_container_host(req)
+                communication_reqs.append(container_host)
+                break
             return communication_reqs
         except Exception as e:
             print(f'Error getting communication requirements.')
@@ -542,7 +550,8 @@ class MainWindow(QWidget):
             print("Hosts sent to controller successfully.")
         except Exception as e:
             print(f'Error sending hosts data to controller: {e}')
-    
+
+    '''
     # function to send containers to controller
     def post_container_dependencies(self):
         try:
@@ -555,7 +564,7 @@ class MainWindow(QWidget):
             response = requests.post(f"{CONTROLLER_URL}/post-apps", json=communication_reqs)
             print("Allowed communication sent to controller successfully.")
         except Exception as e: 
-            print(f"Error posting communication requirements: {e}")
+            print(f"Error posting communication requirements: {e}")'''
 
     # function to send allowed communication rules to controller
     def add_allowed_communication(self, host, container):
@@ -588,9 +597,16 @@ class MainWindow(QWidget):
             print(f"Error sending communication: {e}")
 
     # function to delete flows upon application shutdown
-    def delete_allowed_communication(self, host, dependencies):
+    def delete_allowed_communication(self, host, containers):
+        headers = {"Content-Type": "application/json"}
+        dependencies = []
+
         try:
-            headers = {"Content-Type": "application/json"}
+
+            # get hosts of containers
+            for container in containers:
+                container_host = self.get_container_host(container)
+                dependencies.append(container_host)
 
             if not isinstance(host, list): 
                 payload = {
