@@ -50,34 +50,18 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         self.stp.set_config(config)
 
     # function to delete flow when one container is shut down
-    def delete_flow(self, src_host, dst_hosts):
+    def delete_flow(self, datapath):
         try:
-            # iterate over dst hosts (deoendencies)
-            for dst in dst_hosts:
-                # get host info (bidirectional)
-                host_pairs = [
-                    (self.hosts_info.get(src_host), self.hosts_info.get(dst)),
-                    (self.hosts_info.get(dst), self.hosts_info.get(src_host))
-                ]
+            ofproto = datapath.ofproto
+            parser = datapath.ofproto_parser
 
-                # get dpids for host pairings
-                for s_info, d_info in host_pairs:
-                    if s_info and d_info:
-                        datapath = self.datapaths.get(s_info['dpid'])
-                        if not datapath:
-                            continue
-                    parser = datapath.ofproto_parser
-                    ofproto = datapath.ofproto
-                    match = parser.OFPMatch(eth_src=s_info['mac'], eth_dst=d_info['mac'])
-
-                    # delete flows
-                    mod = parser.OFPFlowMod(
-                        datapath=datapath, match=match,
-                        command=ofproto.OFPFC_DELETE,
-                        out_port=ofproto.OFPP_ANY,
-                        out_group=ofproto.OFPG_ANY
-                    )
-                    datapath.send_msg(mod)
+            for dst in self.mac_to_port[datapath.id].keys():
+                match = parser.OFPMatch(eth_dst=dst)
+                mod = parser.OFPFlowMod(
+                    datapath, command=ofproto.OFPFC_DELETE,
+                    out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY,
+                    priority=1, match=match)
+                datapath.send_msg(mod)
         except Exception as e:
             print(f"Error deleting flow in controller: {e}")
 
@@ -252,7 +236,20 @@ class SDNRestController(ControllerBase):
             src_host = body.get("host")
             dst_hosts = body.get("dependencies", [])
 
-            self.controller_app.delete_flow(src_host, dst_hosts)
+            # iterate over dst hosts (dependencies)
+            for dst in dst_hosts:
+                # get host info (bidirectional)
+                host_pairs = [
+                    (self.hosts_info.get(src_host), self.hosts_info.get(dst)),
+                    (self.hosts_info.get(dst), self.hosts_info.get(src_host))
+                ]
+
+                # get dpids for host pairings
+                for s_info, d_info in host_pairs:
+                    if s_info and d_info:
+                        datapath = self.datapaths.get(s_info['dpid'])
+
+                self.controller_app.delete_flow(datapath)
 
             return Response(status=200, body="Flows deleted")
         except Exception as e:
