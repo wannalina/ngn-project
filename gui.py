@@ -521,7 +521,11 @@ class MainWindow(QWidget):
         try:
             # iterate over all communication requirements (dependencies) for container
             for req in self.containerDependencies[container]:
-                container_host = self.get_container_host(req)
+                for item in self.runningContainers:
+                    if ("_".join(item.split("_")[:2])) == req:
+                        container_host = self.runningContainers[item]['host']
+                        communication_reqs.append(container_host)
+                        break
                 communication_reqs.append(container_host)
                 break
             return communication_reqs
@@ -602,13 +606,13 @@ class MainWindow(QWidget):
         dependencies = []
 
         try:
-
-            # get hosts of containers
-            for container in containers:
-                container_host = self.get_container_host(container)
-                dependencies.append(container_host)
-
             if not isinstance(host, list): 
+                # get hosts of containers
+                for container in containers:
+                    container_host = self.get_container_host(container)
+                    print("container host:", container_host)
+                    dependencies.append(container_host)
+
                 payload = {
                     "host": host,
                     "dependencies": dependencies
