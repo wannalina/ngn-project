@@ -110,7 +110,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         self.logger.info("IS ALLOWED: %s, %s", is_allowed, self.communication_reqs)
 
         # only allow packet if it's in the communication requirements
-        if self.communication_reqs["host"] == src_host_name and dst_host_name in self.communication_reqs["dependencies"]:
+        if self.communication_reqs and self.communication_reqs["host"] == src_host_name and dst_host_name in self.communication_reqs["dependencies"]:
             is_allowed = True
 
 
