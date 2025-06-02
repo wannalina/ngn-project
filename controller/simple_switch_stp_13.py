@@ -98,9 +98,12 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         src = eth.src
         dpid = datapath.id
         self.mac_to_port.setdefault(dpid, {})
+        
+        self.logger.info("packet in %s", self.hosts_info)
 
         # get src/dst host name from hosts_info based on MAC address
         for host_name, info in self.hosts_info.items():
+            self.logger.info("DST INFOS (%s %s)", dst, host_name, info)
             if info["mac"] == src:
                 src_host_name = host_name
             if info["mac"] == dst:
