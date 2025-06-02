@@ -139,8 +139,6 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         # learn MAC to port
         self.mac_to_port[dpid][src] = in_port
 
-        self.logger.info("src and dst: %s, %s", src, dst)
-
         # get src/dst MAC addresses
         for host in self.hosts_mac_list:
             if host["mac"] == src:
@@ -157,12 +155,12 @@ class SDNController(simple_switch_13.SimpleSwitch13):
             if self.communication_reqs["host"] == dst_host_name and src_host_name in self.communication_reqs["dependencies"]:
                 is_allowed = True
 
-        self.logger.info("IS ALLOWED: %s, %s", is_allowed, self.communication_reqs)
-
         # if communication is allowed, add flow
         if is_allowed:
             out_port = self.mac_to_port[dpid].get(dst)
             match = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
+            
+            self.logger.info(f"out port: {out_port}")
 
             if out_port is not None:
                 actions = [parser.OFPActionOutput(out_port)]
