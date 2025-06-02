@@ -101,6 +101,13 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         dpid = datapath.id
         self.mac_to_port.setdefault(dpid, {})
 
+        # MAC learning
+        self.mac_to_port[dpid][src] = in_port
+
+        eth_type = eth.ethertype
+        self.logger.info("Ethernet type: %#06x", eth_type)
+
+
         # learn MAC to port
         self.mac_to_port[dpid][src] = in_port
 
