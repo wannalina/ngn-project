@@ -79,52 +79,63 @@ class SDNController(simple_switch_13.SimpleSwitch13):
             datapath.send_msg(mod)
             self.logger.info(f"Deleted all flows on switch DPID {dpid}")
 
-    # event handler for packet in events (learn MAC addresses)
-    @set_ev_cls(stplib.EventPacketIn, MAIN_DISPATCHER)
-    def _packet_in_handler(self, ev):
-        actions = ''
-        src_host_name = ''
-        dst_host_name = ''
+@set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
+def _packet_in_handler(self, ev):
+    is_allowed = False
+    
+    msg = ev.msg
+    datapath = msg.datapath
+    self.datapaths[datapath.id] = datapath  # track datapath
+    ofproto = datapath.ofproto
+    parser = datapath.ofproto_parser
+    in_port = msg.match['in_port']
 
-        msg = ev.msg
-        datapath = msg.datapath
-        ofproto = datapath.ofproto
-        parser = datapath.ofproto_parser
-        in_port = msg.match['in_port']
+    pkt = packet.Packet(msg.data)
+    eth = pkt.get_protocols(ethernet.ethernet)[0]
+    src = eth.src
+    dst = eth.dst
+    dpid = datapath.id
+    self.mac_to_port.setdefault(dpid, {})
 
-        pkt = packet.Packet(msg.data)
-        eth = pkt.get_protocols(ethernet.ethernet)[0]
-        dst = eth.dst
-        src = eth.src
-        dpid = datapath.id
-        self.mac_to_port.setdefault(dpid, {})
+    # learn MAC to port
+    self.mac_to_port[dpid][src] = in_port
 
-        # get src/dst host name from hosts_info based on MAC address
-        for host_name, info in self.hosts_info.items():
-            if info["mac"] == src:
-                src_host_name = host_name
-            if info["mac"] == dst:
-                dst_host_name = host_name
+    # get hostnames for source and destination MACs
+    src_host_name = next((name for name, info in self.hosts_info.items() if info['mac'] == src), None)
+    dst_host_name = next((name for name, info in self.hosts_info.items() if info['mac'] == dst), None)
 
-        self.logger.info("packet in (%s %s), (%s %s), %s", src, src_host_name, dst, dst_host_name, self.communication_reqs)
+    self.logger.info("Packet in %s: %s (%s) -> %s (%s)", dpid, src_host_name, src, dst_host_name, dst)
 
-        # check if dst is in allowed dependencies for src host
-        if ((src_host_name == self.communication_reqs["host"]) and (dst_host_name in self.communication_reqs["dependencies"])):
-            self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
+    # only allow packet if it's in the communication requirements
+    for entry in self.communication_reqs:
+        if entry.get("host") == src_host_name and dst_host_name in entry.get("dependencies", []):
+            is_allowed = True
+            break
 
-            # create match for data transmission between hosts and find correct port
-            match = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
-            out_port = self.mac_to_port[dpid][dst]
+    if is_allowed:
+        out_port = self.mac_to_port[dpid].get(dst, ofproto.OFPP_FLOOD)
+        actions = [parser.OFPActionOutput(out_port)]
 
-            # check if out_port found (if yes, send packet to port; if not, FLOOD)
-            if out_port is not None: 
-                actions = [parser.OFPActionOutput(out_port)]
-            else:
-                actions = [parser.OFPActionOutput(ofproto.OFPP_FLOOD)]
+        # add forward flow
+        match_forward = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
+        self.add_flow(datapath, 1, match_forward, actions)
 
-            # add flow between hosts
-            self.add_flow(datapath, 1, match, actions)
-            self.logger.info(f"Adding flow between {src_host_name} <--> {dst_host_name}")
+        # reverse flow to make it bidirectional
+        reverse_port = self.mac_to_port[dpid].get(src, ofproto.OFPP_FLOOD)
+        match_reverse = parser.OFPMatch(eth_src=dst, eth_dst=src)
+        actions_reverse = [parser.OFPActionOutput(reverse_port)]
+        self.add_flow(datapath, 1, match_reverse, actions_reverse)
+
+        out = parser.OFPPacketOut(
+            datapath=datapath, buffer_id=msg.buffer_id,
+            in_port=in_port, actions=actions, data=msg.data
+        )
+        datapath.send_msg(out)
+
+        self.logger.info("Flow added: %s <--> %s", src_host_name, dst_host_name)
+    else:
+        self.logger.info("Packet dropped: %s -> %s (not in allowed dependencies)", src_host_name, dst_host_name)
+
 
     # event handler to handle topology change
     @set_ev_cls(stplib.EventTopologyChange, MAIN_DISPATCHER)
