@@ -50,15 +50,13 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         self.stp.set_config(config)
 
     # function to delete flow when one container is shut down
-    def delete_flow(self, dpid, host_mac):
+    def delete_flow(self, datapath):
         try:
-            datapath = self.datapath.get(dpid)
+            ofproto = datapath.ofproto
+            parser = datapath.ofproto_parser
 
-            if datapath:
-                ofproto = datapath.ofproto
-                parser = datapath.ofproto_parser
-
-                match = parser.OFPMatch(eth_dst=host_mac)
+            for dst in self.mac_to_port[datapath.id].keys():
+                match = parser.OFPMatch(eth_dst=dst)
                 mod = parser.OFPFlowMod(
                     datapath, command=ofproto.OFPFC_DELETE,
                     out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY,
@@ -249,9 +247,17 @@ class SDNRestController(ControllerBase):
 
             for host_name, info in self.controller_app.hosts_info.items():
                 if host_name == host_del:
+                    dpid = info["dpid"]
+                    dpid_str = dpid_lib.dpid_to_str(dpid)
+                    msg = 'Receive topology change event. Flush MAC table.'
+                    self.logger.debug("[dpid=%s] %s", dpid_str, msg)
+
+                    for dp in self.controller_app.mac_to_port:
+                        if dpid in dp:
+                            self.controller_app.delete_flow(dp)
+                            del self.controller_app.mac_to_port[dp.id]
+                            break
                     self.controller_app.logger.info(f"host: {host_name}, {info}")
-                    self.controller_app.delete_flow(info["dpid"], info["mac"])
-                    self.controller_app.logger.info(f"Flow deleted successfully")
                     break
 
             # remove hosts from communication requirements
@@ -263,7 +269,6 @@ class SDNRestController(ControllerBase):
                 # remove host from communication reqs
                 if host_del in req["dependencies"]:
                     (req["dependencies"]).remove(host_del)
-            self.controller_app.logger.info(f"reqs: {self.controller_app.communication_reqs}")
 
             return Response(status=200, body="Flows deleted")
         except Exception as e:
