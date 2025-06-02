@@ -244,21 +244,19 @@ class SDNRestController(ControllerBase):
         try:
             body = req.json if req.body else {}
             src_host = body.get("host")
-            dst_hosts = body.get("dependencies", [])
+            dst_host = body.get("dependencies")
 
-            # iterate over dst hosts (dependencies)
-            for dst in dst_hosts:
-                # get host info (bidirectional)
-                host_pairs = [
-                    (self.hosts_info.get(src_host), self.hosts_info.get(dst)),
-                    (self.hosts_info.get(dst), self.hosts_info.get(src_host))
-                ]
+            # get host info (bidirectional)
+            host_pairs = [
+                (self.hosts_info.get(src_host), self.hosts_info.get(dst_host)),
+                (self.hosts_info.get(dst_host), self.hosts_info.get(src_host))
+            ]
 
-                # get dpids for host pairings
-                for s_info, d_info in host_pairs:
-                    if s_info and d_info:
-                        datapath = self.datapaths.get(s_info['dpid'])
-                        self.controller_app.delete_flow(datapath)
+            # get dpids for host pairings
+            for s_info, d_info in host_pairs:
+                if s_info and d_info:
+                    datapath = self.datapaths.get(s_info['dpid'])
+                    self.controller_app.delete_flow(datapath)
 
             # remove hosts from communication requirements
             for req in self.controller_app.communication_reqs:
