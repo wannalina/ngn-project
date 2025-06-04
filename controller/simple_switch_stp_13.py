@@ -245,36 +245,37 @@ class SDNRestController(ControllerBase):
             body = req.json if req.body else {}
             host_del = body.get("host")
 
-            self.controller_app.logger.info(f"host name and stuff: %s", host_del)
-
+            # Get host dpid from hosts_info
+            dpid = None
             for host_name, info in self.controller_app.hosts_info.items():
-                self.controller_app.logger.info(f"host name and stuff: %s, %s", host_name, info)
                 if host_name == host_del:
-                    self.controller_app.logger.info(f"host name and stuff: %s, %s", host_name, info)
                     dpid = info["dpid"]
-                    dpid_str = dpid_lib.dpid_to_str(dpid)
-                    msg = 'Receive topology change event. Flush MAC table.'
-                    self.controller_app.logger.debug("[dpid=%s] %s", dpid_str, msg)
-
-                    for dp in self.controller_app.mac_to_port:
-                        if dpid in dp:
-                            self.controller_app.delete_flow(dp)
-                            del self.controller_app.mac_to_port[dp.id]
-                            break
-                    self.controller_app.logger.info(f"host: {host_name}, {info}")
                     break
 
-            # remove hosts from communication requirements
+            if dpid is None:
+                return Response(status=404, body=f"Host {host_del} not found")
+
+            # Get datapath object for this dpid
+            datapath = self.controller_app.datapaths.get(dpid)
+            if datapath is None:
+                return Response(status=404, body=f"No datapath found for dpid {dpid}")
+
+            # Delete flows for this datapath
+            self.controller_app.delete_flow(datapath)
+            
+            # Remove from mac_to_port if present
+            if dpid in self.controller_app.mac_to_port:
+                del self.controller_app.mac_to_port[dpid]
+
+            # Remove from communication requirements
             for req in self.controller_app.communication_reqs:
-                # remove communication reqs from host
                 if req["host"] == host_del:
                     req["dependencies"] = []
-                
-                # remove host from communication reqs
                 if host_del in req["dependencies"]:
-                    (req["dependencies"]).remove(host_del)
+                    req["dependencies"].remove(host_del)
 
             return Response(status=200, body="Flows deleted")
+            
         except Exception as e:
             return Response(status=500, body=f"Error deleting flows: {e}")
 
