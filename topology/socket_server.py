@@ -99,13 +99,10 @@ class SocketServer:
             # Remove any existing container with the same name
             host.cmd(f'docker rm -f {container_full_name} 2>/dev/null')
 
-            # Run the container with no network so we can connect manually
-            run_cmd = f'docker run -d --name {container_full_name} --network=none {container_name}'
+            # Run the container with host network (no veth needed)
+            run_cmd = f'docker run -d --name {container_full_name} --network=host {container_name}'
             result = host.cmd(run_cmd)
             print(f"Docker run result: {result}")
-
-            # Setup veth connection to the Mininet host
-            self._setup_container_networking(host, container_full_name, host_name)
 
             # Track running container
             if host_name not in self.running_containers:
@@ -117,45 +114,8 @@ class SocketServer:
             status = host.cmd(check_cmd)
             print(f"Container status: {status}")
 
-    def _setup_container_networking(self, host, container_name, host_name):
-        """Setup networking between container and mininet host"""
-        try:
-            # Get container PID
-            pid_cmd = f'docker inspect -f "{{{{.State.Pid}}}}" {container_name}'
-            container_pid = host.cmd(pid_cmd).strip()
-            
-            if container_pid and container_pid != "0":
-                # Create veth pair
-                veth_host = f"veth-{host_name}"
-                veth_container = f"veth-c-{host_name}"
-                
-                # Create veth pair
-                host.cmd(f'ip link add {veth_host} type veth peer name {veth_container}')
-                
-                # Move container end to container namespace
-                host.cmd(f'ip link set {veth_container} netns {container_pid}')
-                
-                # Configure host end
-                host.cmd(f'ip link set {veth_host} up')
-                
-                # Configure container end (run in container's namespace)
-                host.cmd(f'nsenter -t {container_pid} -n ip link set {veth_container} name eth0')
-                host.cmd(f'nsenter -t {container_pid} -n ip link set eth0 up')
-                
-                # Assign IP to container (simple scheme: 10.0.0.{host_num})
-                host_num = host_name.replace('h', '')
-                container_ip = f"10.0.0.{host_num}"
-                host.cmd(f'nsenter -t {container_pid} -n ip addr add {container_ip} dev eth0')
-                
-                print(f"Configured networking for container {container_name}: {container_ip}")
-        
-        except Exception as e:
-            print(f"Error setting up container networking: {e}")
-
     def stop_container(self, host_name, container_name):
         host = self.net.get(host_name)
-        pid = host.cmd(f"docker inspect -f '{{{{.State.Pid}}}}' {container_name}_{host_name}").strip()
-        host.cmd(f'rm -f /var/run/netns/{pid}')
         host.cmd(f'docker rm -f {container_name}_{host_name}')
 
     def stop_all_containers(self):

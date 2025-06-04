@@ -86,7 +86,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
             self.logger.info(f"Deleted all flows on switch DPID {dpid}")
 
     def is_communication_allowed(self, src_host_name, dst_host_name):
-        """Check if communication between two hosts is allowed"""
+        """Check if communication between two hosts is allowed (host-level only)"""
         for req in self.communication_reqs:
             if req["host"] == src_host_name and dst_host_name in req["dependencies"]:
                 return True
@@ -99,7 +99,6 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         for host in self.hosts_mac_list:
             if host["mac"] == mac_addr:
                 return host["host_name"]
-        self.logger.warning(f"MAC {mac_addr} not found in hosts_mac_list: {[h['mac'] for h in self.hosts_mac_list]}")
         return None
 
     def install_bidirectional_flows(self, datapath, src_mac, dst_mac, src_port, dst_port):
@@ -154,16 +153,8 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 
         # Handle IPv4 packets (including ICMP)
         if eth_type == 0x0800:
-            ip = pkt.get_protocol(ipv4.ipv4)
-            icmp_pkt = pkt.get_protocol(icmp.icmp)
-
             src_host_name = self.get_host_name_by_mac(src)
             dst_host_name = self.get_host_name_by_mac(dst)
-
-            # LOG MAC PORT
-            #if not src_host_name or not dst_host_name:
-            #   self.logger.debug(f"Unknown host: src_mac={src}, dst_mac={dst}")
-            #    return
 
             if self.is_communication_allowed(src_host_name, dst_host_name):
                 self.logger.info(f"Allowing packet: {src_host_name} -> {dst_host_name}")
@@ -243,6 +234,7 @@ class SDNRestController(ControllerBase):
                 self.controller_app.communication_reqs.append(host_for_reqs)
 
             self.controller_app.logger.info(f"Registered {len(request_body)} hosts with controller")
+            self.controller_app.logger.info(f"hosts_mac_list: {[h['mac'] for h in self.controller_app.hosts_mac_list]}")
             return Response(body="Hosts stored", status=200)
         except Exception as e: 
             print(f"Error sending host data to controller: {e}")
