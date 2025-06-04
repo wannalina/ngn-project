@@ -84,14 +84,40 @@ class SDNController(simple_switch_13.SimpleSwitch13):
             datapath.send_msg(mod)
             self.logger.info(f"Deleted all flows on switch DPID {dpid}")
 
-    @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER) # FUNCTION AUTOMATICALLY CALLED WHEN A PACKET IS RECEVIED
-    def _packet_in_handler(self, ev):
-        # initialize variables for later
-        is_allowed = False
-        actions = ''
-        src_host_name = ''
-        dst_host_name = ''
+    def is_communication_allowed(self, src_host_name, dst_host_name):
+        """Check if communication between two hosts is allowed"""
+        for req in self.communication_reqs:
+            if req["host"] == src_host_name and dst_host_name in req["dependencies"]:
+                return True
+            if req["host"] == dst_host_name and src_host_name in req["dependencies"]:
+                return True
+        return False
 
+    def get_host_name_by_mac(self, mac_addr):
+        """Get host name by MAC address"""
+        for host in self.hosts_mac_list:
+            if host["mac"] == mac_addr:
+                return host["host_name"]
+        return None
+
+    def install_bidirectional_flows(self, datapath, src_mac, dst_mac, in_port, out_port):
+        """Install flows for both directions of communication"""
+        parser = datapath.ofproto_parser
+        
+        # Forward direction flow
+        match_forward = parser.OFPMatch(eth_src=src_mac, eth_dst=dst_mac)
+        actions_forward = [parser.OFPActionOutput(out_port)]
+        self.add_flow(datapath, 10, match_forward, actions_forward)
+        
+        # Reverse direction flow (if we know the reverse port)
+        if dst_mac in self.mac_to_port[datapath.id]:
+            reverse_port = self.mac_to_port[datapath.id][dst_mac]
+            match_reverse = parser.OFPMatch(eth_src=dst_mac, eth_dst=src_mac)
+            actions_reverse = [parser.OFPActionOutput(reverse_port)]
+            self.add_flow(datapath, 10, match_reverse, actions_reverse)
+
+    @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
+    def _packet_in_handler(self, ev):
         msg = ev.msg
         datapath = msg.datapath
         self.datapaths[datapath.id] = datapath  # track datapath
@@ -105,16 +131,18 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         dst = eth.dst
         dpid = datapath.id
         self.mac_to_port.setdefault(dpid, {})
-        eth_type = eth.ethertype    # get packet type
+        eth_type = eth.ethertype
 
-        # learn MAC to port
+        # Learn MAC to port mapping
         self.mac_to_port[dpid][src] = in_port
 
-        # allow ARP packets through
-        if eth_type == 0x0806:  # ARP header code
-            self.logger.info("Allowing ARP packet")
+        # Always allow ARP packets - they're essential for connectivity
+        if eth_type == 0x0806:  # ARP
+            self.logger.debug("Processing ARP packet")
             out_port = ofproto.OFPP_FLOOD
             actions = [parser.OFPActionOutput(out_port)]
+            
+            # Send packet out
             out = parser.OFPPacketOut(
                 datapath=datapath,
                 buffer_id=msg.buffer_id,
@@ -125,52 +153,46 @@ class SDNController(simple_switch_13.SimpleSwitch13):
             datapath.send_msg(out)
             return
 
-        # get src/dst MAC addresses
-        for host in self.hosts_mac_list:
-            if host["mac"] == src:
-                src_host_name = host["host_name"]
-            if host["mac"] == dst: 
-                dst_host_name = host["host_name"]
-        
-        # only allow packet if it's in the communication requirements (bidireactional)
-        for req in self.communication_reqs:
-            if req["host"] == src_host_name and dst_host_name in req["dependencies"]:
-                is_allowed = True
-                break
-            if req["host"] == dst_host_name and src_host_name in req["dependencies"]:
-                is_allowed = True
-                break
-
-        # if communication is allowed, add flow
-        if is_allowed:
-            self.logger.info("Packet in: %s -> %s ", src_host_name, dst_host_name)
-            out_port = self.mac_to_port[dpid].get(dst)
-            match = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
+        # Handle IPv4 packets
+        if eth_type == 0x0800:  # IPv4
+            # Get host names from MAC addresses
+            src_host_name = self.get_host_name_by_mac(src)
+            dst_host_name = self.get_host_name_by_mac(dst)
             
-            self.logger.info(f"out port: {out_port}")
+            # If we can't identify hosts, drop the packet
+            if not src_host_name or not dst_host_name:
+                self.logger.debug(f"Unknown host: src_mac={src}, dst_mac={dst}")
+                return
 
-            if out_port is not None:
+            # Check if communication is allowed
+            if self.is_communication_allowed(src_host_name, dst_host_name):
+                self.logger.info(f"Allowing packet: {src_host_name} -> {dst_host_name}")
+                
+                # Determine output port
+                if dst in self.mac_to_port[dpid]:
+                    out_port = self.mac_to_port[dpid][dst]
+                else:
+                    out_port = ofproto.OFPP_FLOOD
+                
                 actions = [parser.OFPActionOutput(out_port)]
+                
+                # Install bidirectional flows with higher priority
+                if out_port != ofproto.OFPP_FLOOD:
+                    self.install_bidirectional_flows(datapath, src, dst, in_port, out_port)
+                    self.logger.info(f"Flow installed: {src_host_name} <-> {dst_host_name}")
+                
+                # Send the current packet
+                out = parser.OFPPacketOut(
+                    datapath=datapath,
+                    buffer_id=msg.buffer_id,
+                    in_port=in_port,
+                    actions=actions,
+                    data=msg.data
+                )
+                datapath.send_msg(out)
             else:
-                actions = [parser.OFPActionOutput(ofproto.OFPP_FLOOD)]
-            self.add_flow(datapath, 1, match, actions)
-            self.logger.info("Flow added: %s <--> %s", src_host_name, dst_host_name)
-
-        else:
-            self.logger.info("Packet dropped: %s -> %s (not in allowed dependencies)", src_host_name, dst_host_name)
-
-
-    '''# event handler to handle topology change
-    @set_ev_cls(stplib.EventTopologyChange, MAIN_DISPATCHER)
-    def _topology_change_handler(self, ev):
-        dp = ev.dp
-        dpid_str = dpid_lib.dpid_to_str(dp.id)
-        msg = 'Receive topology change event. Flush MAC table.'
-        self.logger.debug("[dpid=%s] %s", dpid_str, msg)
-
-        if dp.id in self.mac_to_port:
-            self.delete_flow(dp)
-            del self.mac_to_port[dp.id]'''
+                self.logger.info(f"Packet dropped: {src_host_name} -> {dst_host_name} (not allowed)")
+                # Drop the packet by not sending it anywhere
 
     # event handler to handle port change
     @set_ev_cls(stplib.EventPortStateChange, MAIN_DISPATCHER)
@@ -193,7 +215,7 @@ class SDNRestController(ControllerBase):
 
     # route to post hosts info (host MAC address, dpid)
     @route('simple_switch', '/post-hosts', methods=['POST'])
-    def post_hosts(self, req, **kwargs): #GETS INFORMATION OF HOSTS FROM GUY (once per execution)
+    def post_hosts(self, req, **kwargs):
         try:
             request_body = req.json if req.body else {}
 
@@ -201,7 +223,7 @@ class SDNRestController(ControllerBase):
                 host_name = host['host']
                 self.controller_app.hosts_info[host_name] = {
                     'mac': host['host_mac'],
-                    'dpid': int(host['dpid']) # datapath ID
+                    'dpid': int(host['dpid'])
                 }
 
             # iterate over all known hosts
@@ -215,15 +237,16 @@ class SDNRestController(ControllerBase):
 
                 # add host to communication requirements list
                 host_for_reqs = { "host": host["host"], "dependencies": [] }
-                self.controller_app.communication_reqs.append(host_for_reqs) #populate communication_reqs with host info
+                self.controller_app.communication_reqs.append(host_for_reqs)
 
+            self.controller_app.logger.info(f"Registered {len(request_body)} hosts with controller")
             return Response(body="Hosts stored", status=200)
         except Exception as e: 
             print(f"Error sending host data to controller: {e}")
             return Response(body="Error storing hosts", status=500)
 
     # route to add flows between allowed hosts
-    @route('simple_switch', '/add-flow', methods=['POST']) #THIS ACTUALLY JUST UPDATES THE COMMUNICATION REQUS, SO THAT WHEN A PACKET IS RECEIVED, A FLOW IS ADDED
+    @route('simple_switch', '/add-flow', methods=['POST'])
     def add_flow_route(self, req, **kwargs):
         try: 
             request_body = req.json if req.body else {}
@@ -232,6 +255,7 @@ class SDNRestController(ControllerBase):
             for host in self.controller_app.communication_reqs:
                 if host["host"] == request_body["host"]:
                     host["dependencies"] = request_body["dependencies"]
+                    self.controller_app.logger.info(f"Updated dependencies for {request_body['host']}: {request_body['dependencies']}")
 
             return Response(body="Flows added",status=200)
         except Exception as e: 
@@ -239,7 +263,7 @@ class SDNRestController(ControllerBase):
             return Response(body="Error adding flows", status=500)
 
     # route to delete flows when applications shut down
-    @route('simple_switch', '/delete-flow', methods=['POST']) # THIS IS TO FIX!!!
+    @route('simple_switch', '/delete-flow', methods=['POST'])
     def delete_flow_route(self, req, **kwargs):
         try:
             body = req.json if req.body else {}
