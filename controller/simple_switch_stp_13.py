@@ -118,75 +118,82 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
-        msg = ev.msg
-        datapath = msg.datapath
-        self.datapaths[datapath.id] = datapath  # track datapath
-        ofproto = datapath.ofproto
-        parser = datapath.ofproto_parser
-        in_port = msg.match['in_port']
+        try:
+            msg = ev.msg
+            datapath = msg.datapath
+            self.datapaths[datapath.id] = datapath  # track datapath
+            ofproto = datapath.ofproto
+            parser = datapath.ofproto_parser
+            in_port = msg.match['in_port']
 
-        pkt = packet.Packet(msg.data)
-        eth = pkt.get_protocols(ethernet.ethernet)[0]
-        src = eth.src
-        dst = eth.dst
-        dpid = datapath.id
-        self.mac_to_port.setdefault(dpid, {})
-        eth_type = eth.ethertype
+            pkt = packet.Packet(msg.data)
+            eth = pkt.get_protocols(ethernet.ethernet)[0]
+            src = eth.src
+            dst = eth.dst
+            dpid = datapath.id
+            self.mac_to_port.setdefault(dpid, {})
+            eth_type = eth.ethertype
 
-        # Learn MAC to port mapping
-        self.mac_to_port[dpid][src] = in_port
+            # Learn MAC to port mapping
+            self.mac_to_port[dpid][src] = in_port
 
-        # Always allow ARP packets
-        if eth_type == 0x0806:  # ARP
-            self.logger.debug("Processing ARP packet")
-            out_port = ofproto.OFPP_FLOOD
-            actions = [parser.OFPActionOutput(out_port)]
-            out = parser.OFPPacketOut(
-                datapath=datapath,
-                buffer_id=ofproto.OFP_NO_BUFFER,
-                in_port=in_port,
-                actions=actions,
-                data=msg.data
-            )
-            datapath.send_msg(out)
-            return
-
-        # Handle IPv4 packets (including ICMP)
-        if eth_type == 0x0800:
-            src_host_name = self.get_host_name_by_mac(src)
-            dst_host_name = self.get_host_name_by_mac(dst)
-
-            if self.is_communication_allowed(src_host_name, dst_host_name):
-                self.logger.info(f"Allowing packet: {src_host_name} -> {dst_host_name}")
-                # Learn the port for the source MAC
-                self.mac_to_port[dpid][src] = in_port
-
-                # If we know the output port for the destination, install flows
-                if dst in self.mac_to_port[dpid]:
-                    out_port = self.mac_to_port[dpid][dst]
-                    actions = [parser.OFPActionOutput(out_port)]
-                    self.install_bidirectional_flows(datapath, src, dst, in_port, out_port)
-                    self.logger.info(f"Flow installed: {src_host_name} <-> {dst_host_name}")
-                else:
-                    out_port = ofproto.OFPP_FLOOD
-                    actions = [parser.OFPActionOutput(out_port)]
-                    self.logger.info(f"Flooding packet: {src_host_name} -> {dst_host_name}")
-
-                # Always send the current packet out
+            # Always allow ARP packets
+            if eth_type == 0x0806:  # ARP
+                self.logger.debug("Processing ARP packet")
+                out_port = ofproto.OFPP_FLOOD
+                actions = [parser.OFPActionOutput(out_port)]
                 out = parser.OFPPacketOut(
                     datapath=datapath,
-                    buffer_id=msg.buffer_id if msg.buffer_id != ofproto.OFP_NO_BUFFER else ofproto.OFP_NO_BUFFER,
+                    buffer_id=ofproto.OFP_NO_BUFFER,
                     in_port=in_port,
                     actions=actions,
-                    data=msg.data if msg.buffer_id == ofproto.OFP_NO_BUFFER else None
+                    data=msg.data
                 )
                 datapath.send_msg(out)
-            else:
-                self.logger.info(f"Packet dropped: {src_host_name} -> {dst_host_name} (not allowed)")
-                # Drop silently
+                return
 
-        # LOG MAC PORT self.logger.info(f"PacketIn: dpid={dpid}, in_port={in_port}, src={src}, dst={dst}")
-        # LOG MAC PORT self.logger.info(f"mac_to_port[{dpid}]: {self.mac_to_port[dpid]}")
+            # Handle IPv4 packets (including ICMP)
+            if eth_type == 0x0800:
+                src_host_name = self.get_host_name_by_mac(src)
+                dst_host_name = self.get_host_name_by_mac(dst)
+
+                # If either host is unknown, drop the packet gracefully (prevents crash)
+                if src_host_name is None or dst_host_name is None:
+                    self.logger.info(f"Unknown host for src={src} or dst={dst}, dropping packet.")
+                    return
+
+                if self.is_communication_allowed(src_host_name, dst_host_name):
+                    self.logger.info(f"Allowing packet: {src_host_name} -> {dst_host_name}")
+                    # Learn the port for the source MAC
+                    self.mac_to_port[dpid][src] = in_port
+
+                    # If we know the output port for the destination, install flows
+                    if dst in self.mac_to_port[dpid]:
+                        out_port = self.mac_to_port[dpid][dst]
+                        actions = [parser.OFPActionOutput(out_port)]
+                        self.install_bidirectional_flows(datapath, src, dst, in_port, out_port)
+                        self.logger.info(f"Flow installed: {src_host_name} <-> {dst_host_name}")
+                    else:
+                        out_port = ofproto.OFPP_FLOOD
+                        actions = [parser.OFPActionOutput(out_port)]
+                        self.logger.info(f"Flooding packet: {src_host_name} -> {dst_host_name}")
+
+                    # Always send the current packet out
+                    out = parser.OFPPacketOut(
+                        datapath=datapath,
+                        buffer_id=msg.buffer_id if msg.buffer_id != ofproto.OFP_NO_BUFFER else ofproto.OFP_NO_BUFFER,
+                        in_port=in_port,
+                        actions=actions,
+                        data=msg.data if msg.buffer_id == ofproto.OFP_NO_BUFFER else None
+                    )
+                    datapath.send_msg(out)
+                else:
+                    self.logger.info(f"Packet dropped: {src_host_name} -> {dst_host_name} (not allowed)")
+                    # Drop silently
+        except Exception as e:
+            self.logger.error(f"Exception in _packet_in_handler: {e}")
+            import traceback
+            traceback.print_exc()
 
     # event handler to handle port change
     @set_ev_cls(stplib.EventPortStateChange, MAIN_DISPATCHER)
