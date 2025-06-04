@@ -166,19 +166,21 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 
             if self.is_communication_allowed(src_host_name, dst_host_name):
                 self.logger.info(f"Allowing packet: {src_host_name} -> {dst_host_name}")
+                # Learn the port for the source MAC
+                self.mac_to_port[dpid][src] = in_port
+
+                # If we know the output port for the destination, install flows
                 if dst in self.mac_to_port[dpid]:
                     out_port = self.mac_to_port[dpid][dst]
-                else:
-                    out_port = ofproto.OFPP_FLOOD
-
-                actions = [parser.OFPActionOutput(out_port)]
-
-                # Install flows for future packets
-                if out_port != ofproto.OFPP_FLOOD:
+                    actions = [parser.OFPActionOutput(out_port)]
                     self.install_bidirectional_flows(datapath, src, dst, in_port, out_port)
                     self.logger.info(f"Flow installed: {src_host_name} <-> {dst_host_name}")
+                else:
+                    out_port = ofproto.OFPP_FLOOD
+                    actions = [parser.OFPActionOutput(out_port)]
+                    self.logger.info(f"Flooding packet: {src_host_name} -> {dst_host_name}")
 
-                # Always forward the current packet (even after installing the flow)
+                # Always send the current packet out
                 out = parser.OFPPacketOut(
                     datapath=datapath,
                     buffer_id=msg.buffer_id if msg.buffer_id != ofproto.OFP_NO_BUFFER else ofproto.OFP_NO_BUFFER,
