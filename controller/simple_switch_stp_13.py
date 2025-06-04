@@ -18,6 +18,7 @@ from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
 from ryu.app import simple_switch_13
 from ryu.app.wsgi import ControllerBase, WSGIApplication, route
+from ryu.lib.packet import ipv4, icmp
 
 # import other libraries
 from webob import Response
@@ -136,16 +137,14 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         # Learn MAC to port mapping
         self.mac_to_port[dpid][src] = in_port
 
-        # Always allow ARP packets - they're essential for connectivity
+        # Always allow ARP packets
         if eth_type == 0x0806:  # ARP
             self.logger.debug("Processing ARP packet")
             out_port = ofproto.OFPP_FLOOD
             actions = [parser.OFPActionOutput(out_port)]
-            
-            # Send packet out
             out = parser.OFPPacketOut(
                 datapath=datapath,
-                buffer_id=msg.buffer_id,
+                buffer_id=ofproto.OFP_NO_BUFFER,
                 in_port=in_port,
                 actions=actions,
                 data=msg.data
@@ -153,46 +152,52 @@ class SDNController(simple_switch_13.SimpleSwitch13):
             datapath.send_msg(out)
             return
 
-        # Handle IPv4 packets
-        if eth_type == 0x0800:  # IPv4
-            # Get host names from MAC addresses
+        # Handle IPv4 packets (including ICMP)
+        if eth_type == 0x0800:
+            ip = pkt.get_protocol(ipv4.ipv4)
+            icmp_pkt = pkt.get_protocol(icmp.icmp)
+
             src_host_name = self.get_host_name_by_mac(src)
             dst_host_name = self.get_host_name_by_mac(dst)
-            
-            # If we can't identify hosts, drop the packet
+
             if not src_host_name or not dst_host_name:
                 self.logger.debug(f"Unknown host: src_mac={src}, dst_mac={dst}")
                 return
 
-            # Check if communication is allowed
             if self.is_communication_allowed(src_host_name, dst_host_name):
                 self.logger.info(f"Allowing packet: {src_host_name} -> {dst_host_name}")
-                
-                # Determine output port
                 if dst in self.mac_to_port[dpid]:
                     out_port = self.mac_to_port[dpid][dst]
                 else:
                     out_port = ofproto.OFPP_FLOOD
-                
+
                 actions = [parser.OFPActionOutput(out_port)]
-                
-                # Install bidirectional flows with higher priority
+
                 if out_port != ofproto.OFPP_FLOOD:
                     self.install_bidirectional_flows(datapath, src, dst, in_port, out_port)
                     self.logger.info(f"Flow installed: {src_host_name} <-> {dst_host_name}")
-                
-                # Send the current packet
-                out = parser.OFPPacketOut(
-                    datapath=datapath,
-                    buffer_id=msg.buffer_id,
-                    in_port=in_port,
-                    actions=actions,
-                    data=msg.data
-                )
+
+                # ORA GESTISCE BUFFER ID!
+                if msg.buffer_id == ofproto.OFP_NO_BUFFER:
+                    out = parser.OFPPacketOut(
+                        datapath=datapath,
+                        buffer_id=ofproto.OFP_NO_BUFFER,
+                        in_port=in_port,
+                        actions=actions,
+                        data=msg.data
+                    )
+                else:
+                    out = parser.OFPPacketOut(
+                        datapath=datapath,
+                        buffer_id=msg.buffer_id,
+                        in_port=in_port,
+                        actions=actions
+                    )
+
                 datapath.send_msg(out)
             else:
                 self.logger.info(f"Packet dropped: {src_host_name} -> {dst_host_name} (not allowed)")
-                # Drop the packet by not sending it anywhere
+                # Drop silently
 
     # event handler to handle port change
     @set_ev_cls(stplib.EventPortStateChange, MAIN_DISPATCHER)
