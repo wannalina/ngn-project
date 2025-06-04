@@ -84,7 +84,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
             datapath.send_msg(mod)
             self.logger.info(f"Deleted all flows on switch DPID {dpid}")
 
-    @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
+    @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER) # FUNCTION AUTOMATICALLY CALLED WHEN A PACKET IS RECEVIED
     def _packet_in_handler(self, ev):
         # initialize variables for later
         is_allowed = False
@@ -193,7 +193,7 @@ class SDNRestController(ControllerBase):
 
     # route to post hosts info (host MAC address, dpid)
     @route('simple_switch', '/post-hosts', methods=['POST'])
-    def post_hosts(self, req, **kwargs):
+    def post_hosts(self, req, **kwargs): #GETS INFORMATION OF HOSTS FROM GUY (once per execution)
         try:
             request_body = req.json if req.body else {}
 
@@ -201,7 +201,7 @@ class SDNRestController(ControllerBase):
                 host_name = host['host']
                 self.controller_app.hosts_info[host_name] = {
                     'mac': host['host_mac'],
-                    'dpid': int(host['dpid'])
+                    'dpid': int(host['dpid']) # datapath ID
                 }
 
             # iterate over all known hosts
@@ -215,7 +215,7 @@ class SDNRestController(ControllerBase):
 
                 # add host to communication requirements list
                 host_for_reqs = { "host": host["host"], "dependencies": [] }
-                self.controller_app.communication_reqs.append(host_for_reqs)
+                self.controller_app.communication_reqs.append(host_for_reqs) #populate communication_reqs with host info
 
             return Response(body="Hosts stored", status=200)
         except Exception as e: 
@@ -223,7 +223,7 @@ class SDNRestController(ControllerBase):
             return Response(body="Error storing hosts", status=500)
 
     # route to add flows between allowed hosts
-    @route('simple_switch', '/add-flow', methods=['POST'])
+    @route('simple_switch', '/add-flow', methods=['POST']) #THIS ACTUALLY JUST UPDATES THE COMMUNICATION REQUS, SO THAT WHEN A PACKET IS RECEIVED, A FLOW IS ADDED
     def add_flow_route(self, req, **kwargs):
         try: 
             request_body = req.json if req.body else {}
@@ -239,7 +239,7 @@ class SDNRestController(ControllerBase):
             return Response(body="Error adding flows", status=500)
 
     # route to delete flows when applications shut down
-    @route('simple_switch', '/delete-flow', methods=['POST'])
+    @route('simple_switch', '/delete-flow', methods=['POST']) # THIS IS TO FIX!!!
     def delete_flow_route(self, req, **kwargs):
         try:
             body = req.json if req.body else {}

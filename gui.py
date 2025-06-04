@@ -543,7 +543,7 @@ class MainWindow(QWidget):
             print(f"Error fetching host info: {e}")
             return {}
 
-    # function to send list of active hosts to controller
+    # function to send list of (created) hosts to controller
     def add_hosts_to_controller(self):
         try: 
             hosts_info_list = self.nm.get_hosts_mn_objects(self.host_list)
@@ -570,14 +570,14 @@ class MainWindow(QWidget):
         except Exception as e: 
             print(f"Error posting communication requirements: {e}")'''
 
-    # function to send allowed communication rules to controller
+    # function to send allowed communication rules to controller (called whenever a container is started, gets its dependencies)
     def add_allowed_communication(self, host, container):
         try:
-            communication_reqs = self.get_communication_reqs(container)
+            communication_reqs = self.get_communication_reqs(container) #req = requirements
             if not communication_reqs:
                 print("No communication dependencies found.")
                 return
-
+#POSSIBILY DELETE FROM
             host_info = self.nm.get_host_info(host)
             if not host_info or "host" not in host_info:
                 raise ValueError(f"Host info missing or invalid for {host}")
@@ -588,7 +588,7 @@ class MainWindow(QWidget):
                 if not dep_info or "host" not in dep_info:
                     raise ValueError(f"Dependency host info invalid: {dep_host}")
                 dep_infos.append(dep_info)
-
+#POSSIBILY DELETE TO
             hosts_communication = {
                 "host": host_info["host"],
                 "dependencies": [d["host"] for d in dep_infos]
