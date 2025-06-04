@@ -264,25 +264,18 @@ class SDNRestController(ControllerBase):
             body = req.json if req.body else {}
             host_del = body.get("host")
 
-            # Get host dpid from hosts_info
-            dpid = None
+            # Get host MAC from hosts_info
+            host_mac = None
             for host_name, info in self.controller_app.hosts_info.items():
                 if host_name == host_del:
-                    dpid = info["dpid"]
+                    host_mac = info["mac"]
                     break
 
-            if dpid is None:
+            if host_mac is None:
                 return Response(status=404, body=f"Host {host_del} not found")
 
-            # Get datapath object for this dpid
-            datapath = self.controller_app.datapaths.get(dpid)
-            if datapath is None:
-                return Response(status=404, body=f"No datapath found for dpid {dpid}")
-
-            # Delete flows for this datapath
-            self.controller_app.delete_flow(datapath)
-            
-            # Do NOT remove from mac_to_port here! Only clear dependencies.
+            # Delete all flows for this host MAC on all switches
+            self.controller_app.delete_host_flows(host_mac)
 
             # Remove from communication requirements
             for req in self.controller_app.communication_reqs:
