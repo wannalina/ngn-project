@@ -282,9 +282,7 @@ class SDNRestController(ControllerBase):
             # Delete flows for this datapath
             self.controller_app.delete_flow(datapath)
             
-            # Remove from mac_to_port if present
-            if dpid in self.controller_app.mac_to_port:
-                del self.controller_app.mac_to_port[dpid]
+            # Do NOT remove from mac_to_port here! Only clear dependencies.
 
             # Remove from communication requirements
             for req in self.controller_app.communication_reqs:
