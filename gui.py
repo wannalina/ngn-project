@@ -527,7 +527,6 @@ class MainWindow(QWidget):
                         communication_reqs.append(container_host)
                         break
                 communication_reqs.append(container_host)
-                break
             return communication_reqs
         except Exception as e:
             print(f'Error getting communication requirements.')
