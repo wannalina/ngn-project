@@ -401,7 +401,7 @@ class MainWindow(QWidget):
                 print(f"Error updating host dropdown: {e}")
 
 
-    async def autoDeployContainers(self):
+    def autoDeployContainers(self):
         print(self.hostContainerCounts)
         available_hosts = [] #ALL CONTAINERS NOT AT MAX
         max_containers = self.maxContainersBox.value()
