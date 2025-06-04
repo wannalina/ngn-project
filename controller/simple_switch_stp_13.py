@@ -109,10 +109,12 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         match_forward = parser.OFPMatch(eth_src=src_mac, eth_dst=dst_mac)
         actions_forward = [parser.OFPActionOutput(out_port)]
         self.add_flow(datapath, 10, match_forward, actions_forward)
+        self.logger.info(f"Installing forward flow: {src_mac} -> {dst_mac} out_port={out_port}")
         
         # Reverse direction flow (if we know the reverse port)
         if dst_mac in self.mac_to_port[datapath.id]:
             reverse_port = self.mac_to_port[datapath.id][dst_mac]
+            self.logger.info(f"Installing reverse flow: {dst_mac} -> {src_mac} out_port={reverse_port}")
             match_reverse = parser.OFPMatch(eth_src=dst_mac, eth_dst=src_mac)
             actions_reverse = [parser.OFPActionOutput(reverse_port)]
             self.add_flow(datapath, 10, match_reverse, actions_reverse)
@@ -192,6 +194,9 @@ class SDNController(simple_switch_13.SimpleSwitch13):
             else:
                 self.logger.info(f"Packet dropped: {src_host_name} -> {dst_host_name} (not allowed)")
                 # Drop silently
+
+        self.logger.info(f"PacketIn: dpid={dpid}, in_port={in_port}, src={src}, dst={dst}")
+        self.logger.info(f"mac_to_port[{dpid}]: {self.mac_to_port[dpid]}")
 
     # event handler to handle port change
     @set_ev_cls(stplib.EventPortStateChange, MAIN_DISPATCHER)
