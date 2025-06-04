@@ -101,23 +101,20 @@ class SDNController(simple_switch_13.SimpleSwitch13):
                 return host["host_name"]
         return None
 
-    def install_bidirectional_flows(self, datapath, src_mac, dst_mac, in_port, out_port):
+    def install_bidirectional_flows(self, datapath, src_mac, dst_mac, src_port, dst_port):
         """Install flows for both directions of communication"""
         parser = datapath.ofproto_parser
         
-        # Forward direction flow
+        # Forward direction: src_mac -> dst_mac
         match_forward = parser.OFPMatch(eth_src=src_mac, eth_dst=dst_mac)
-        actions_forward = [parser.OFPActionOutput(out_port)]
+        actions_forward = [parser.OFPActionOutput(dst_port)]
         self.add_flow(datapath, 10, match_forward, actions_forward)
-        self.logger.info(f"Installing forward flow: {src_mac} -> {dst_mac} out_port={out_port}")
+        self.logger.info(f"Installing forward flow: {src_mac} -> {dst_mac} out_port={dst_port}")
         
-        # Reverse direction flow (if we know the reverse port)
-        if dst_mac in self.mac_to_port[datapath.id]:
-            reverse_port = self.mac_to_port[datapath.id][dst_mac]
-            self.logger.info(f"Installing reverse flow: {dst_mac} -> {src_mac} out_port={reverse_port}")
-            match_reverse = parser.OFPMatch(eth_src=dst_mac, eth_dst=src_mac)
-            actions_reverse = [parser.OFPActionOutput(reverse_port)]
-            self.add_flow(datapath, 10, match_reverse, actions_reverse)
+        # Reverse direction: dst_mac -> src_mac
+        match_reverse = parser.OFPMatch(eth_src=dst_mac, eth_dst=src_mac)
+        actions_reverse = [parser.OFPActionOutput(src_port)]
+        self.add_flow(datapath, 10, match_reverse, actions_reverse)
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
