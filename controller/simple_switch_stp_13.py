@@ -95,10 +95,11 @@ class SDNController(simple_switch_13.SimpleSwitch13):
         return False
 
     def get_host_name_by_mac(self, mac_addr):
-        """Get host name by MAC address"""
+        """Get host name by MAC address (only Mininet hosts)"""
         for host in self.hosts_mac_list:
             if host["mac"] == mac_addr:
                 return host["host_name"]
+        self.logger.warning(f"MAC {mac_addr} not found in hosts_mac_list: {[h['mac'] for h in self.hosts_mac_list]}")
         return None
 
     def install_bidirectional_flows(self, datapath, src_mac, dst_mac, src_port, dst_port):
@@ -221,23 +222,23 @@ class SDNRestController(ControllerBase):
         try:
             request_body = req.json if req.body else {}
 
+            # Clear previous host info to avoid duplicates/stale entries
+            self.controller_app.hosts_info.clear()
+            self.controller_app.hosts_mac_list.clear()
+            self.controller_app.communication_reqs.clear()
+
             for host in request_body:
                 host_name = host['host']
                 self.controller_app.hosts_info[host_name] = {
                     'mac': host['host_mac'],
                     'dpid': int(host['dpid'])
                 }
-
-            # iterate over all known hosts
-            for host in request_body:
-                # add host info to hosts list
+                # Only add Mininet host MACs
                 host_for_mac_list = {
                     "host_name": host["host"],
                     "mac": host["host_mac"]
                 }
                 self.controller_app.hosts_mac_list.append(host_for_mac_list)
-
-                # add host to communication requirements list
                 host_for_reqs = { "host": host["host"], "dependencies": [] }
                 self.controller_app.communication_reqs.append(host_for_reqs)
 
