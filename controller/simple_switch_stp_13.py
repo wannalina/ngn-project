@@ -159,9 +159,10 @@ class SDNController(simple_switch_13.SimpleSwitch13):
             src_host_name = self.get_host_name_by_mac(src)
             dst_host_name = self.get_host_name_by_mac(dst)
 
-            if not src_host_name or not dst_host_name:
-                self.logger.debug(f"Unknown host: src_mac={src}, dst_mac={dst}")
-                return
+            # LOG MAC PORT
+            #if not src_host_name or not dst_host_name:
+            #   self.logger.debug(f"Unknown host: src_mac={src}, dst_mac={dst}")
+            #    return
 
             if self.is_communication_allowed(src_host_name, dst_host_name):
                 self.logger.info(f"Allowing packet: {src_host_name} -> {dst_host_name}")
@@ -192,8 +193,8 @@ class SDNController(simple_switch_13.SimpleSwitch13):
                 self.logger.info(f"Packet dropped: {src_host_name} -> {dst_host_name} (not allowed)")
                 # Drop silently
 
-        self.logger.info(f"PacketIn: dpid={dpid}, in_port={in_port}, src={src}, dst={dst}")
-        self.logger.info(f"mac_to_port[{dpid}]: {self.mac_to_port[dpid]}")
+        # LOG MAC PORT self.logger.info(f"PacketIn: dpid={dpid}, in_port={in_port}, src={src}, dst={dst}")
+        # LOG MAC PORT self.logger.info(f"mac_to_port[{dpid}]: {self.mac_to_port[dpid]}")
 
     # event handler to handle port change
     @set_ev_cls(stplib.EventPortStateChange, MAIN_DISPATCHER)
