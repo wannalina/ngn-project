@@ -173,27 +173,19 @@ class SDNController(simple_switch_13.SimpleSwitch13):
 
                 actions = [parser.OFPActionOutput(out_port)]
 
+                # Install flows for future packets
                 if out_port != ofproto.OFPP_FLOOD:
                     self.install_bidirectional_flows(datapath, src, dst, in_port, out_port)
                     self.logger.info(f"Flow installed: {src_host_name} <-> {dst_host_name}")
 
-                # ORA GESTISCE BUFFER ID!
-                if msg.buffer_id == ofproto.OFP_NO_BUFFER:
-                    out = parser.OFPPacketOut(
-                        datapath=datapath,
-                        buffer_id=ofproto.OFP_NO_BUFFER,
-                        in_port=in_port,
-                        actions=actions,
-                        data=msg.data
-                    )
-                else:
-                    out = parser.OFPPacketOut(
-                        datapath=datapath,
-                        buffer_id=msg.buffer_id,
-                        in_port=in_port,
-                        actions=actions
-                    )
-
+                # Always forward the current packet (even after installing the flow)
+                out = parser.OFPPacketOut(
+                    datapath=datapath,
+                    buffer_id=msg.buffer_id if msg.buffer_id != ofproto.OFP_NO_BUFFER else ofproto.OFP_NO_BUFFER,
+                    in_port=in_port,
+                    actions=actions,
+                    data=msg.data if msg.buffer_id == ofproto.OFP_NO_BUFFER else None
+                )
                 datapath.send_msg(out)
             else:
                 self.logger.info(f"Packet dropped: {src_host_name} -> {dst_host_name} (not allowed)")
