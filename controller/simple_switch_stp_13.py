@@ -322,8 +322,12 @@ class SDNRestController(ControllerBase):
     @route('simple_switch', '/delete-all-flows', methods=['POST'])
     def delete_all_flows_route(self, req, **kwargs):
         try:
-            self.controller_app.delete_all_flows()
-            
+            # Instead of deleting all flows at once, delete flows for each active host using delete_flow_route logic
+            for host_name in list(self.controller_app.hosts_info.keys()):
+                # Simulate a request body for each host
+                fake_req = type('FakeReq', (), {'json': {'host': host_name}, 'body': True})()
+                self.delete_flow_route(fake_req)
+
             # remove communication reqs from all hosts
             for req in self.controller_app.communication_reqs:
                 req["dependencies"] = []
