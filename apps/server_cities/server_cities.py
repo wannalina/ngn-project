@@ -4,7 +4,7 @@ import requests
 # init flask app
 app = Flask(__name__)
 
-DATABASE_URL = 'http://localhost:6000'
+DATABASE_URL = 'http://10.0.0.1:6000'
 
 # route to get cities from database
 @app.route('/get-cities', methods=['GET'])
