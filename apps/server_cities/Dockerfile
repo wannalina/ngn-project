@@ -6,10 +6,10 @@ WORKDIR /app
 COPY . /app
 
 # install libs
-RUN pip install Flask, requests
+RUN pip install Flask requests
 
 # expose port
-EXPOSE 6000
+EXPOSE 5000
 
 # run program
 CMD ["python3", "server_cities.py"]
