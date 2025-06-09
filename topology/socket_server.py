@@ -91,7 +91,7 @@ class SocketServer:
             print(f"Starting application {container_name} on host {host_name}")
 
             # run python script
-            host.cmd(f'sudo python3 /tmp/commtest/{container_name}.py > /tmp/{container_name}.log 2>&1 &')
+            host.cmd(f'sudo python3 apps/{container_name}/{container_name}.py > logs/{container_name}.log 2>&1 &')
 
             '''            # Load the Docker image
             load_result = host.cmd(f'docker load -i {image_path}')
