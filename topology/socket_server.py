@@ -119,10 +119,9 @@ class SocketServer:
 
     def stop_container(self, host_name, container_name):
         host = self.net.get(host_name)
-        host.cmd("pkill -f flask || true")
-        '''host.cmd(f'docker rm -f {container_name}_{host_name}')'''
+        host.cmd(f"pkill -f {container_name}.py || true")
 
     def stop_all_containers(self):
         print("Stopping all Docker containers on all hosts")
         for host in self.net.hosts:
-            host.cmd('docker rm -f $(docker ps -aq)')
+            host.cmd("pkill -f flask || true")
