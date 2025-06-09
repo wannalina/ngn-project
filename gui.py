@@ -1,21 +1,14 @@
-import json
 import sys
 import os
-import time
-
-from flask import request
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QSpinBox, QGridLayout, QLabel, QPushButton, QVBoxLayout,
     QGroupBox, QComboBox, QScrollArea, QFrame, QHBoxLayout, QDialog, QListWidget,
-    QListWidgetItem,QDoubleSpinBox
+    QListWidgetItem, QCheckBox,QDoubleSpinBox
 )
 from PyQt5.QtCore import Qt
 from network import NetworkManager
 import random
-import requests
-
-CONTROLLER_URL = 'http://localhost:8080'
-
+import time
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -25,7 +18,6 @@ class MainWindow(QWidget):
         self.runningContainers = {}  # container_id (key) + host + container type
         self.hostContainerCounts = {}  # containers per host, hostname(key) + int
         self.containerDependencies = {}  # container dependencies
-        self.containers_on_host = []
         self.isRunning=False
         self.dependenciesConfirmed=False
         self.host_list=[]
@@ -47,7 +39,7 @@ class MainWindow(QWidget):
         # Switches box
         switchesLayout = QHBoxLayout()
         self.switchesBox = QSpinBox()
-        self.switchesBox.setRange(1,10)
+        self.switchesBox.setRange(2,10)
         switchesLayout.addWidget(QLabel("Switches: "))
         switchesLayout.addWidget(self.switchesBox)
         switchesLayout.setContentsMargins(5, 0, 5, 0)
@@ -184,15 +176,15 @@ class MainWindow(QWidget):
         self.nm.start_network_process(*params)
         self.host_list = self.nm.get_hosts()
         self.nm.start_controller()
-        self.add_hosts_to_controller()  # send list of active hosts to controller
+        
 
-    #
+    #ON THE FLY ADDS 
         self.updateEnables()
         self.findContainers()
         self.updateContainerDropdown()
         self.updateHostDropdown()
         self.checkAutoDeploy()
-
+    #############
     def stop_clicked(self):
             print("STOP button clicked")
             self.isRunning=False
@@ -256,7 +248,6 @@ class MainWindow(QWidget):
                 self.containerDropdown.addItem(container)
 
     def startContainer(self):
-        print("START CONTAINER INITIATED")
         host = self.hostDropdown.currentText()
         container = self.containerDropdown.currentText()
         if not container: 
@@ -265,8 +256,6 @@ class MainWindow(QWidget):
         container_id = f"{container}_{host}"
         self.runningContainers[container_id] = {"host": host, "container": container}
         self.hostContainerCounts[host] = self.hostContainerCounts.get(host,0) + 1
-
-        self.add_allowed_communication(host, container)
         self.updateContainerDropdown()
         self.updateHostDropdown()
         self.updateMonitor()
@@ -274,7 +263,6 @@ class MainWindow(QWidget):
 
     def stopAllContainers(self):
         self.nm.stop_all_containers()
-        self.delete_allowed_communication(self.host_list)
         self.runningContainers = {}
         self.hostContainerCounts = {host: 0 for host in self.hostContainerCounts}
         self.updateMonitor()
@@ -310,9 +298,6 @@ class MainWindow(QWidget):
         if container_id in self.runningContainers:
             del self.runningContainers[container_id]
             self.hostContainerCounts[host] = self.hostContainerCounts.get(host) - 1
-            # Only delete flows if no containers are left on this host
-            if self.hostContainerCounts[host] <= 0:
-                self.delete_allowed_communication(host)
             self.updateContainerDropdown()
             self.updateHostDropdown()
             self.updateMonitor()
@@ -328,7 +313,7 @@ class MainWindow(QWidget):
         layout.addWidget(label)
 
         container_list = QListWidget()
-        #FETCH ALL CONTAINERS
+       #FETCH ALL CONTAINERS
         all_containers = set(self.availableContainers.keys())
         for container in all_containers:
             container_list.addItem(container)
@@ -402,7 +387,7 @@ class MainWindow(QWidget):
             except Exception as e:
                 print(f"Error updating host dropdown: {e}")
 
-
+         
     def autoDeployContainers(self):
         print(self.hostContainerCounts)
         available_hosts = [] #ALL CONTAINERS NOT AT MAX
@@ -420,7 +405,7 @@ class MainWindow(QWidget):
         #RANDOM DEPLOYMENT
         for container in available_containers: 
             valid_hosts = [h for h in available_hosts #list comprehension
-                        if self.hostContainerCounts.get(h,0) < max_containers]
+                          if self.hostContainerCounts.get(h,0) < max_containers]
         
             if not valid_hosts:
                 print("All hosts at max capacity")
@@ -430,8 +415,8 @@ class MainWindow(QWidget):
             self.nm.start_container(host, container, self.availableContainers[container])
             container_id = f"{container}_{host}"
             self.runningContainers[container_id] = {"host": host, "container": container}
-            self.add_allowed_communication(host, container)
             self.hostContainerCounts[host] = self.hostContainerCounts.get(host, 0) + 1
+            
 
         self.updateMonitor()
         self.updateHostDropdown()
@@ -457,108 +442,20 @@ class MainWindow(QWidget):
 
     def confirmDependency(self):
         self.dependenciesConfirmed = True
+        print("raw dependencies", self.containerDependencies)
+       
+        updated_dependencies = {} #FILL UP COPY OTHERWISE "DICTIONARY CHANGED SIZE WHILE ITERATING"
         updated_dependencies = self.containerDependencies.copy()
+    
         for container, deps in self.containerDependencies.items():
-            for dep in deps:
-                updated_dependencies.setdefault(dep, set()).add(container)
+            for dependency in deps:
+                #if dependency not in updated_dependencies:
+                updated_dependencies[dependency] = set()
+                updated_dependencies[dependency].add(container)
+    
         self.containerDependencies = updated_dependencies
+        print("updated dependencies", self.containerDependencies)
         self.updateEnables()
-
-    # function to get host of container
-    def get_container_host(self, container):
-        try: 
-            for item in self.runningContainers:
-                if ("_".join(item.split("_")[:2])) == container:
-                    container_host = self.runningContainers[item]['host']
-                    return container_host
-        except Exception as e:
-            print(f"Error getting container host: {e}")
-
-    # function to get communication requirements between hosts with paired apps
-    def get_communication_reqs(self, container):
-        communication_reqs = set()
-        try:
-            # iterate over all communication requirements (dependencies) for container
-            for req in self.containerDependencies[container]:
-                for item in self.runningContainers:
-                    if ("_".join(item.split("_")[:2])) == req:
-                        container_host = self.runningContainers[item]['host']
-                        communication_reqs.add(container_host)
-                        break
-            return list(communication_reqs)
-        except Exception as e:
-            print(f'Error getting communication requirements.')
-            return None
-
-    def get_host_info(self, host):
-        try:
-            request = f"GET_HOST_INFO {host}"
-            self.nm.sock.send(request.encode())
-            data = self.nm.sock.recv(4096).decode()
-            return json.loads(data)
-        except Exception as e:
-            print(f"Error fetching host info: {e}")
-            return {}
-
-    # function to send list of (created) hosts to controller
-    def add_hosts_to_controller(self):
-        try: 
-            hosts_info_list = self.nm.get_hosts_mn_objects(self.host_list)
-            print('host info', hosts_info_list)
-            time.sleep(10)   # wait for controller to start
-            print('Sending list of active hosts to controller...')
-            response = requests.post(f"{CONTROLLER_URL}/post-hosts", json=hosts_info_list)
-            print("Hosts sent to controller successfully.")
-        except Exception as e:
-            print(f'Error sending hosts data to controller: {e}')
-
-    # function to send allowed communication rules to controller (called whenever a container is started, gets its dependencies)
-    def add_allowed_communication(self, host, container):
-        try:
-            communication_reqs = self.get_communication_reqs(container) #req = requirements
-            if not communication_reqs:
-                print("No communication dependencies found.")
-                return
-
-            host_info = self.nm.get_host_info(host)
-            if not host_info or "host" not in host_info:
-                raise ValueError(f"Host info missing or invalid for {host}")
-
-            dep_infos = []
-            for dep_host in communication_reqs:
-                dep_info = self.nm.get_host_info(dep_host)
-                if not dep_info or "host" not in dep_info:
-                    raise ValueError(f"Dependency host info invalid: {dep_host}")
-                dep_infos.append(dep_info)
-
-            hosts_communication = {
-                "host": host_info["host"],
-                "dependencies": [d["host"] for d in dep_infos]
-            }
-
-            response = requests.post(f"{CONTROLLER_URL}/add-communication", json=hosts_communication)
-            print("Allowed communication sent to controller successfully.")
-
-        except Exception as e:
-            print(f"Error sending communication: {e}")
-
-    # function to delete flows upon application shutdown
-    def delete_allowed_communication(self, host):
-        headers = {"Content-Type": "application/json"}
-        try:
-            # delete flow from one host
-            if not isinstance(host, list):
-                response = requests.post(f"{CONTROLLER_URL}/delete-flow", json={"host": host}, headers=headers)
-                if response.status_code == 200:
-                    print("Deleted communication flows successfully.")
-            else:
-                # delete all flows if host is type list
-                response = requests.post(f"{CONTROLLER_URL}/delete-all-flows", headers=headers)
-                if response.status_code == 200:
-                    print("Deleted communication flows successfully.")
-
-        except Exception as e:
-            print(f"Error deleting communication: {e}")
 
 def main():
     app = QApplication(sys.argv)
