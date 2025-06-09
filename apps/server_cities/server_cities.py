@@ -1,28 +1,35 @@
-import time
+from flask import Flask, jsonify
 import requests
 
-# function to get cities from 
-def get_and_add_cities():
-    url = 'http://localhost:6000'
+# init flask app
+app = Flask(__name__)
+
+DATABASE_URL = 'http://localhost:6000'
+
+# route to get cities from database
+@app.route('/get-cities', methods=['GET'])
+def get_cities_route():
     try:
-        # get cities
-        cities_res = requests.get(f'{url}/get-cities')
-        cities_list = (cities_res.json()).get('message')
-        print(f"Cities:\n {cities_list}", flush=True)
-
-        # add city
-        query_params = { 'city': 'Stockholm', 'country': 'Sweden'}
-        requests.post(f'{url}/add-city', params=query_params)
-
-        # get cities again
-        new_cities_res = requests.get(f'{url}/get-cities')
-        new_cities_list = (new_cities_res.json()).get('message')
-        print(f"Cities:\n {new_cities_list}",flush=True)
+        # get cities list
+        response = requests.get(f'{DATABASE_URL}/get-cities')
+        cities_list = response.json().get("message")
+        
+        return jsonify({'message': cities_list})
     except Exception as e:
-        print(f"Error fetching cities from database: {e}")
+        return jsonify({'message': f'Error in processing cities: {e}', 'status_code': 500})
+
+# route to add city to database
+@app.route('/add-city', methods=['POST'])
+def add_city_route():
+    try:
+        # add new city
+        new_city = {'city': 'Stockholm', 'country': 'Sweden'}
+        requests.post(f'{DATABASE_URL}/add-city', params=new_city)
+
+        return jsonify({'message': 'City added to database successfully'})
+    except Exception as e:
+        return jsonify({'message': f"Error adding city to database: {e}"})
 
 # run flask app
 if __name__ == "__main__":
-    while True:
-        get_and_add_cities()
-        time.sleep(3)
+    app.run(debug=True, host="0.0.0.0", port=5000)
