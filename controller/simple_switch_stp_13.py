@@ -85,8 +85,8 @@ class SDNController(simple_switch_13.SimpleSwitch13):
             datapath.send_msg(mod)
             self.logger.info(f"Deleted all flows on switch DPID {dpid}")
 
+    # function to check for allowed communication between hosts
     def is_communication_allowed(self, src_host_name, dst_host_name):
-        """Check if communication between two hosts is allowed (host-level only)"""
         for req in self.communication_reqs:
             if req["host"] == src_host_name and dst_host_name in req["dependencies"]:
                 return True
@@ -94,24 +94,24 @@ class SDNController(simple_switch_13.SimpleSwitch13):
                 return True
         return False
 
+    # function to get host name by MAC address
     def get_host_name_by_mac(self, mac_addr):
-        """Get host name by MAC address (only Mininet hosts)"""
         for host in self.hosts_mac_list:
             if host["mac"] == mac_addr:
                 return host["host_name"]
         return None
 
+    # function to install flows for bidirectional communication
     def install_bidirectional_flows(self, datapath, src_mac, dst_mac, src_port, dst_port):
-        """Install flows for both directions of communication"""
         parser = datapath.ofproto_parser
         
-        # Forward direction: src_mac -> dst_mac
+        # forward direction: src_mac -> dst_mac
         match_forward = parser.OFPMatch(eth_src=src_mac, eth_dst=dst_mac)
         actions_forward = [parser.OFPActionOutput(dst_port)]
         self.add_flow(datapath, 10, match_forward, actions_forward)
         self.logger.info(f"Installing forward flow: {src_mac} -> {dst_mac} out_port={dst_port}")
         
-        # Reverse direction: dst_mac -> src_mac
+        # reverse direction: dst_mac -> src_mac
         match_reverse = parser.OFPMatch(eth_src=dst_mac, eth_dst=src_mac)
         actions_reverse = [parser.OFPActionOutput(src_port)]
         self.add_flow(datapath, 10, match_reverse, actions_reverse)
@@ -134,10 +134,10 @@ class SDNController(simple_switch_13.SimpleSwitch13):
             self.mac_to_port.setdefault(dpid, {})
             eth_type = eth.ethertype
 
-            # Learn MAC to port mapping
+            # learn MAC to port mapping
             self.mac_to_port[dpid][src] = in_port
 
-            # Always allow ARP packets
+            # allow ARP packets
             if eth_type == 0x0806:  # ARP
                 self.logger.debug("Processing ARP packet")
                 out_port = ofproto.OFPP_FLOOD
@@ -152,22 +152,22 @@ class SDNController(simple_switch_13.SimpleSwitch13):
                 datapath.send_msg(out)
                 return
 
-            # Handle IPv4 packets (including ICMP)
+            # handle IPv4 packets (including ICMP; ping)
             if eth_type == 0x0800:
                 src_host_name = self.get_host_name_by_mac(src)
                 dst_host_name = self.get_host_name_by_mac(dst)
 
-                # If either host is unknown, drop the packet gracefully (prevents crash)
+                # if either host unknown, drop packet gracefully (prevents crash)
                 if src_host_name is None or dst_host_name is None:
                     self.logger.info(f"Unknown host for src={src} or dst={dst}, dropping packet.")
                     return
 
                 if self.is_communication_allowed(src_host_name, dst_host_name):
                     self.logger.info(f"Allowing packet: {src_host_name} -> {dst_host_name}")
-                    # Learn the port for the source MAC
+                    # learn source MAC port
                     self.mac_to_port[dpid][src] = in_port
 
-                    # If we know the output port for the destination, install flows
+                    # install flow if output port for dst known
                     if dst in self.mac_to_port[dpid]:
                         out_port = self.mac_to_port[dpid][dst]
                         actions = [parser.OFPActionOutput(out_port)]
@@ -178,7 +178,7 @@ class SDNController(simple_switch_13.SimpleSwitch13):
                         actions = [parser.OFPActionOutput(out_port)]
                         self.logger.info(f"Flooding packet: {src_host_name} -> {dst_host_name}")
 
-                    # Always send the current packet out
+                    # always send the current packet out
                     out = parser.OFPPacketOut(
                         datapath=datapath,
                         buffer_id=msg.buffer_id if msg.buffer_id != ofproto.OFP_NO_BUFFER else ofproto.OFP_NO_BUFFER,
@@ -188,8 +188,8 @@ class SDNController(simple_switch_13.SimpleSwitch13):
                     )
                     datapath.send_msg(out)
                 else:
+                    # drop packet
                     self.logger.info(f"Packet dropped: {src_host_name} -> {dst_host_name} (not allowed)")
-                    # Drop silently
         except Exception as e:
             self.logger.error(f"Exception in _packet_in_handler: {e}")
             import traceback
@@ -220,7 +220,7 @@ class SDNRestController(ControllerBase):
         try:
             request_body = req.json if req.body else {}
 
-            # Clear previous host info to avoid duplicates/stale entries
+            # clear previous host info to avoid duplicates/stale entries
             self.controller_app.hosts_info.clear()
             self.controller_app.hosts_mac_list.clear()
             self.controller_app.communication_reqs.clear()
@@ -231,7 +231,7 @@ class SDNRestController(ControllerBase):
                     'mac': host['host_mac'],
                     'dpid': int(host['dpid'])
                 }
-                # Only add Mininet host MACs
+
                 host_for_mac_list = {
                     "host_name": host["host"],
                     "mac": host["host_mac"]
@@ -247,8 +247,8 @@ class SDNRestController(ControllerBase):
             print(f"Error sending host data to controller: {e}")
             return Response(body="Error storing hosts", status=500)
 
-    # route to add flows between allowed hosts
-    @route('simple_switch', '/add-flow', methods=['POST'])
+    # route to add allowed communication between hosts according to running containers
+    @route('simple_switch', '/add-communication', methods=['POST'])
     def add_flow_route(self, req, **kwargs):
         try: 
             request_body = req.json if req.body else {}
@@ -259,9 +259,9 @@ class SDNRestController(ControllerBase):
                     host["dependencies"] = request_body["dependencies"]
                     self.controller_app.logger.info(f"Updated dependencies for {request_body['host']}: {request_body['dependencies']}")
 
-            return Response(body="Flows added",status=200)
+            return Response(body="Communication requirements added",status=200)
         except Exception as e: 
-            print(f"Error adding flow from communication requirements: {e}")
+            print(f"Error adding communication requirements: {e}")
             return Response(body="Error adding flows", status=500)
 
     # route to delete flows when applications shut down
@@ -274,14 +274,14 @@ class SDNRestController(ControllerBase):
             if not host_mac:
                 return Response(status=404, body=f"Host {host_del} not found")
 
-            # Remove host_del from all dependencies and clear its own dependencies
+            # remove host_del from all dependencies and clear its dependencies
             for req in self.controller_app.communication_reqs:
                 if req["host"] == host_del:
                     req["dependencies"] = []
                 if host_del in req["dependencies"]:
                     req["dependencies"].remove(host_del)
 
-            # If host_del is now completely isolated, remove all flows for its MAC and return
+            # if host_del is isolated, remove all flows for its MAC
             if not any(
                 (req["host"] == host_del and req["dependencies"]) or
                 (host_del in req["dependencies"])
@@ -302,7 +302,7 @@ class SDNRestController(ControllerBase):
                     self.controller_app.logger.info(f"Deleted all flows for MAC {host_mac} on switch DPID {dpid}")
                 return Response(status=200, body="Flows deleted")
 
-            # Otherwise, only remove flows between host_del and hosts with no remaining dependency
+            # else, only remove flows between host_del and hosts with no remaining dependency
             for other_host, other_info in self.controller_app.hosts_info.items():
                 if other_host == host_del:
                     continue
@@ -329,9 +329,9 @@ class SDNRestController(ControllerBase):
     @route('simple_switch', '/delete-all-flows', methods=['POST'])
     def delete_all_flows_route(self, req, **kwargs):
         try:
-            # Instead of deleting all flows at once, delete flows for each active host using delete_flow_route logic
+            # instead of deleting all flows at once, delete flows for each active host using delete_flow_route logic
             for host_name in list(self.controller_app.hosts_info.keys()):
-                # Simulate a request body for each host
+                # simulate request body for each host
                 fake_req = type('FakeReq', (), {'json': {'host': host_name}, 'body': True})()
                 self.delete_flow_route(fake_req)
 

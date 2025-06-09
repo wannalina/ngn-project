@@ -462,50 +462,7 @@ class MainWindow(QWidget):
             for dep in deps:
                 updated_dependencies.setdefault(dep, set()).add(container)
         self.containerDependencies = updated_dependencies
-        #self.post_container_dependencies()
         self.updateEnables()
-
-    '''
-    # function to send app communication requirements to controller
-    def add_host_to_controller(self, host, container):
-        url = 'http://localhost:9000/add-dependency'
-        dependenciesList = []
-        response = self.nm.get_host_mn_object(host)
-        print("response:", response, list(self.containerDependencies[container])[0])
-        dependenciesList.append(list(self.containerDependencies[container])[0])
-
-        containerData = {
-            "host": host,
-            "host_mac": response["host_mac"],
-            "dpid": response["dpid"],
-            # "port": response["port"],
-            "container_name": container,
-            "dependencies": dependenciesList
-        }
-
-        print("container data:", containerData)
-        self.containers_on_host.append(containerData)
-
-        response = requests.post(url, json=self.containers_on_host)
-
-        if response.status_code != 200:
-            print(f"Failed to send dependency data to controller")
-        return
-
-    # function to remove app communication requirements from controller
-    def remove_dependencies_from_controller(self, containers):
-        url = 'http://localhost:9000/delete-dependencies'
-        if isinstance(containers, dict):
-            print("container", containers)
-            response = requests.post(url, json=[containers])
-        else:
-            serializable_containers = [container for container in containers]
-            print("containers", serializable_containers)
-            response = requests.post(url, json=serializable_containers)
-        if response.status_code != 200:
-            print(f"Failed to send dependency data to controller")
-        return
-    '''
 
     # function to get host of container
     def get_container_host(self, container):
@@ -555,21 +512,6 @@ class MainWindow(QWidget):
         except Exception as e:
             print(f'Error sending hosts data to controller: {e}')
 
-    '''
-    # function to send containers to controller
-    def post_container_dependencies(self):
-        try:
-            communication_reqs = [
-                { "container": host, "dependencies": dep }
-                for host, deps in self.containerDependencies.items()
-                for dep in deps
-            ]
-
-            response = requests.post(f"{CONTROLLER_URL}/post-apps", json=communication_reqs)
-            print("Allowed communication sent to controller successfully.")
-        except Exception as e: 
-            print(f"Error posting communication requirements: {e}")'''
-
     # function to send allowed communication rules to controller (called whenever a container is started, gets its dependencies)
     def add_allowed_communication(self, host, container):
         try:
@@ -577,7 +519,7 @@ class MainWindow(QWidget):
             if not communication_reqs:
                 print("No communication dependencies found.")
                 return
-#POSSIBILY DELETE FROM
+
             host_info = self.nm.get_host_info(host)
             if not host_info or "host" not in host_info:
                 raise ValueError(f"Host info missing or invalid for {host}")
@@ -588,13 +530,13 @@ class MainWindow(QWidget):
                 if not dep_info or "host" not in dep_info:
                     raise ValueError(f"Dependency host info invalid: {dep_host}")
                 dep_infos.append(dep_info)
-#POSSIBILY DELETE TO
+
             hosts_communication = {
                 "host": host_info["host"],
                 "dependencies": [d["host"] for d in dep_infos]
             }
 
-            response = requests.post(f"{CONTROLLER_URL}/add-flow", json=hosts_communication)
+            response = requests.post(f"{CONTROLLER_URL}/add-communication", json=hosts_communication)
             print("Allowed communication sent to controller successfully.")
 
         except Exception as e:
