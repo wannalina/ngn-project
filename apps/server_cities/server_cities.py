@@ -22,8 +22,13 @@ def get_cities_route():
 @app.route('/add-city', methods=['POST'])
 def add_city_route():
     try:
+        # get request params
+        # request format 'http:localhost:5000/add-city?city=Stockholm&country=Sweden
+        city_param = requests.args.get('city')
+        country_param = requests.args.get('country')
+
         # add new city
-        new_city = {'city': 'Stockholm', 'country': 'Sweden'}
+        new_city = {'city': city_param, 'country': country_param}
         requests.post(f'{DATABASE_URL}/add-city', params=new_city)
 
         return jsonify({'message': 'City added to database successfully'})
