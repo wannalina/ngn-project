@@ -6,19 +6,21 @@ app = Flask(__name__)
 
 # function to get cities from 
 def get_and_add_cities():
-    url = 'http://localhost:5000'
+    url = 'http://localhost:6000'
     try:
         # get cities
-        cities_list = requests.get(f'{url}/get-cities').message
-        print(f"Cities:\n {cities_list}")
+        cities_res = requests.get(f'{url}/get-cities')
+        cities_list = (cities_res.json()).message
+        print(f"Cities:\n {cities_list}", flush=True)
 
         # add city
         query_params = { 'city': 'Stockholm', 'country': 'Sweden'}
         requests.post(f'{url}/add-city', params=query_params)
 
         # get cities again
-        new_cities_list = requests.get(f'{url}/get-cities').message
-        print(f"Cities:\n {cities_list}")
+        new_cities_res = requests.get(f'{url}/get-cities')
+        new_cities_list = (new_cities_res.json()).message
+        print(f"Cities:\n {new_cities_list}",flush=True)
     except Exception as e:
         print(f"Error fetching cities from database: {e}")
 
