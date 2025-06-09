@@ -27,8 +27,8 @@ class SocketServer:
                     break
 
                 if data.startswith("START_CONTAINER"):
-                    _, host, container, image = data.split()
-                    self.start_container(host, container, image)
+                    _, host, container = data.split()
+                    self.start_container(host, container)
                     conn.send("CONTAINER_STARTED".encode())
 
                 elif data.startswith("STOP_CONTAINER"):
@@ -85,7 +85,7 @@ class SocketServer:
                 break
         conn.close()
 
-    def start_container(self, host_name, container_name, image_path):
+    def start_container(self, host_name, container_name):
         host = self.net.get(host_name)
         if host:
             print(f"Starting application {container_name} on host {host_name}")
