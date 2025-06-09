@@ -8,10 +8,10 @@ app = Flask(__name__)
 @app.route('/get-cities', methods=['GET'])
 def get_cities_route():
     try:
-        db_host = requests.args.get('host')
+        #db_host = requests.args.get('host')
 
         # get cities list
-        response = requests.get(f'http://10.0.0.{db_host}/get-cities')
+        response = requests.get(f'http://0.0.0.0/get-cities')
         cities_list = response.json().get("message")
         
         return jsonify({'message': cities_list})
@@ -24,13 +24,13 @@ def add_city_route():
     try:
         # get request params
         # request format 'http:localhost:5000/host=4&add-city?city=Stockholm&country=Sweden
-        db_host = requests.args.get('host')
+        #db_host = requests.args.get('host')
         city_param = requests.args.get('city')
         country_param = requests.args.get('country')
 
         # add new city
         new_city = {'city': city_param, 'country': country_param}
-        requests.post(f'http://10.0.0.{db_host}/add-city', params=new_city)
+        requests.post(f'http://0.0.0.0/add-city', params=new_city)
 
         return jsonify({'message': 'City added to database successfully'})
     except Exception as e:
@@ -38,4 +38,4 @@ def add_city_route():
 
 # run flask app
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=80)
