@@ -1,15 +1,12 @@
-from mininet.topo import Topo
-from mininet.net import Mininet
-from mininet.node import RemoteController
 import socket
 import subprocess
-import sys
 import os
 import time
+import json
 
 def kill_previous_instances():
     try:
-        subprocess.run(['pkill', '-f', 'topology_generator.py'], stderr=subprocess.DEVNULL) #any running xterm processes
+        subprocess.run(['pkill', '-f', 'topology/main.py'], stderr=subprocess.DEVNULL) #any running xterm processes
         subprocess.run(['sudo', 'mn', '-c'], stderr=subprocess.DEVNULL) #any running mininet
         #subprocess.run(['pkill', '-f', 'python.*topology_generator'], stderr=subprocess.DEVNULL)
         subprocess.run(['sudo', 'pkill', '-f', 'ryu-manager'], stderr=subprocess.DEVNULL)#any ryu-manager processes
@@ -32,14 +29,14 @@ class NetworkManager:
             "-hold",
             "-e",
             "ryu-manager",
-            "simple_switch_stp_13.py"
+            "controller/simple_switch_stp_13.py"
         ]
         self.controller_process = subprocess.Popen(cmd)
         print("Ryu controller started in xterm successfully")
 
     def start_network_process(self, num_switches, num_hosts, links_prob):
         kill_previous_instances()
-        script_path = os.path.join(os.path.dirname(__file__), "topology_generator.py")
+        script_path = os.path.join(os.path.dirname(__file__), "topology/main.py")
         # Use a list for the command arguments instead of shell=True
         cmd = [
             'xterm',
@@ -143,3 +140,35 @@ class NetworkManager:
         self.sock.send("GET_HOSTS".encode())
         data = self.sock.recv(4096).decode()
         return data.split()  #Host names are space separated
+    
+    def get_host_info(self, host_name):
+        self.sock.send(f"GET_HOST_INFO {host_name}".encode())
+        data = self.sock.recv(4096).decode()
+        return json.loads(data)
+
+    # function to fetch mininet host info
+    def get_hosts_mn_objects(self, hosts_list):
+        try:
+            hosts_info = []
+
+            # iterate through hosts in list
+            for host in hosts_list:
+                # send request to socket server to get host info
+                request = f"GET_HOST_INFO {host}"
+                self.sock.send(request.encode())
+            
+                # get and decode json response
+                data = self.sock.recv(4096).decode()
+                host_info = json.loads(data)
+
+                # validate data
+                required_keys = ["host", "host_mac", "dpid"]
+                for key in required_keys:
+                    if key not in host_info:
+                        raise ValueError(f"Missing '{key}' in host info response")
+                hosts_info.append(host_info)
+            return hosts_info
+
+        except Exception as e:
+            print(f"Failed to get host info for {host}: {e}")
+            return None

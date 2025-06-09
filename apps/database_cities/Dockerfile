@@ -1,35 +1,23 @@
-FROM python:3.9-slim
 
-# install postgres
-RUN apt-get update && apt-get install -y postgresql
+# Dockerfile: For PostgreSQL database container
 
-# set postgres env variables
+FROM postgres:13
+
+# Set environment variables for PostgreSQL
+ENV DB_NAME=cities
 ENV DB_USER=postgres
 ENV DB_PASSWORD=newpassword
-ENV GENERIC_DB_NAME=postgres
-ENV DB_NAME=cities
-ENV HOST_IP=localhost
-ENV PORT=5432
+ENV DB_HOST=localhost
+ENV DB_PORT=5432
 
-# check data dir exists
-RUN mkdir -p /var/lib/postgresql/data && chown -R postgres:postgres /var/lib/postgresql
+# Copy DB init script(s) or application logic into container
+COPY . /docker-entrypoint-initdb.d/
 
-# switch to postgres user to initialize db
-USER postgres
-RUN /usr/lib/postgresql/15/bin/initdb -D /var/lib/postgresql/data
+# Expose PostgreSQL port
+EXPOSE 5432
 
-# start postgres and set password
-USER root
-RUN service postgresql start && sleep 5 && \
-    su - postgres -c "psql -c \"ALTER USER postgres WITH PASSWORD 'newpassword';\""
+# PostgreSQL will automatically run any *.sql or *.sh scripts in the entrypoint directory
+# Our application code (database_cities.py) should be run manually or as CMD if desired
 
-# install dependencies
-RUN pip install psycopg2-binary
-
-# copy app files
-WORKDIR /app
-COPY . /app
-
-# start postgres and the db app
-CMD service postgresql start && sleep 5 && python3 database_cities.py
-
+# To override default entrypoint and use Python setup script instead:
+# CMD ["python3", "database_cities.py"]
