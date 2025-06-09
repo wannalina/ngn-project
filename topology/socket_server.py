@@ -88,9 +88,13 @@ class SocketServer:
     def start_container(self, host_name, container_name, image_path):
         host = self.net.get(host_name)
         if host:
-            print(f"Starting container {container_name} on host {host_name}")
+            print(f"Starting application {container_name} on host {host_name}")
 
-            # Load the Docker image
+            # run python script
+            host.cmd(f'cp ../apps/{container_name}/{container_name}.py /tmp/commtest/')
+            host.cmd(f'sudo python3 ../{container_name}.py')
+
+            '''            # Load the Docker image
             load_result = host.cmd(f'docker load -i {image_path}')
             print(f"Docker load result: {load_result}")
 
@@ -102,21 +106,21 @@ class SocketServer:
             # Run the container with host network (no veth needed)
             run_cmd = f'docker run -d --name {container_full_name} --network host {container_name}'
             result = host.cmd(run_cmd)
-            print(f"Docker run result: {result}")
+            print(f"Docker run result: {result}")'''
 
             # Track running container
             if host_name not in self.running_containers:
                 self.running_containers[host_name] = set()
             self.running_containers[host_name].add(container_name)
 
-            # Verify container is running
+            '''# Verify container is running
             check_cmd = f'docker ps --filter name={container_full_name} --format "table {{{{.Names}}}}\t{{{{.Status}}}}"'
             status = host.cmd(check_cmd)
-            print(f"Container status: {status}")
+            print(f"Container status: {status}")'''
 
     def stop_container(self, host_name, container_name):
         host = self.net.get(host_name)
-        host.cmd(f'docker rm -f {container_name}_{host_name}')
+        '''host.cmd(f'docker rm -f {container_name}_{host_name}')'''
 
     def stop_all_containers(self):
         print("Stopping all Docker containers on all hosts")
