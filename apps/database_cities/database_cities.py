@@ -24,7 +24,7 @@ def get_cities_route():
         return jsonify({'message': f'Error fetching cities from database: {e}', 'status_code': 500})
 
 # route to add a new city to the list
-@app.route('add-city', methods=['POST'])
+@app.route('/add-city', methods=['POST'])
 def add_city_route():
     try:
         # get query params
