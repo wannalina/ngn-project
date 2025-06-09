@@ -91,8 +91,7 @@ class SocketServer:
             print(f"Starting application {container_name} on host {host_name}")
 
             # run python script
-            host.cmd(f'cp ../apps/{container_name}/{container_name}.py /tmp/commtest/')
-            host.cmd(f'sudo python3 ../{container_name}.py')
+            host.cmd(f'sudo python3 /tmp/commtest/{container_name}.py > /tmp/{container_name}.log 2>&1 &')
 
             '''            # Load the Docker image
             load_result = host.cmd(f'docker load -i {image_path}')
@@ -120,6 +119,7 @@ class SocketServer:
 
     def stop_container(self, host_name, container_name):
         host = self.net.get(host_name)
+        host.cmd("pkill -f flask || true")
         '''host.cmd(f'docker rm -f {container_name}_{host_name}')'''
 
     def stop_all_containers(self):
