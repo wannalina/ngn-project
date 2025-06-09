@@ -261,7 +261,7 @@ class MainWindow(QWidget):
         container = self.containerDropdown.currentText()
         if not container: 
             return
-        self.nm.start_container(host, container, self.availableContainers[container])
+        self.nm.start_container(host, container)
         container_id = f"{container}_{host}"
         self.runningContainers[container_id] = {"host": host, "container": container}
         self.hostContainerCounts[host] = self.hostContainerCounts.get(host,0) + 1
@@ -427,7 +427,7 @@ class MainWindow(QWidget):
                 continue
             host = random.choice(valid_hosts)
             #DEPLOYMENT
-            self.nm.start_container(host, container, self.availableContainers[container])
+            self.nm.start_container(host, container)
             container_id = f"{container}_{host}"
             self.runningContainers[container_id] = {"host": host, "container": container}
             self.add_allowed_communication(host, container)

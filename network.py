@@ -82,9 +82,9 @@ class NetworkManager:
                 time.sleep(3)  # Wait 3 seconds before retrying
         raise ConnectionRefusedError("Failed to connect to socket after retries")
 
-    def start_container(self, host_name, container_name, image_path):
-        print("start container: ",host_name,container_name,image_path)
-        cmd = f"START_CONTAINER {host_name} {container_name} {image_path}"
+    def start_container(self, host_name, container_name):
+        print("start container: ",host_name,container_name)
+        cmd = f"START_CONTAINER {host_name} {container_name}"
         self.sock.send(cmd.encode())
 
         response = self.sock.recv(1024).decode() #WAIT FOR ACK RESPONSE
