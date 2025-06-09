@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import requests
 
 # init flask app
@@ -8,7 +8,7 @@ app = Flask(__name__)
 @app.route('/get-cities', methods=['GET'])
 def get_cities_route():
     try:
-        host = requests.args.get('host')
+        host = request.args.get('host')
 
         # get cities list
         response = requests.get(f'http://10.0.0.{host}/get-cities')
@@ -24,9 +24,9 @@ def add_city_route():
     try:
         # get request params
         # request format 'http:localhost:5000/host=4&add-city?city=Stockholm&country=Sweden
-        host = requests.args.get('host')
-        city_param = requests.args.get('city')
-        country_param = requests.args.get('country')
+        host = request.args.get('host')
+        city_param = request.args.get('city')
+        country_param = request.args.get('country')
 
         # add new city
         new_city = {'city': city_param, 'country': country_param}
