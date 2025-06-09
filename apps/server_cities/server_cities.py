@@ -11,7 +11,7 @@ def get_cities_route():
         host = request.args.get('host')
 
         # get cities list
-        response = requests.get(f'http://10.0.0.{host}/get-cities')
+        response = requests.get(f'http://10.0.0.{host}:6000/get-cities')
         cities_list = response.json().get("message")
         
         return jsonify({'message': cities_list})
@@ -38,4 +38,4 @@ def add_city_route():
 
 # run flask app
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=80)
+    app.run(debug=True, host="0.0.0.0", port=5000)
