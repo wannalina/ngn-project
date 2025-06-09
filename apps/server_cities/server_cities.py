@@ -29,8 +29,8 @@ def add_city_route():
         country_param = request.args.get('country')
 
         # add new city
-        new_city = {'city': city_param, 'country': country_param}
-        requests.post(f'http://10.0.0.{host}:6000/add-city', params=new_city)
+        #new_city = {'city': city_param, 'country': country_param}
+        requests.post(f'http://10.0.0.{host}:6000/add-city?city={city_param}&country={country_param}')
 
         return jsonify({'message': 'City added to database successfully'})
     except Exception as e:
