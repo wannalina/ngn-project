@@ -1,3 +1,4 @@
+import time
 import requests
 
 # function to get cities from 
@@ -22,4 +23,6 @@ def get_and_add_cities():
 
 # run flask app
 if __name__ == "__main__":
-    get_and_add_cities()
+    while True:
+        get_and_add_cities()
+        time.sleep(3)
