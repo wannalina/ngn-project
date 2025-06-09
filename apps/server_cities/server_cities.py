@@ -1,8 +1,4 @@
-from flask import Flask
 import requests
-
-# initialize flask app
-app = Flask(__name__)
 
 # function to get cities from 
 def get_and_add_cities():
@@ -10,7 +6,7 @@ def get_and_add_cities():
     try:
         # get cities
         cities_res = requests.get(f'{url}/get-cities')
-        cities_list = (cities_res.json()).message
+        cities_list = (cities_res.json()).get('message')
         print(f"Cities:\n {cities_list}", flush=True)
 
         # add city
@@ -19,12 +15,11 @@ def get_and_add_cities():
 
         # get cities again
         new_cities_res = requests.get(f'{url}/get-cities')
-        new_cities_list = (new_cities_res.json()).message
+        new_cities_list = (new_cities_res.json()).get('message')
         print(f"Cities:\n {new_cities_list}",flush=True)
     except Exception as e:
         print(f"Error fetching cities from database: {e}")
 
 # run flask app
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
     get_and_add_cities()
