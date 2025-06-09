@@ -2,7 +2,7 @@ from flask import Flask
 import requests
 
 # initialize flask app
-app = Flask(__name__)
+#app = Flask(__name__)
 
 # function to get cities from 
 def get_and_add_cities():
@@ -26,5 +26,4 @@ def get_and_add_cities():
 
 # run flask app
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
     get_and_add_cities()
