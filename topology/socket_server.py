@@ -93,29 +93,10 @@ class SocketServer:
             # run python script
             host.cmd(f'sudo python3 apps/{container_name}/{container_name}.py > logs/{container_name}.log 2>&1 &')
 
-            '''            # Load the Docker image
-            load_result = host.cmd(f'docker load -i {image_path}')
-            print(f"Docker load result: {load_result}")
-
-            container_full_name = f"{container_name}_{host_name}"
-
-            # Remove any existing container with the same name
-            host.cmd(f'docker rm -f {container_full_name} 2>/dev/null')
-
-            # Run the container with host network (no veth needed)
-            run_cmd = f'docker run -d --name {container_full_name} --network host {container_name}'
-            result = host.cmd(run_cmd)
-            print(f"Docker run result: {result}")'''
-
             # Track running container
             if host_name not in self.running_containers:
                 self.running_containers[host_name] = set()
             self.running_containers[host_name].add(container_name)
-
-            '''# Verify container is running
-            check_cmd = f'docker ps --filter name={container_full_name} --format "table {{{{.Names}}}}\t{{{{.Status}}}}"'
-            status = host.cmd(check_cmd)
-            print(f"Container status: {status}")'''
 
     def stop_container(self, host_name, container_name):
         host = self.net.get(host_name)
