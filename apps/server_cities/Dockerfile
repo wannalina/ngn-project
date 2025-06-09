@@ -6,7 +6,7 @@ WORKDIR /app
 COPY . /app
 
 # install libs
-RUN pip install Flask
+RUN pip install Flask, requests
 
 # expose port
 EXPOSE 6000
