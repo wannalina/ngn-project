@@ -100,7 +100,7 @@ class SocketServer:
             host.cmd(f'docker rm -f {container_full_name} 2>/dev/null')
 
             # Run the container with host network (no veth needed)
-            run_cmd = f'docker run -d --name {container_full_name} --network=host {container_name}'
+            run_cmd = f'docker run -d --name {container_full_name} --rm --network host {container_name}'
             result = host.cmd(run_cmd)
             print(f"Docker run result: {result}")
 
