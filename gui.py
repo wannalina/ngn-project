@@ -386,6 +386,11 @@ class MainWindow(QWidget):
             if item.checkState() == Qt.Checked:
                 dependencies.add(item.text())
         self.containerDependencies[container] = dependencies
+        # Make dependencies bi-directional immediately
+        for dep in dependencies:
+            if dep not in self.containerDependencies:
+                self.containerDependencies[dep] = set()
+            self.containerDependencies[dep].add(container)
         dialog.accept()
 
     def updateHostDropdown(self):
