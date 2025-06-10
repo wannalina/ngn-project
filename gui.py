@@ -238,16 +238,12 @@ class MainWindow(QWidget):
 
     def findContainers(self):
         self.availableContainers = {}
-        current_dir = os.path.dirname(os.path.abspath(__file__)) #this is where current file is located
-        apps_dir = os.path.join(current_dir, "apps") #path to apps
-        for folder in os.listdir(apps_dir):
-            folder_path = os.path.join(apps_dir, folder)
-            if os.path.isdir(folder_path):
-                tar_files = [f for f in os.listdir(folder_path) if f.endswith(".tar")]
-                if tar_files:
-                    self.availableContainers[folder] = os.path.relpath(os.path.join(folder_path, tar_files[0]), current_dir)
-                else:
-                    self.availableContainers[folder] = None
+        current_dir = os.path.dirname(os.path.abspath(__file__))  # this is where current file is located
+        apps_dir = os.path.join(current_dir, "apps")  # path to apps
+        for file in os.listdir(apps_dir):
+            file_path = os.path.join(apps_dir, file)
+            if os.path.isfile(file_path) and file.endswith(".py"):
+                self.availableContainers[file[:-3]] = os.path.relpath(file_path, current_dir)
 
     def updateContainerDropdown(self):
         self.containerDropdown.clear()
