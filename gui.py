@@ -2,6 +2,8 @@ import json
 import sys
 import os
 import time
+import random
+import requests
 
 from flask import request
 from PyQt5.QtWidgets import (
@@ -11,8 +13,6 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 from network import NetworkManager
-import random
-import requests
 
 CONTROLLER_URL = 'http://localhost:8080'
 

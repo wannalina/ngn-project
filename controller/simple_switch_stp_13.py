@@ -321,7 +321,18 @@ class SDNRestController(ControllerBase):
                         self.controller_app.logger.info(f"Deleted flows between {host_del} and {other_host} on switch DPID {dpid}")
             return Response(status=200, body="Flows deleted")
         except Exception as e:
-            return Response(status=500, body=f"Error deleting flows: {e}")    # route to delete all flows from controller upon all containers stopped
+            return Response(status=500, body=f"Error deleting flows: {e}")
+
+    def _hosts_are_dependent(self, host1, host2):
+        """Check if two hosts have any dependency relationship"""
+        for req in self.controller_app.communication_reqs:
+            if req["host"] == host1 and host2 in req["dependencies"]:
+                return True
+            if req["host"] == host2 and host1 in req["dependencies"]:
+                return True
+        return False
+
+    # route to delete all flows from controller upon all containers stopped
     @route('simple_switch', '/delete-all-flows', methods=['POST'])
     def delete_all_flows_route(self, req, **kwargs):
         try:
