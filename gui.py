@@ -456,6 +456,7 @@ class MainWindow(QWidget):
             self.runningContainers[container_id] = {"host": host, "container": container}
             self.add_allowed_communication(host, container)
             self.hostContainerCounts[host] = self.hostContainerCounts.get(host, 0) + 1
+            time.sleep(0.5)
 
         self.updateMonitor()
         self.updateHostDropdown()
