@@ -22,7 +22,7 @@ class MainWindow(QWidget):
         super().__init__()
         self.nm = NetworkManager()
         self.availableContainers = {}  # name (key) + directory
-        self.runningContainers = {}  # container_id (key) + host + container type
+        self.runningContainers = {}  # container_id (key) + host + container, example "server_cities_h1":{"host": "h1", "container": "server_cities"}
         self.hostContainerCounts = {}  # containers per host, hostname(key) + int
         self.containerDependencies = {}  # container dependencies
         self.containers_on_host = []
@@ -228,13 +228,25 @@ class MainWindow(QWidget):
             # Check if the host has reached its container limit
             at_limit = False
             if host:
-                current_count = self.hostContainerCounts.get(host,0) #method sometimes is called before current is initliazied as 0
+                current_count = self.hostContainerCounts.get(host,0)
                 at_limit = current_count >= max_containers
+
+            # Prevent launch if host is running a container that depends on the selected one
+            blocked_by_dependency = False
+            if container and host:
+                hosts_with_dependent = set()
+                for container_id, data in self.runningContainers.items():
+                    running_container = data['container']
+                    if container in self.containerDependencies.get(running_container, set()):
+                        hosts_with_dependent.add(data['host'])
+                if host in hosts_with_dependent:
+                    blocked_by_dependency = True
 
         # Enable the launch button only if:
         # 1. A container is selected
         # 2. The host is not at its container limit
-            self.launchButton.setEnabled(bool(container) and not at_limit)
+        # 3. The host is not blocked by dependency
+            self.launchButton.setEnabled(bool(container) and not at_limit and not blocked_by_dependency)
 
     def findContainers(self):
         self.availableContainers = {}
@@ -397,8 +409,17 @@ class MainWindow(QWidget):
             self.hostDropdown.clear()
             try:
                 max_containers = self.maxContainersBox.value()
+                selected_container = self.containerDropdown.currentText()
+                # Find hosts where a container that depends on the selected one is running
+                hosts_with_dependent = set()
+                if selected_container:
+                    for container_id, data in self.runningContainers.items():
+                        running_container = data['container']
+                        # If running_container depends on selected_container
+                        if selected_container in self.containerDependencies.get(running_container, set()):
+                            hosts_with_dependent.add(data['host'])
                 for host in self.host_list:
-                    if self.hostContainerCounts.get(host, 0) < max_containers:
+                    if self.hostContainerCounts.get(host, 0) < max_containers and host not in hosts_with_dependent:
                         self.hostDropdown.addItem(host)
             except Exception as e:
                 print(f"Error updating host dropdown: {e}")
@@ -415,14 +436,16 @@ class MainWindow(QWidget):
         for container in self.availableContainers.keys():
             if not any(entry["container"] == container for entry in self.runningContainers.values()):
                 available_containers.append(container)
-        
-        #available_hosts = [host.name for host in self.host_list if self.hostContainerCounts.get(host.name, 0) < self.maxContainersBox.value()]
-        #available_containers = [container for container in self.availableContainers.keys() if not any(entry["container"] == container for entry in self.runningContainers.values())]
-        #RANDOM DEPLOYMENT
-        for container in available_containers: 
-            valid_hosts = [h for h in available_hosts #list comprehension
-                        if self.hostContainerCounts.get(h,0) < max_containers]
-        
+
+        # RANDOM DEPLOYMENT with dependency host exclusion
+        for container in available_containers:
+            # Exclude hosts where a container that depends on this container is already running
+            hosts_with_dependent = set()
+            for container_id, data in self.runningContainers.items():
+                running_container = data['container']
+                if container in self.containerDependencies.get(running_container, set()):
+                    hosts_with_dependent.add(data['host'])
+            valid_hosts = [h for h in available_hosts if self.hostContainerCounts.get(h,0) < max_containers and h not in hosts_with_dependent]
             if not valid_hosts:
                 print("All hosts at max capacity")
                 continue
@@ -440,20 +463,9 @@ class MainWindow(QWidget):
         self.checkAutoDeploy()
     
     def checkAutoDeploy(self):
-        available_hosts = [] #ALL CONTAINERS NOT AT MAX
-        max_containers = self.maxContainersBox.value()
-        for host in self.host_list:
-            if self.hostContainerCounts.get(host, 0) < max_containers:
-                available_hosts.append(host)
-        available_containers = [] #ALL CONTAINERS NOT RUNNING
-        for container in self.availableContainers.keys():
-            if not any(entry["container"] == container for entry in self.runningContainers.values()):
-                available_containers.append(container)
-        
-        print("there are available hosts:", bool(available_hosts))
-        print("there are available containers: ",bool(available_containers))
-        self.autoDeployButton.setEnabled(bool(available_hosts) and bool(available_containers))
-
+        can_auto_deploy = not bool(self.runningContainers)
+        print("Can auto deploy (0 active containers):", can_auto_deploy)
+        self.autoDeployButton.setEnabled(can_auto_deploy)
         self.stopAllButton.setEnabled(bool(self.runningContainers))
 
     def confirmDependency(self):
