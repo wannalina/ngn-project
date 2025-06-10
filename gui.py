@@ -4,7 +4,7 @@ import os
 import time
 import random
 import requests
-
+from network import NetworkManager
 from flask import request
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QSpinBox, QGridLayout, QLabel, QPushButton, QVBoxLayout,
@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QListWidgetItem,QDoubleSpinBox
 )
 from PyQt5.QtCore import Qt
-from network import NetworkManager
+
 
 CONTROLLER_URL = 'http://localhost:8080'
 
@@ -318,9 +318,7 @@ class MainWindow(QWidget):
         if container_id in self.runningContainers:
             del self.runningContainers[container_id]
             self.hostContainerCounts[host] = self.hostContainerCounts.get(host) - 1
-            # Only delete flows if no containers are left on this host
-            if self.hostContainerCounts[host] <= 0:
-                self.delete_allowed_communication(host)
+            self.delete_allowed_communication(host) # now deletes all flows from this host
             self.updateContainerDropdown()
             self.updateHostDropdown()
             self.updateMonitor()
