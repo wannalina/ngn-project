@@ -2,7 +2,9 @@ import json
 import sys
 import os
 import time
-
+import random
+import requests
+from network import NetworkManager
 from flask import request
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QSpinBox, QGridLayout, QLabel, QPushButton, QVBoxLayout,
@@ -10,9 +12,7 @@ from PyQt5.QtWidgets import (
     QListWidgetItem,QDoubleSpinBox
 )
 from PyQt5.QtCore import Qt
-from network import NetworkManager
-import random
-import requests
+
 
 CONTROLLER_URL = 'http://localhost:8080'
 
@@ -22,7 +22,7 @@ class MainWindow(QWidget):
         super().__init__()
         self.nm = NetworkManager()
         self.availableContainers = {}  # name (key) + directory
-        self.runningContainers = {}  # container_id (key) + host + container type
+        self.runningContainers = {}  # container_id (key) + host + container, example "server_cities_h1":{"host": "h1", "container": "server_cities"}
         self.hostContainerCounts = {}  # containers per host, hostname(key) + int
         self.containerDependencies = {}  # container dependencies
         self.containers_on_host = []
@@ -34,7 +34,7 @@ class MainWindow(QWidget):
     def initUI(self):
         self.setWindowTitle("CONTAINER DEPLOYMENT")
         #self.setGeometry(100, 100, 550, 650)
-        self.setFixedSize(550,850)
+        self.setFixedSize(700,850)
         
         mainLayout=QVBoxLayout();
         #TOPOLOGY AREA
@@ -106,6 +106,11 @@ class MainWindow(QWidget):
         self.confirmDependencyButton = QPushButton("Confirm Dependencies")
         self.confirmDependencyButton.clicked.connect(self.confirmDependency)
         depenencyLayout.addWidget(self.confirmDependencyButton)
+        # Clear all dependencies button
+        self.clearAllDependenciesButton = QPushButton("Clear All Dependencies")
+        self.clearAllDependenciesButton.setFixedSize(200, 35)
+        self.clearAllDependenciesButton.clicked.connect(self.clear_all_dependencies)
+        depenencyLayout.addWidget(self.clearAllDependenciesButton)
 
         self.dependencyGroupBox.setLayout(depenencyLayout)
         mainLayout.addWidget(self.dependencyGroupBox)
@@ -228,26 +233,34 @@ class MainWindow(QWidget):
             # Check if the host has reached its container limit
             at_limit = False
             if host:
-                current_count = self.hostContainerCounts.get(host,0) #method sometimes is called before current is initliazied as 0
+                current_count = self.hostContainerCounts.get(host,0)
                 at_limit = current_count >= max_containers
+
+            # Prevent launch if host is running a container that depends on the selected one
+            blocked_by_dependency = False
+            if container and host:
+                hosts_with_dependent = set()
+                for container_id, data in self.runningContainers.items():
+                    running_container = data['container']
+                    if container in self.containerDependencies.get(running_container, set()):
+                        hosts_with_dependent.add(data['host'])
+                if host in hosts_with_dependent:
+                    blocked_by_dependency = True
 
         # Enable the launch button only if:
         # 1. A container is selected
         # 2. The host is not at its container limit
-            self.launchButton.setEnabled(bool(container) and not at_limit)
+        # 3. The host is not blocked by dependency
+            self.launchButton.setEnabled(bool(container) and not at_limit and not blocked_by_dependency)
 
     def findContainers(self):
         self.availableContainers = {}
-        current_dir = os.path.dirname(os.path.abspath(__file__)) #this is where current file is located
-        apps_dir = os.path.join(current_dir, "apps") #path to apps
-        for folder in os.listdir(apps_dir):
-            folder_path = os.path.join(apps_dir, folder)
-            if os.path.isdir(folder_path):
-                tar_files = [f for f in os.listdir(folder_path) if f.endswith(".tar")]
-                if tar_files:
-                    self.availableContainers[folder] = os.path.relpath(os.path.join(folder_path, tar_files[0]), current_dir)
-                else:
-                    self.availableContainers[folder] = None
+        current_dir = os.path.dirname(os.path.abspath(__file__))  # this is where current file is located
+        apps_dir = os.path.join(current_dir, "apps")  # path to apps
+        for file in os.listdir(apps_dir):
+            file_path = os.path.join(apps_dir, file)
+            if os.path.isfile(file_path) and file.endswith(".py"):
+                self.availableContainers[file[:-3]] = os.path.relpath(file_path, current_dir)
 
     def updateContainerDropdown(self):
         self.containerDropdown.clear()
@@ -310,9 +323,11 @@ class MainWindow(QWidget):
         if container_id in self.runningContainers:
             del self.runningContainers[container_id]
             self.hostContainerCounts[host] = self.hostContainerCounts.get(host) - 1
-            # Only delete flows if no containers are left on this host
-            if self.hostContainerCounts[host] <= 0:
-                self.delete_allowed_communication(host)
+            self.delete_allowed_communication(host) # now deletes all flows from this host
+            # Re-add allowed communication for all containers still running on this host
+            for cid, data in self.runningContainers.items():
+                if data['host'] == host:
+                    self.add_allowed_communication(host, data['container'])
             self.updateContainerDropdown()
             self.updateHostDropdown()
             self.updateMonitor()
@@ -329,7 +344,7 @@ class MainWindow(QWidget):
 
         container_list = QListWidget()
         #FETCH ALL CONTAINERS
-        all_containers = set(self.availableContainers.keys())
+        all_containers = sorted(self.availableContainers.keys())
         for container in all_containers:
             container_list.addItem(container)
         layout.addWidget(container_list)
@@ -362,7 +377,7 @@ class MainWindow(QWidget):
 
         dependencyList = QListWidget()
         currentDependencies = self.containerDependencies.get(container, {})
-        for cont in self.availableContainers.keys():
+        for cont in sorted(self.availableContainers.keys()):
             if cont != container:
                 item = QListWidgetItem(cont)
                 item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
@@ -373,15 +388,24 @@ class MainWindow(QWidget):
         btnLayout = QHBoxLayout()
         okButton = QPushButton("OK")
         cancelButton = QPushButton("Cancel")
+        clearButton = QPushButton("Clear Dependencies")
+        clearButton.setFixedSize(150, 28)
         btnLayout.addWidget(okButton)
         btnLayout.addWidget(cancelButton)
+        btnLayout.addWidget(clearButton)
         layout.addLayout(btnLayout)
 
         dialog.setLayout(layout)
 
+        clearButton.clicked.connect(lambda: self.clear_dependencies(dependencyList))
         okButton.clicked.connect(lambda: self.saveDependencies(container, dependencyList, dialog))
         cancelButton.clicked.connect(dialog.reject)
         dialog.exec_()
+
+    def clear_dependencies(self, dependencyList):
+        for i in range(dependencyList.count()):
+            item = dependencyList.item(i)
+            item.setCheckState(Qt.Unchecked)
 
     def saveDependencies(self, container, dependencyList, dialog):
         dependencies = set()
@@ -390,14 +414,28 @@ class MainWindow(QWidget):
             if item.checkState() == Qt.Checked:
                 dependencies.add(item.text())
         self.containerDependencies[container] = dependencies
+        # Make dependencies bi-directional immediately
+        for dep in dependencies:
+            if dep not in self.containerDependencies:
+                self.containerDependencies[dep] = set()
+            self.containerDependencies[dep].add(container)
         dialog.accept()
 
     def updateHostDropdown(self):
             self.hostDropdown.clear()
             try:
                 max_containers = self.maxContainersBox.value()
+                selected_container = self.containerDropdown.currentText()
+                # Find hosts where a container that depends on the selected one is running
+                hosts_with_dependent = set()
+                if selected_container:
+                    for container_id, data in self.runningContainers.items():
+                        running_container = data['container']
+                        # If running_container depends on selected_container
+                        if selected_container in self.containerDependencies.get(running_container, set()):
+                            hosts_with_dependent.add(data['host'])
                 for host in self.host_list:
-                    if self.hostContainerCounts.get(host, 0) < max_containers:
+                    if self.hostContainerCounts.get(host, 0) < max_containers and host not in hosts_with_dependent:
                         self.hostDropdown.addItem(host)
             except Exception as e:
                 print(f"Error updating host dropdown: {e}")
@@ -414,14 +452,16 @@ class MainWindow(QWidget):
         for container in self.availableContainers.keys():
             if not any(entry["container"] == container for entry in self.runningContainers.values()):
                 available_containers.append(container)
-        
-        #available_hosts = [host.name for host in self.host_list if self.hostContainerCounts.get(host.name, 0) < self.maxContainersBox.value()]
-        #available_containers = [container for container in self.availableContainers.keys() if not any(entry["container"] == container for entry in self.runningContainers.values())]
-        #RANDOM DEPLOYMENT
-        for container in available_containers: 
-            valid_hosts = [h for h in available_hosts #list comprehension
-                        if self.hostContainerCounts.get(h,0) < max_containers]
-        
+
+        # RANDOM DEPLOYMENT with dependency host exclusion
+        for container in available_containers:
+            # Exclude hosts where a container that depends on this container is already running
+            hosts_with_dependent = set()
+            for container_id, data in self.runningContainers.items():
+                running_container = data['container']
+                if container in self.containerDependencies.get(running_container, set()):
+                    hosts_with_dependent.add(data['host'])
+            valid_hosts = [h for h in available_hosts if self.hostContainerCounts.get(h,0) < max_containers and h not in hosts_with_dependent]
             if not valid_hosts:
                 print("All hosts at max capacity")
                 continue
@@ -432,6 +472,7 @@ class MainWindow(QWidget):
             self.runningContainers[container_id] = {"host": host, "container": container}
             self.add_allowed_communication(host, container)
             self.hostContainerCounts[host] = self.hostContainerCounts.get(host, 0) + 1
+            time.sleep(0.5)
 
         self.updateMonitor()
         self.updateHostDropdown()
@@ -439,20 +480,9 @@ class MainWindow(QWidget):
         self.checkAutoDeploy()
     
     def checkAutoDeploy(self):
-        available_hosts = [] #ALL CONTAINERS NOT AT MAX
-        max_containers = self.maxContainersBox.value()
-        for host in self.host_list:
-            if self.hostContainerCounts.get(host, 0) < max_containers:
-                available_hosts.append(host)
-        available_containers = [] #ALL CONTAINERS NOT RUNNING
-        for container in self.availableContainers.keys():
-            if not any(entry["container"] == container for entry in self.runningContainers.values()):
-                available_containers.append(container)
-        
-        print("there are available hosts:", bool(available_hosts))
-        print("there are available containers: ",bool(available_containers))
-        self.autoDeployButton.setEnabled(bool(available_hosts) and bool(available_containers))
-
+        can_auto_deploy = not bool(self.runningContainers)
+        print("Can auto deploy (0 active containers):", can_auto_deploy)
+        self.autoDeployButton.setEnabled(can_auto_deploy)
         self.stopAllButton.setEnabled(bool(self.runningContainers))
 
     def confirmDependency(self):
@@ -463,32 +493,38 @@ class MainWindow(QWidget):
                 updated_dependencies.setdefault(dep, set()).add(container)
         self.containerDependencies = updated_dependencies
         self.updateEnables()
-
     # function to get host of container
     def get_container_host(self, container):
         try: 
-            for item in self.runningContainers:
-                if ("_".join(item.split("_")[:2])) == container:
-                    container_host = self.runningContainers[item]['host']
-                    return container_host
+            for container_id, data in self.runningContainers.items():
+                if data["container"] == container:
+                    return data["host"]
+            return None
         except Exception as e:
             print(f"Error getting container host: {e}")
-
+            return None    
     # function to get communication requirements between hosts with paired apps
     def get_communication_reqs(self, container):
         communication_reqs = set()
         try:
-            # iterate over all communication requirements (dependencies) for container
-            for req in self.containerDependencies[container]:
-                for item in self.runningContainers:
-                    if ("_".join(item.split("_")[:2])) == req:
-                        container_host = self.runningContainers[item]['host']
-                        communication_reqs.add(container_host)
-                        break
+            # Get dependencies for this container
+            dependencies = self.containerDependencies.get(container, set())
+            print(f"Dependencies for {container}: {dependencies}")
+            
+            # For each dependency, find which host is running it
+            for req_container in dependencies:
+                req_host = self.get_container_host(req_container)
+                if req_host:
+                    communication_reqs.add(req_host)
+                    print(f"Found dependency {req_container} running on host {req_host}")
+                else:
+                    print(f"Dependency {req_container} is not running yet")
+            
+            print(f"Final communication requirements for {container}: {list(communication_reqs)}")
             return list(communication_reqs)
         except Exception as e:
-            print(f'Error getting communication requirements.')
-            return None
+            print(f'Error getting communication requirements: {e}')
+            return []
 
     def get_host_info(self, host):
         try:
@@ -510,14 +546,26 @@ class MainWindow(QWidget):
             response = requests.post(f"{CONTROLLER_URL}/post-hosts", json=hosts_info_list)
             print("Hosts sent to controller successfully.")
         except Exception as e:
-            print(f'Error sending hosts data to controller: {e}')
-
-    # function to send allowed communication rules to controller (called whenever a container is started, gets its dependencies)
+            print(f'Error sending hosts data to controller: {e}')    # function to send allowed communication rules to controller (called whenever a container is started, gets its dependencies)
     def add_allowed_communication(self, host, container):
         try:
             communication_reqs = self.get_communication_reqs(container) #req = requirements
-            if not communication_reqs:
-                print("No communication dependencies found.")
+            
+            # Also check if any running containers depend on this newly started container
+            reverse_deps = []
+            for running_container_id, running_data in self.runningContainers.items():
+                running_container = running_data["container"]
+                if running_container != container:  # Don't check against itself
+                    running_deps = self.containerDependencies.get(running_container, set())
+                    if container in running_deps:
+                        reverse_deps.append(running_data["host"])
+                        print(f"Found reverse dependency: {running_container} on {running_data['host']} depends on {container}")
+            
+            # Combine forward and reverse dependencies
+            all_deps = set(communication_reqs + reverse_deps)
+            
+            if not all_deps:
+                print(f"No communication dependencies found for {container}.")
                 return
 
             host_info = self.nm.get_host_info(host)
@@ -525,7 +573,7 @@ class MainWindow(QWidget):
                 raise ValueError(f"Host info missing or invalid for {host}")
 
             dep_infos = []
-            for dep_host in communication_reqs:
+            for dep_host in all_deps:
                 dep_info = self.nm.get_host_info(dep_host)
                 if not dep_info or "host" not in dep_info:
                     raise ValueError(f"Dependency host info invalid: {dep_host}")
@@ -537,7 +585,18 @@ class MainWindow(QWidget):
             }
 
             response = requests.post(f"{CONTROLLER_URL}/add-communication", json=hosts_communication)
-            print("Allowed communication sent to controller successfully.")
+            print(f"Allowed communication sent to controller successfully for {container} on {host}.")
+            
+            # Also update communication for reverse dependencies
+            for reverse_dep_host in reverse_deps:
+                reverse_host_info = self.nm.get_host_info(reverse_dep_host)
+                if reverse_host_info and "host" in reverse_host_info:
+                    reverse_communication = {
+                        "host": reverse_host_info["host"],
+                        "dependencies": [host_info["host"]]
+                    }
+                    response = requests.post(f"{CONTROLLER_URL}/add-communication", json=reverse_communication)
+                    print(f"Updated reverse communication for {reverse_dep_host} to include {host}.")
 
         except Exception as e:
             print(f"Error sending communication: {e}")
@@ -559,6 +618,10 @@ class MainWindow(QWidget):
 
         except Exception as e:
             print(f"Error deleting communication: {e}")
+
+    def clear_all_dependencies(self):
+        self.containerDependencies = {}
+        print("All dependencies cleared.")
 
 def main():
     app = QApplication(sys.argv)

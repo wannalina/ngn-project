@@ -256,8 +256,11 @@ class SDNRestController(ControllerBase):
             # populate communication_reqs dependencies
             for host in self.controller_app.communication_reqs:
                 if host["host"] == request_body["host"]:
-                    host["dependencies"] = request_body["dependencies"]
-                    self.controller_app.logger.info(f"Updated dependencies for {request_body['host']}: {request_body['dependencies']}")
+                    # extend dependencies instead of overwriting to avoid losing existing ones
+                    for dep in request_body["dependencies"]:
+                        if dep not in host["dependencies"]:
+                            host["dependencies"].append(dep)
+                    self.controller_app.logger.info(f"Updated dependencies for {request_body['host']}: {host['dependencies']}")
 
             return Response(body="Communication requirements added",status=200)
         except Exception as e: 
@@ -281,46 +284,21 @@ class SDNRestController(ControllerBase):
                 if host_del in req["dependencies"]:
                     req["dependencies"].remove(host_del)
 
-            # if host_del is isolated, remove all flows for its MAC
-            if not any(
-                (req["host"] == host_del and req["dependencies"]) or
-                (host_del in req["dependencies"])
-                for req in self.controller_app.communication_reqs
-            ):
-                for dpid, datapath in self.controller_app.datapaths.items():
-                    parser = datapath.ofproto_parser
-                    ofproto = datapath.ofproto
-                    for match in [parser.OFPMatch(eth_src=host_mac), parser.OFPMatch(eth_dst=host_mac)]:
-                        mod = parser.OFPFlowMod(
-                            datapath=datapath,
-                            command=ofproto.OFPFC_DELETE,
-                            out_port=ofproto.OFPP_ANY,
-                            out_group=ofproto.OFPG_ANY,
-                            match=match
-                        )
-                        datapath.send_msg(mod)
-                    self.controller_app.logger.info(f"Deleted all flows for MAC {host_mac} on switch DPID {dpid}")
-                return Response(status=200, body="Flows deleted")
-
-            # else, only remove flows between host_del and hosts with no remaining dependency
-            for other_host, other_info in self.controller_app.hosts_info.items():
-                if other_host == host_del:
-                    continue
-                if not self._hosts_are_dependent(host_del, other_host):
-                    mac2 = other_info["mac"]
-                    for dpid, datapath in self.controller_app.datapaths.items():
-                        parser = datapath.ofproto_parser
-                        ofproto = datapath.ofproto
-                        for match in [parser.OFPMatch(eth_src=host_mac, eth_dst=mac2), parser.OFPMatch(eth_src=mac2, eth_dst=host_mac)]:
-                            mod = parser.OFPFlowMod(
-                                datapath=datapath,
-                                command=ofproto.OFPFC_DELETE,
-                                out_port=ofproto.OFPP_ANY,
-                                out_group=ofproto.OFPG_ANY,
-                                match=match
-                            )
-                            datapath.send_msg(mod)
-                        self.controller_app.logger.info(f"Deleted flows between {host_del} and {other_host} on switch DPID {dpid}")
+            # delete ALL flows for this host's MAC - packet-in will rebuild what's needed
+            for dpid, datapath in self.controller_app.datapaths.items():
+                parser = datapath.ofproto_parser
+                ofproto = datapath.ofproto
+                for match in [parser.OFPMatch(eth_src=host_mac), parser.OFPMatch(eth_dst=host_mac)]:                    
+                    mod = parser.OFPFlowMod(
+                        datapath=datapath,
+                        command=ofproto.OFPFC_DELETE,
+                        out_port=ofproto.OFPP_ANY,
+                        out_group=ofproto.OFPG_ANY,
+                        match=match
+                    )
+                    datapath.send_msg(mod)
+                self.controller_app.logger.info(f"Deleted all flows for MAC {host_mac} on switch DPID {dpid}")
+            
             return Response(status=200, body="Flows deleted")
         except Exception as e:
             return Response(status=500, body=f"Error deleting flows: {e}")

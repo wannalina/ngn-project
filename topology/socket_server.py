@@ -91,7 +91,7 @@ class SocketServer:
             print(f"Starting application {container_name} on host {host_name}")
 
             # run python script
-            host.cmd(f'sudo python3 apps/{container_name}/{container_name}.py > logs/{container_name}.log 2>&1 &')
+            host.cmd(f'sudo python3 apps/{container_name}.py > logs/{container_name}.log 2>&1 &')
 
             # Track running container
             if host_name not in self.running_containers:
