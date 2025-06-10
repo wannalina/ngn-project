@@ -300,9 +300,7 @@ class SDNRestController(ControllerBase):
                         )
                         datapath.send_msg(mod)
                     self.controller_app.logger.info(f"Deleted all flows for MAC {host_mac} on switch DPID {dpid}")
-                return Response(status=200, body="Flows deleted")
-
-            # else, only remove flows between host_del and hosts with no remaining dependency
+                return Response(status=200, body="Flows deleted")            # else, only remove flows between host_del and hosts with no remaining dependency
             for other_host, other_info in self.controller_app.hosts_info.items():
                 if other_host == host_del:
                     continue
@@ -323,9 +321,7 @@ class SDNRestController(ControllerBase):
                         self.controller_app.logger.info(f"Deleted flows between {host_del} and {other_host} on switch DPID {dpid}")
             return Response(status=200, body="Flows deleted")
         except Exception as e:
-            return Response(status=500, body=f"Error deleting flows: {e}")
-
-    # route to delete all flows from controller upon all containers stopped
+            return Response(status=500, body=f"Error deleting flows: {e}")    # route to delete all flows from controller upon all containers stopped
     @route('simple_switch', '/delete-all-flows', methods=['POST'])
     def delete_all_flows_route(self, req, **kwargs):
         try:

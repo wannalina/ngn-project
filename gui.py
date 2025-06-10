@@ -476,32 +476,38 @@ class MainWindow(QWidget):
                 updated_dependencies.setdefault(dep, set()).add(container)
         self.containerDependencies = updated_dependencies
         self.updateEnables()
-
     # function to get host of container
     def get_container_host(self, container):
         try: 
-            for item in self.runningContainers:
-                if ("_".join(item.split("_")[:2])) == container:
-                    container_host = self.runningContainers[item]['host']
-                    return container_host
+            for container_id, data in self.runningContainers.items():
+                if data["container"] == container:
+                    return data["host"]
+            return None
         except Exception as e:
             print(f"Error getting container host: {e}")
-
+            return None    
     # function to get communication requirements between hosts with paired apps
     def get_communication_reqs(self, container):
         communication_reqs = set()
         try:
-            # iterate over all communication requirements (dependencies) for container
-            for req in self.containerDependencies[container]:
-                for item in self.runningContainers:
-                    if ("_".join(item.split("_")[:2])) == req:
-                        container_host = self.runningContainers[item]['host']
-                        communication_reqs.add(container_host)
-                        break
+            # Get dependencies for this container
+            dependencies = self.containerDependencies.get(container, set())
+            print(f"Dependencies for {container}: {dependencies}")
+            
+            # For each dependency, find which host is running it
+            for req_container in dependencies:
+                req_host = self.get_container_host(req_container)
+                if req_host:
+                    communication_reqs.add(req_host)
+                    print(f"Found dependency {req_container} running on host {req_host}")
+                else:
+                    print(f"Dependency {req_container} is not running yet")
+            
+            print(f"Final communication requirements for {container}: {list(communication_reqs)}")
             return list(communication_reqs)
         except Exception as e:
-            print(f'Error getting communication requirements.')
-            return None
+            print(f'Error getting communication requirements: {e}')
+            return []
 
     def get_host_info(self, host):
         try:
@@ -523,14 +529,26 @@ class MainWindow(QWidget):
             response = requests.post(f"{CONTROLLER_URL}/post-hosts", json=hosts_info_list)
             print("Hosts sent to controller successfully.")
         except Exception as e:
-            print(f'Error sending hosts data to controller: {e}')
-
-    # function to send allowed communication rules to controller (called whenever a container is started, gets its dependencies)
+            print(f'Error sending hosts data to controller: {e}')    # function to send allowed communication rules to controller (called whenever a container is started, gets its dependencies)
     def add_allowed_communication(self, host, container):
         try:
             communication_reqs = self.get_communication_reqs(container) #req = requirements
-            if not communication_reqs:
-                print("No communication dependencies found.")
+            
+            # Also check if any running containers depend on this newly started container
+            reverse_deps = []
+            for running_container_id, running_data in self.runningContainers.items():
+                running_container = running_data["container"]
+                if running_container != container:  # Don't check against itself
+                    running_deps = self.containerDependencies.get(running_container, set())
+                    if container in running_deps:
+                        reverse_deps.append(running_data["host"])
+                        print(f"Found reverse dependency: {running_container} on {running_data['host']} depends on {container}")
+            
+            # Combine forward and reverse dependencies
+            all_deps = set(communication_reqs + reverse_deps)
+            
+            if not all_deps:
+                print(f"No communication dependencies found for {container}.")
                 return
 
             host_info = self.nm.get_host_info(host)
@@ -538,7 +556,7 @@ class MainWindow(QWidget):
                 raise ValueError(f"Host info missing or invalid for {host}")
 
             dep_infos = []
-            for dep_host in communication_reqs:
+            for dep_host in all_deps:
                 dep_info = self.nm.get_host_info(dep_host)
                 if not dep_info or "host" not in dep_info:
                     raise ValueError(f"Dependency host info invalid: {dep_host}")
@@ -550,7 +568,18 @@ class MainWindow(QWidget):
             }
 
             response = requests.post(f"{CONTROLLER_URL}/add-communication", json=hosts_communication)
-            print("Allowed communication sent to controller successfully.")
+            print(f"Allowed communication sent to controller successfully for {container} on {host}.")
+            
+            # Also update communication for reverse dependencies
+            for reverse_dep_host in reverse_deps:
+                reverse_host_info = self.nm.get_host_info(reverse_dep_host)
+                if reverse_host_info and "host" in reverse_host_info:
+                    reverse_communication = {
+                        "host": reverse_host_info["host"],
+                        "dependencies": [host_info["host"]]
+                    }
+                    response = requests.post(f"{CONTROLLER_URL}/add-communication", json=reverse_communication)
+                    print(f"Updated reverse communication for {reverse_dep_host} to include {host}.")
 
         except Exception as e:
             print(f"Error sending communication: {e}")
