@@ -10,7 +10,7 @@ ITALIAN_ACTORS = [
     ('Luca Marinelli')
 ]
 
-@app.route('/get-italian-actors', methods=['GET'])
+@app.route('/get-actors', methods=['GET'])
 def get_italian_actors():
     try:
         return jsonify({'message': ITALIAN_ACTORS, 'status_code': 200})

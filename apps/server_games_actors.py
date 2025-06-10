@@ -6,13 +6,13 @@ app = Flask(__name__)
 @app.route('/get-all', methods=['GET'])
 def get_all():
     try:
-        ita_host = request.args.get('ita_host')
-        fin_host = request.args.get('fin_host')
+        act_host = request.args.get('act_host')
+        game_host = request.args.get('game_host')
 
-        italian_actors_response = requests.get(f'http://10.0.0.{ita_host}:6001/get-italian-actors')
+        italian_actors_response = requests.get(f'http://10.0.0.{act_host}:6001/get-actors')
         italian_actors = italian_actors_response.json().get("message")
 
-        finnish_games_response = requests.get(f'http://10.0.0.{fin_host}:6002/get-finnish-games')
+        finnish_games_response = requests.get(f'http://10.0.0.{game_host}:6002/get-games')
         finnish_games = finnish_games_response.json().get("message")
 
         combined_data = {

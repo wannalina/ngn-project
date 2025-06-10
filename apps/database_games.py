@@ -9,7 +9,7 @@ FINNISH_GAMES = [
     'Alan Wake'
 ]
 
-@app.route('/get-finnish-games', methods=['GET'])
+@app.route('/get-games', methods=['GET'])
 def get_finnish_games():
     try:
         return jsonify({'message': FINNISH_GAMES, 'status_code': 200})

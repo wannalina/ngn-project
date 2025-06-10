@@ -1,10 +1,10 @@
 APP 1: Cities
-http://<server_ip>:5001/get_cities?host=<Num_host>
+http://<server_ip>:5000/get-cities?host=<Num_host>
 
 ---
 
 APP 2: Games-Actors
-http://<server_ip>:5001/get-all?ita_host=<ita_num>&fin_host=<fin_num>
+http://<server_ip>:5001/get-all?act_host=<num>&game_host=<num>
 
 ---
 

@@ -34,7 +34,7 @@ class MainWindow(QWidget):
     def initUI(self):
         self.setWindowTitle("CONTAINER DEPLOYMENT")
         #self.setGeometry(100, 100, 550, 650)
-        self.setFixedSize(550,850)
+        self.setFixedSize(700,850)
         
         mainLayout=QVBoxLayout();
         #TOPOLOGY AREA
@@ -106,6 +106,11 @@ class MainWindow(QWidget):
         self.confirmDependencyButton = QPushButton("Confirm Dependencies")
         self.confirmDependencyButton.clicked.connect(self.confirmDependency)
         depenencyLayout.addWidget(self.confirmDependencyButton)
+        # Clear all dependencies button
+        self.clearAllDependenciesButton = QPushButton("Clear All Dependencies")
+        self.clearAllDependenciesButton.setFixedSize(200, 35)
+        self.clearAllDependenciesButton.clicked.connect(self.clear_all_dependencies)
+        depenencyLayout.addWidget(self.clearAllDependenciesButton)
 
         self.dependencyGroupBox.setLayout(depenencyLayout)
         mainLayout.addWidget(self.dependencyGroupBox)
@@ -339,7 +344,7 @@ class MainWindow(QWidget):
 
         container_list = QListWidget()
         #FETCH ALL CONTAINERS
-        all_containers = set(self.availableContainers.keys())
+        all_containers = sorted(self.availableContainers.keys())
         for container in all_containers:
             container_list.addItem(container)
         layout.addWidget(container_list)
@@ -372,7 +377,7 @@ class MainWindow(QWidget):
 
         dependencyList = QListWidget()
         currentDependencies = self.containerDependencies.get(container, {})
-        for cont in self.availableContainers.keys():
+        for cont in sorted(self.availableContainers.keys()):
             if cont != container:
                 item = QListWidgetItem(cont)
                 item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
@@ -383,15 +388,24 @@ class MainWindow(QWidget):
         btnLayout = QHBoxLayout()
         okButton = QPushButton("OK")
         cancelButton = QPushButton("Cancel")
+        clearButton = QPushButton("Clear Dependencies")
+        clearButton.setFixedSize(150, 28)
         btnLayout.addWidget(okButton)
         btnLayout.addWidget(cancelButton)
+        btnLayout.addWidget(clearButton)
         layout.addLayout(btnLayout)
 
         dialog.setLayout(layout)
 
+        clearButton.clicked.connect(lambda: self.clear_dependencies(dependencyList))
         okButton.clicked.connect(lambda: self.saveDependencies(container, dependencyList, dialog))
         cancelButton.clicked.connect(dialog.reject)
         dialog.exec_()
+
+    def clear_dependencies(self, dependencyList):
+        for i in range(dependencyList.count()):
+            item = dependencyList.item(i)
+            item.setCheckState(Qt.Unchecked)
 
     def saveDependencies(self, container, dependencyList, dialog):
         dependencies = set()
@@ -604,6 +618,10 @@ class MainWindow(QWidget):
 
         except Exception as e:
             print(f"Error deleting communication: {e}")
+
+    def clear_all_dependencies(self):
+        self.containerDependencies = {}
+        print("All dependencies cleared.")
 
 def main():
     app = QApplication(sys.argv)
