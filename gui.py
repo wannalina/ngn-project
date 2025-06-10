@@ -319,6 +319,10 @@ class MainWindow(QWidget):
             del self.runningContainers[container_id]
             self.hostContainerCounts[host] = self.hostContainerCounts.get(host) - 1
             self.delete_allowed_communication(host) # now deletes all flows from this host
+            # Re-add allowed communication for all containers still running on this host
+            for cid, data in self.runningContainers.items():
+                if data['host'] == host:
+                    self.add_allowed_communication(host, data['container'])
             self.updateContainerDropdown()
             self.updateHostDropdown()
             self.updateMonitor()
