@@ -256,8 +256,11 @@ class SDNRestController(ControllerBase):
             # populate communication_reqs dependencies
             for host in self.controller_app.communication_reqs:
                 if host["host"] == request_body["host"]:
-                    host["dependencies"] = request_body["dependencies"]
-                    self.controller_app.logger.info(f"Updated dependencies for {request_body['host']}: {request_body['dependencies']}")
+                    # extend dependencies instead of overwriting to avoid losing existing ones
+                    for dep in request_body["dependencies"]:
+                        if dep not in host["dependencies"]:
+                            host["dependencies"].append(dep)
+                    self.controller_app.logger.info(f"Updated dependencies for {request_body['host']}: {host['dependencies']}")
 
             return Response(body="Communication requirements added",status=200)
         except Exception as e: 
