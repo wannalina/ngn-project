@@ -1,22 +1,26 @@
-# ngn-project
-Next Generation Networks course project on the automatic deployment of containers
+# Next Generation Networks Project
+SDN network allowing traffic only between selected hosts and services
 
 
-COMMANDS THAT YOU MIGHT NEED:
+## 1. Install dependencies
 
-1. Run application: `sudo python3 gui.py`
+Open a terminal in the project directory and run:
 
-2. Docker
-    2.1. Build all images: `bash build_images.sh`
-    2.2. Build single image: `docker build -t image_name .`
-    2.3. Save .tar file of the image: `docker save image_name -o image_name.tar`
-    2.4. Load Docker image: `docker load -i image_name.tar`
-    2.5. Run Docker container: `docker run -d --name image_name --net=host image_name`
-    2.6. Check status of existing containers: `docker ps -a`
-    2.7. Check logs of a running Docker container: `docker logs -f container_name`
-    2.8. Stop a running container: `docker stop container_name`
-    2.9. Remove a container: `docker rm container_name`
-    2.10. List all created images in registry: `docker images`
-    2.11. Remove a Docker image from registry: `docker rmi image_name`
+    pip install -r requirements.txt
 
-3. See the output of the server_cities.py: `curl http://localhsot:5000/cities`
+## 2. Run the GUI
+
+    sudo python3 gui.py
+
+## 3. Applications
+
+Before runninng the apps, you should set the adequate dependencies.
+When you have run the desired apps, you can open the terminal's xterm window by the mininet console.
+There you can use the curl command to query the application.
+
+### example 
+`curl http://10.0.0.1:5000/get-cities?host=2`
+
+if we're trying to connect to the application running on host 1 to query the application running on host 2
+
+See `commands.txt` for the complete list of endpoints

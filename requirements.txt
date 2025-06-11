@@ -1,5 +1,3 @@
-docker
-postgresql
 flask
 PyQt5
 python-dotenv
