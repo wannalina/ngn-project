@@ -392,24 +392,15 @@ class MainWindow(QWidget):
         btnLayout = QHBoxLayout()
         okButton = QPushButton("OK")
         cancelButton = QPushButton("Cancel")
-        clearButton = QPushButton("Clear Dependencies")
-        clearButton.setFixedSize(150, 28)
         btnLayout.addWidget(okButton)
         btnLayout.addWidget(cancelButton)
-        btnLayout.addWidget(clearButton)
         layout.addLayout(btnLayout)
 
         dialog.setLayout(layout)
 
-        clearButton.clicked.connect(lambda: self.clear_dependencies(dependencyList))
         okButton.clicked.connect(lambda: self.saveDependencies(container, dependencyList, dialog))
         cancelButton.clicked.connect(dialog.reject)
         dialog.exec_()
-
-    def clear_dependencies(self, dependencyList):
-        for i in range(dependencyList.count()):
-            item = dependencyList.item(i)
-            item.setCheckState(Qt.Unchecked)
 
     def saveDependencies(self, container, dependencyList, dialog):
         dependencies = set()
