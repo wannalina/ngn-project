@@ -48,6 +48,7 @@ class MainWindow(QWidget):
         switchesLayout = QHBoxLayout()
         self.switchesBox = QSpinBox()
         self.switchesBox.setRange(1,10)
+        self.switchesBox.setValue(3)
         switchesLayout.addWidget(QLabel("Switches: "))
         switchesLayout.addWidget(self.switchesBox)
         switchesLayout.setContentsMargins(5, 0, 5, 0)
@@ -56,6 +57,7 @@ class MainWindow(QWidget):
         hostsLayout = QHBoxLayout()
         self.hostsBox = QSpinBox()
         self.hostsBox.setRange(1,20)
+        self.hostsBox.setValue(4)
         hostsLayout.addWidget(QLabel("Hosts: "))
         hostsLayout.addWidget(self.hostsBox)
         hostsLayout.setContentsMargins(5, 0, 5, 0)
@@ -102,15 +104,15 @@ class MainWindow(QWidget):
         self.dependencyButton = QPushButton("Select Dependencies")
         self.dependencyButton.clicked.connect(self.openDependencyDialog)
         depenencyLayout.addWidget(self.dependencyButton)
-        #Confirm dependencies
-        self.confirmDependencyButton = QPushButton("Confirm Dependencies")
-        self.confirmDependencyButton.clicked.connect(self.confirmDependency)
-        depenencyLayout.addWidget(self.confirmDependencyButton)
         # Clear all dependencies button
         self.clearAllDependenciesButton = QPushButton("Clear All Dependencies")
         self.clearAllDependenciesButton.setFixedSize(200, 35)
         self.clearAllDependenciesButton.clicked.connect(self.clear_all_dependencies)
         depenencyLayout.addWidget(self.clearAllDependenciesButton)
+        # Confirm dependencies
+        self.confirmDependencyButton = QPushButton("Confirm Dependencies")
+        self.confirmDependencyButton.clicked.connect(self.confirmDependency)
+        depenencyLayout.addWidget(self.confirmDependencyButton)
 
         self.dependencyGroupBox.setLayout(depenencyLayout)
         mainLayout.addWidget(self.dependencyGroupBox)
@@ -300,9 +302,11 @@ class MainWindow(QWidget):
         for container_id, data in self.runningContainers.items():
             container_frame = QFrame()
             container_frame.setFrameShape(QFrame.StyledPanel)
+            container_frame.setMinimumHeight(70)
             container_layout = QHBoxLayout()
-            container_frame.setFixedSize(478, 60)
+            container_frame.setSizePolicy(QLabel().sizePolicy().Expanding, QLabel().sizePolicy().Fixed)
             label = QLabel(f"Host: {data['host']} | Container: {data['container']}")
+            label.setSizePolicy(label.sizePolicy().Expanding, label.sizePolicy().Fixed)
             stop_button = QPushButton("KILL")
             stop_button.setFixedSize(70, 25)
             stop_button.clicked.connect(lambda checked=False, host=data['host'], container=data['container']: self.stop_container(host, container))
