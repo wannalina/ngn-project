@@ -227,9 +227,10 @@ class SDNRestController(ControllerBase):
 
             for host in request_body:
                 host_name = host['host']
+                # Use base 16 for DPID conversion (hexadecimal)
                 self.controller_app.hosts_info[host_name] = {
                     'mac': host['host_mac'],
-                    'dpid': int(host['dpid'])
+                    'dpid': int(host['dpid'], 16)
                 }
 
                 host_for_mac_list = {
